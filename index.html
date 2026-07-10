@@ -5,39 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#1A1A2E"/>
 <title>Thiên Ân OKR</title>
-<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Thiên Ân OKR&quot;,&quot;short_name&quot;:&quot;OKR&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;theme_color&quot;:&quot;%231A1A2E&quot;}"/>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-height: 100vh; }
-
-/* HEADER */
 .header { background: linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%); color:#fff; padding: 16px 16px 12px; position: sticky; top: 0; z-index: 50; }
 .header-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.header-logo { font-size:24px; }
-.header-title { flex:1; }
 .header-title h1 { font-size:15px; font-weight:800; }
 .header-title p { font-size:11px; color:#D4AF37; font-weight:600; }
-.quarter-select { background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(212,175,55,0.5); border-radius:8px; padding:5px 8px; font-size:12px; font-weight:700; }
+.quarter-select { background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(212,175,55,0.5); border-radius:8px; padding:5px 8px; font-size:12px; font-weight:700; margin-left:auto; }
 .quarter-select option { color:#000; }
 .user-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.user-avatar { width:26px; height:26px; border-radius:50%; border:2px solid #D4AF37; object-fit:cover; }
-.user-name { font-size:12px; color:#ddd; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-name { font-size:12px; color:#ddd; flex:1; }
 .btn-sm { border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; }
 .btn-admin { background:#D4AF37; color:#1A1A2E; }
 .btn-logout { background:rgba(255,255,255,0.15); color:#fff; }
 .nav { display:flex; gap:6px; }
-.nav-btn { border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.nav-btn { border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; }
 .nav-btn.active { background:#D4AF37; color:#1A1A2E; }
 .nav-btn:not(.active) { background:rgba(255,255,255,0.1); color:#fff; }
-
-/* MAIN */
 .main { padding:14px; max-width:700px; margin:0 auto; }
-
-/* CARDS */
 .card { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin-bottom:14px; overflow:hidden; }
 .card-pad { padding:18px; }
-
-/* GLOBAL SCORE */
 .global-card { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .score-label { font-size:12px; color:#888; font-weight:600; margin-bottom:2px; }
 .score-value { font-size:28px; font-weight:800; }
@@ -46,11 +34,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 .stat-item { text-align:center; }
 .stat-num { font-size:20px; font-weight:800; }
 .stat-lbl { font-size:10px; color:#888; }
-
-/* OBJ GRID */
 .obj-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
 .obj-card { background:#fff; border-radius:14px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.07); border:2px solid transparent; transition:border-color 0.2s; }
-.obj-card:hover, .obj-card:active { border-color:#D4AF37; }
+.obj-card:active { border-color:#D4AF37; }
 .obj-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .obj-icon { font-size:20px; }
 .obj-id { font-size:10px; color:#888; font-weight:700; }
@@ -58,23 +44,17 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 .progress-bar-wrap { background:#F0F0F0; border-radius:6px; height:7px; margin-bottom:8px; }
 .progress-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
 .obj-footer { display:flex; justify-content:space-between; font-size:12px; }
-.obj-pct { font-weight:800; }
 .kr-dots { display:flex; gap:3px; margin-top:8px; flex-wrap:wrap; }
 .kr-dot { width:10px; height:10px; border-radius:3px; }
-
-/* DETAIL */
 .obj-detail-header { background:linear-gradient(135deg,#1A1A2E,#16213E); padding:14px 18px; display:flex; align-items:center; gap:10px; }
 .obj-detail-icon { font-size:20px; }
 .obj-detail-info { flex:1; }
 .obj-detail-id { font-size:11px; color:#D4AF37; font-weight:700; }
 .obj-detail-title { font-size:14px; font-weight:700; color:#fff; }
 .obj-detail-score { font-size:22px; font-weight:800; }
-
 .filter-bar { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-.filter-btn { border:2px solid #E5E7EB; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:#fff; color:#555; transition:all 0.15s; }
+.filter-btn { border:2px solid #E5E7EB; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:#fff; color:#555; }
 .filter-btn.active { background:#1A1A2E; color:#fff; border-color:#1A1A2E; }
-
-/* KR ROW */
 .kr-row { padding:14px 18px; border-bottom:1px solid #F5F5F5; }
 .kr-row:last-child { border-bottom:none; }
 .kr-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
@@ -87,17 +67,13 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 .kr-pct { font-size:11px; font-weight:700; width:32px; text-align:right; }
 .kr-bottom { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .kr-target { font-size:11px; color:#888; }
-.kr-actual-btn { border-radius:8px; padding:6px 14px; font-size:13px; font-weight:800; cursor:pointer; border-width:2px; border-style:solid; transition:all 0.15s; }
+.kr-actual-btn { border-radius:8px; padding:6px 14px; font-size:13px; font-weight:800; cursor:pointer; border-width:2px; border-style:solid; }
 .kr-actual-btn:disabled { opacity:0.5; cursor:not-allowed; }
 .status-badge { border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700; white-space:nowrap; margin-left:auto; }
-
-/* EDIT INLINE */
 .edit-wrap { display:flex; align-items:center; gap:6px; }
 .edit-input { width:72px; border:2px solid #D4AF37; border-radius:6px; padding:5px 8px; font-size:13px; font-weight:700; outline:none; }
 .btn-confirm { background:#27AE60; color:#fff; border:none; border-radius:6px; padding:5px 10px; font-size:13px; cursor:pointer; font-weight:700; }
 .btn-cancel { background:#eee; color:#555; border:none; border-radius:6px; padding:5px 8px; font-size:13px; cursor:pointer; }
-
-/* ADMIN MODAL */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; }
 .modal { background:#fff; border-radius:16px; width:100%; max-width:500px; max-height:80vh; overflow:auto; }
 .modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #eee; }
@@ -107,41 +83,40 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 .user-info-name { font-size:13px; font-weight:700; }
 .user-info-email { font-size:11px; color:#888; }
 .role-select { border:2px solid #D4AF37; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:600; color:#1A1A2E; background:#FFFDF0; cursor:pointer; }
-
-/* LOGIN */
 .login-screen { min-height:100vh; background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%); display:flex; align-items:center; justify-content:center; padding:20px; }
 .login-card { background:#fff; border-radius:20px; padding:40px 32px; text-align:center; max-width:340px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
 .login-logo { font-size:48px; margin-bottom:8px; }
 .login-title { font-size:20px; font-weight:800; color:#1A1A2E; margin-bottom:4px; }
-.login-sub { font-size:12px; color:#D4AF37; font-weight:700; letter-spacing:1px; margin-bottom:28px; }
-.btn-google { width:100%; background:#1A1A2E; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
-.login-note { margin-top:16px; font-size:11px; color:#aaa; }
-
-/* PENDING */
-.pending-notice { background:#FEF9E7; border-left:4px solid #E67E22; padding:14px 18px; font-size:13px; color:#7D6608; }
-
-/* LOADING */
+.login-sub { font-size:12px; color:#D4AF37; font-weight:700; letter-spacing:1px; margin-bottom:24px; }
+.login-input { width:100%; border:2px solid #E5E7EB; border-radius:10px; padding:12px 16px; font-size:14px; outline:none; margin-bottom:10px; text-align:left; }
+.login-input:focus { border-color:#D4AF37; }
+.btn-login { width:100%; background:#1A1A2E; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
+.login-error { color:#E74C3C; font-size:12px; margin-top:8px; }
 .loading { min-height:100vh; background:#1A1A2E; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
 .loading-icon { font-size:44px; }
 .loading-text { color:#D4AF37; font-size:15px; font-weight:700; }
-
 .footer { text-align:center; color:#bbb; font-size:10px; padding:14px 0 24px; }
 </style>
 </head>
 <body>
-
 <div id="app"></div>
-
 <script>
 // ============================================================
-// CONFIG — Thay API_URL sau khi deploy Apps Script
+// CONFIG
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxYfXSSOdTmTEv2iJxSXlt5jg4YWQze7SO_d8a_d6gLQhK79UuGMuFhTQ3SS6MknpL2UA/exec";
-const ADMIN_EMAILS = ["josngoccuong1@gmail.com"];
 
-// ============================================================
-// OKR DATA
-// ============================================================
+// Tài khoản đăng nhập — Thầy có thể đổi mật khẩu ở đây
+const USERS = [
+  { username:"cuong",     password:"thienan2025", name:"Thầy Ngọc Cương",  role:"admin",     isAdmin:true },
+  { username:"piano",     password:"piano2025",   name:"GV Piano",          role:"piano",     isAdmin:false },
+  { username:"guitar",    password:"guitar2025",  name:"GV Guitar",         role:"guitar",    isAdmin:false },
+  { username:"vocal",     password:"vocal2025",   name:"GV Thanh Nhạc",     role:"vocal",     isAdmin:false },
+  { username:"dance",     password:"dance2025",   name:"GV Nhảy",           role:"dance",     isAdmin:false },
+  { username:"recording", password:"record2025",  name:"GV Thu Âm",         role:"recording", isAdmin:false },
+  { username:"marketing", password:"mkt2025",     name:"Marketing",         role:"marketing", isAdmin:false },
+];
+
 const OBJECTIVES = [
   { id:"O1", icon:"🎓", title:"Tăng trưởng số lượng học viên", krs:[
     { id:"O1K1", text:"Tuyển mới học viên Piano",      unit:"học viên", target:15, ownerRole:"piano" },
@@ -151,10 +126,10 @@ const OBJECTIVES = [
     { id:"O1K5", text:"Tuyển mới học viên Thu Âm",     unit:"học viên", target:5,  ownerRole:"recording" },
   ]},
   { id:"O2", icon:"🎵", title:"Nâng cao chất lượng giảng dạy", krs:[
-    { id:"O2K1", text:"Tỷ lệ học viên hoàn thành khóa học",    unit:"%",      target:85,  ownerRole:"admin" },
-    { id:"O2K2", text:"Học viên thi chứng chỉ AMEB/ABRSM",     unit:"người",  target:5,   ownerRole:"piano" },
-    { id:"O2K3", text:"Điểm hài lòng phụ huynh (khảo sát)",    unit:"/10",    target:8.5, ownerRole:"admin" },
-    { id:"O2K4", text:"Hoàn thiện giáo trình Piano 9 năm",      unit:"%",      target:100, ownerRole:"piano" },
+    { id:"O2K1", text:"Tỷ lệ học viên hoàn thành khóa học",    unit:"%",     target:85,  ownerRole:"admin" },
+    { id:"O2K2", text:"Học viên thi chứng chỉ AMEB/ABRSM",     unit:"người", target:5,   ownerRole:"piano" },
+    { id:"O2K3", text:"Điểm hài lòng phụ huynh (khảo sát)",    unit:"/10",   target:8.5, ownerRole:"admin" },
+    { id:"O2K4", text:"Hoàn thiện giáo trình Piano 9 năm",      unit:"%",     target:100, ownerRole:"piano" },
   ]},
   { id:"O3", icon:"📱", title:"Xây dựng thương hiệu Thiên Ân online", krs:[
     { id:"O3K1", text:"Followers fanpage Facebook",  unit:"followers", target:2000,  ownerRole:"marketing" },
@@ -163,14 +138,14 @@ const OBJECTIVES = [
     { id:"O3K4", text:"Views kênh YouTube Thiên Ân", unit:"views",     target:10000, ownerRole:"piano" },
   ]},
   { id:"O4", icon:"💰", title:"Đạt doanh thu mục tiêu quý", krs:[
-    { id:"O4K1", text:"Doanh thu học phí (2 cơ sở)",       unit:"triệu VND", target:180, ownerRole:"admin" },
-    { id:"O4K2", text:"Doanh thu bán piano/guitar",         unit:"triệu VND", target:50,  ownerRole:"admin" },
-    { id:"O4K3", text:"Doanh thu sự kiện / biểu diễn",     unit:"triệu VND", target:30,  ownerRole:"admin" },
+    { id:"O4K1", text:"Doanh thu học phí (2 cơ sở)",   unit:"triệu VND", target:180, ownerRole:"admin" },
+    { id:"O4K2", text:"Doanh thu bán piano/guitar",     unit:"triệu VND", target:50,  ownerRole:"admin" },
+    { id:"O4K3", text:"Doanh thu sự kiện / biểu diễn", unit:"triệu VND", target:30,  ownerRole:"admin" },
   ]},
   { id:"O5", icon:"👨‍🏫", title:"Phát triển năng lực đội ngũ giảng viên", krs:[
-    { id:"O5K1", text:"Số buổi họp chuyên môn / tháng",           unit:"buổi",       target:3,   ownerRole:"admin" },
-    { id:"O5K2", text:"GV Piano hoàn thành kiểm tra kỹ thuật",    unit:"%",          target:100, ownerRole:"piano" },
-    { id:"O5K3", text:"Chứng chỉ bồi dưỡng GV đạt được",         unit:"chứng chỉ",  target:4,   ownerRole:"admin" },
+    { id:"O5K1", text:"Số buổi họp chuyên môn / tháng",        unit:"buổi",      target:3,   ownerRole:"admin" },
+    { id:"O5K2", text:"GV Piano hoàn thành kiểm tra kỹ thuật", unit:"%",         target:100, ownerRole:"piano" },
+    { id:"O5K3", text:"Chứng chỉ bồi dưỡng GV đạt được",      unit:"chứng chỉ", target:4,   ownerRole:"admin" },
   ]},
 ];
 
@@ -186,206 +161,89 @@ const ROLES = [
 
 const QUARTERS = ["Q3/2025","Q4/2025","Q1/2026","Q2/2026"];
 
-// ============================================================
 // STATE
-// ============================================================
 let state = {
-  screen: "loading",   // loading | login | app
-  user: null,          // { email, name, picture, role, isAdmin }
-  quarter: "Q3/2025",
-  actuals: {},         // { krId: { actual, updatedBy, updatedAt } }
-  view: "dashboard",   // dashboard | detail
-  activeObj: null,
-  editKR: null,
-  editVal: "",
-  saving: false,
-  showAdmin: false,
-  users: [],
-  loadingActuals: false,
+  screen:"login", user:null, quarter:"Q3/2025",
+  actuals:{}, view:"dashboard", activeObj:null,
+  editKR:null, editVal:"", saving:false,
+  showAdmin:false, loginError:"",
+  usernameInput:"", passwordInput:"",
 };
 
-// ============================================================
-// GOOGLE AUTH (GSI)
-// ============================================================
-function initGoogleAuth() {
-  const script = document.createElement("script");
-  script.src = "https://accounts.google.com/gsi/client";
-  script.onload = () => {
-    google.accounts.id.initialize({
-      client_id: "932251011519-qiu0fmkcuhfhdhp6c24ptkabrronm6o.apps.googleusercontent.com",
-      callback: handleCredential,
-      auto_select: false,
-    });
-    setState({ screen: "login" });
-  };
-  document.head.appendChild(script);
-}
-
-function handleCredential(response) {
-  const payload = parseJwt(response.credential);
-  const email = payload.email;
-  const name  = payload.name;
-  const picture = payload.picture;
-  apiPost({ action:"saveUser", email, name }).then(res => {
-    const role = res.role || "pending";
-    const isAdmin = ADMIN_EMAILS.includes(email) || role === "admin";
-    setState({ user: { email, name, picture, role, isAdmin }, screen:"app" });
-    loadActuals();
-  });
-}
-
-function parseJwt(token) {
-  const base64 = token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
-  return JSON.parse(atob(base64));
-}
-
-function logout() {
-  if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();
-  setState({ user:null, screen:"login", actuals:{} });
-}
-
-// ============================================================
-// API
-// ============================================================
-async function apiGet(params) {
-  const url = API_URL + "?" + new URLSearchParams(params);
-  const res = await fetch(url);
-  return res.json();
-}
-
-async function apiPost(data) {
-  const res = await fetch(API_URL, {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-async function loadActuals() {
-  setState({ loadingActuals:true });
-  try {
-    const data = await apiGet({ action:"getActuals", quarter:state.quarter });
-    setState({ actuals: data, loadingActuals:false });
-  } catch(e) {
-    setState({ loadingActuals:false });
-  }
-}
-
-async function loadUsers() {
-  const data = await apiGet({ action:"getUsers" });
-  setState({ users: Array.isArray(data) ? data : [] });
-}
-
-// ============================================================
 // HELPERS
-// ============================================================
-function pct(actual, target) {
-  if (!target) return 0;
-  return Math.min(Math.round((actual/target)*100), 100);
+function pct(actual,target){ if(!target)return 0; return Math.min(Math.round((actual/target)*100),100); }
+function statusInfo(p){ if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",icon:"✅"}; if(p>=60)return{label:"Cần cải thiện",color:"#E67E22",bg:"#FEF9E7",icon:"⚠️"}; return{label:"Chưa đạt",color:"#E74C3C",bg:"#FDEDEC",icon:"❌"}; }
+function getActual(krId){ return state.actuals[krId]?.actual??0; }
+function canEdit(kr){ if(!state.user)return false; if(state.user.isAdmin)return true; return kr.ownerRole===state.user.role; }
+function globalScore(){ const all=OBJECTIVES.flatMap(o=>o.krs); if(!all.length)return 0; return Math.round(all.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/all.length); }
+function objScore(obj){ if(!obj.krs.length)return 0; return Math.round(obj.krs.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/obj.krs.length); }
+function roleInfo(roleId){ return ROLES.find(r=>r.id===roleId)||{icon:"👤",label:roleId||""}; }
+
+// API
+async function apiGet(params){ const url=API_URL+"?"+new URLSearchParams(params); const res=await fetch(url); return res.json(); }
+async function apiPost(data){ const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}); return res.json(); }
+async function loadActuals(){ try{ const data=await apiGet({action:"getActuals",quarter:state.quarter}); setState({actuals:data}); }catch(e){} }
+
+// LOGIN
+function doLogin(){
+  const u=USERS.find(u=>u.username===state.usernameInput.trim()&&u.password===state.passwordInput);
+  if(u){ setState({user:u,screen:"app",loginError:""}); loadActuals(); }
+  else { setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"}); }
+}
+function logout(){ setState({user:null,screen:"login",actuals:{},usernameInput:"",passwordInput:""}); }
+
+// SAVE
+async function doSave(krId){
+  if(state.saving)return;
+  setState({saving:true});
+  await apiPost({action:"saveActual",quarter:state.quarter,krId,actual:Number(state.editVal),updatedBy:state.user.name});
+  await loadActuals();
+  setState({saving:false,editKR:null});
 }
 
-function statusInfo(p) {
-  if (p >= 80) return { label:"Đạt",           color:"#27AE60", bg:"#E8F8F0", icon:"✅" };
-  if (p >= 60) return { label:"Cần cải thiện", color:"#E67E22", bg:"#FEF9E7", icon:"⚠️" };
-  return             { label:"Chưa đạt",       color:"#E74C3C", bg:"#FDEDEC", icon:"❌" };
-}
-
-function getActual(krId) {
-  return state.actuals[krId]?.actual ?? 0;
-}
-
-function canEdit(kr) {
-  if (!state.user) return false;
-  if (state.user.isAdmin) return true;
-  return kr.ownerRole === state.user.role;
-}
-
-function globalScore() {
-  const all = OBJECTIVES.flatMap(o=>o.krs);
-  if (!all.length) return 0;
-  return Math.round(all.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/all.length);
-}
-
-function objScore(obj) {
-  if (!obj.krs.length) return 0;
-  return Math.round(obj.krs.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/obj.krs.length);
-}
-
-function roleInfo(roleId) {
-  return ROLES.find(r=>r.id===roleId) || { icon:"👤", label: roleId || "Chưa có vai trò" };
-}
-
-// ============================================================
 // STATE & RENDER
-// ============================================================
-function setState(patch) {
-  Object.assign(state, patch);
-  render();
+function setState(patch){ Object.assign(state,patch); render(); }
+function render(){ document.getElementById("app").innerHTML=buildHTML(); attachEvents(); }
+
+function buildHTML(){
+  if(state.screen==="login") return renderLogin();
+  return renderApp();
 }
 
-function render() {
-  const app = document.getElementById("app");
-  if (state.screen === "loading") { app.innerHTML = renderLoading(); return; }
-  if (state.screen === "login")   { app.innerHTML = renderLogin();   attachLoginBtn(); return; }
-  app.innerHTML = renderApp();
-  attachEvents();
-}
-
-// ============================================================
-// TEMPLATES
-// ============================================================
-function renderLoading() {
-  return `<div class="loading"><div class="loading-icon">🎵</div><div class="loading-text">Đang tải...</div></div>`;
-}
-
-function renderLogin() {
-  return `
-  <div class="login-screen">
+function renderLogin(){
+  return `<div class="login-screen">
     <div class="login-card">
       <div class="login-logo">🎵</div>
       <div class="login-title">Học viện Thiên Ân</div>
       <div class="login-sub">HỆ THỐNG QUẢN LÝ OKR</div>
-      <div id="google-btn-wrap" style="display:flex;justify-content:center;"></div>
-      <p class="login-note">Chỉ tài khoản được cấp quyền mới vào được hệ thống</p>
+      <input class="login-input" id="inp-user" type="text" placeholder="Tên đăng nhập" value="${state.usernameInput}" autocomplete="username"/>
+      <input class="login-input" id="inp-pass" type="password" placeholder="Mật khẩu" value="${state.passwordInput}" autocomplete="current-password"/>
+      <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
+      ${state.loginError?`<div class="login-error">${state.loginError}</div>`:""}
+      <p style="margin-top:16px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
     </div>
   </div>`;
 }
 
-function attachLoginBtn() {
-  if (typeof google !== "undefined" && document.getElementById("google-btn-wrap")) {
-    google.accounts.id.renderButton(document.getElementById("google-btn-wrap"), {
-      theme:"filled_black", size:"large", text:"signin_with", locale:"vi", width:240
-    });
-  }
-}
-
-function renderApp() {
-  const u = state.user;
-  const ri = roleInfo(u.role);
-  const gs = globalScore();
-  const gst = statusInfo(gs);
-  const allKRs = OBJECTIVES.flatMap(o=>o.krs);
-  const nDat = allKRs.filter(kr=>pct(getActual(kr.id),kr.target)>=80).length;
-  const nCai = allKRs.filter(kr=>{const p=pct(getActual(kr.id),kr.target);return p>=60&&p<80}).length;
-  const nChu = allKRs.filter(kr=>pct(getActual(kr.id),kr.target)<60).length;
-
+function renderApp(){
+  const u=state.user;
+  const ri=roleInfo(u.role);
+  const gs=globalScore(); const gst=statusInfo(gs);
+  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
+  const nDat=allKRs.filter(kr=>pct(getActual(kr.id),kr.target)>=80).length;
+  const nCai=allKRs.filter(kr=>{const p=pct(getActual(kr.id),kr.target);return p>=60&&p<80}).length;
+  const nChu=allKRs.filter(kr=>pct(getActual(kr.id),kr.target)<60).length;
   return `
   <div class="header">
     <div class="header-top">
-      <div class="header-logo">🎵</div>
-      <div class="header-title">
-        <h1>Thiên Ân — OKR</h1>
-        <p>${ri.icon} ${ri.label}${u.isAdmin?" (Admin)":""}</p>
-      </div>
-      <select class="quarter-select" id="qsel">
-        ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
-      </select>
+      <span style="font-size:22px">🎵</span>
+      <div class="header-title"><h1>Thiên Ân OKR</h1><p>${ri.icon} ${ri.label}${u.isAdmin?" (Admin)":""}</p></div>
+      <select class="quarter-select" id="qsel">${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}</select>
     </div>
     <div class="user-bar">
-      <img class="user-avatar" src="${u.picture||""}" onerror="this.style.display='none'"/>
+      <span style="font-size:18px">${ri.icon}</span>
       <span class="user-name">${u.name}</span>
-      ${u.isAdmin?`<button class="btn-sm btn-admin" id="btnAdmin">👑 Phân quyền</button>`:""}
+      ${u.isAdmin?`<button class="btn-sm btn-admin" id="btnAdmin">👑 Tài khoản</button>`:""}
       <button class="btn-sm btn-logout" id="btnLogout">Đăng xuất</button>
     </div>
     <div class="nav">
@@ -393,88 +251,57 @@ function renderApp() {
       <button class="nav-btn${state.view==="detail"?" active":""}" id="navDetail">📋 Chi tiết</button>
     </div>
   </div>
-
-  ${u.role==="pending"&&!u.isAdmin?`<div class="pending-notice">⏳ Tài khoản đang chờ Giám đốc phân quyền. Liên hệ Thầy Cương để được cấp quyền.</div>`:""}
-
   <div class="main">
-    ${state.view==="dashboard" ? renderDashboard(gs,gst,nDat,nCai,nChu) : renderDetail()}
+    ${state.view==="dashboard"?renderDashboard(gs,gst,nDat,nCai,nChu):renderDetail()}
   </div>
-
-  ${state.showAdmin ? renderAdminModal() : ""}
-
-  <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>
-  `;
+  ${state.showAdmin?renderAdminModal():""}
+  <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
 }
 
-function renderDashboard(gs,gst,nDat,nCai,nChu) {
-  return `
-  <div class="card card-pad">
-    <div class="global-card">
-      ${renderRing(gs,80)}
-      <div>
-        <div class="score-label">TIẾN ĐỘ TỔNG THỂ — ${state.quarter}</div>
-        <div class="score-value" style="color:${gst.color}">${gs}%</div>
-        <div class="score-badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} ${gst.label}</div>
-      </div>
-      <div class="stats">
-        <div class="stat-item"><div class="stat-num" style="color:#27AE60">${nDat}</div><div class="stat-lbl">✅ Đạt</div></div>
-        <div class="stat-item"><div class="stat-num" style="color:#E67E22">${nCai}</div><div class="stat-lbl">⚠️ Cải thiện</div></div>
-        <div class="stat-item"><div class="stat-num" style="color:#E74C3C">${nChu}</div><div class="stat-lbl">❌ Chưa đạt</div></div>
-      </div>
+function renderDashboard(gs,gst,nDat,nCai,nChu){
+  return `<div class="card card-pad"><div class="global-card">
+    ${renderRing(gs,80)}
+    <div><div class="score-label">TIẾN ĐỘ TỔNG THỂ — ${state.quarter}</div>
+    <div class="score-value" style="color:${gst.color}">${gs}%</div>
+    <div class="score-badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} ${gst.label}</div></div>
+    <div class="stats">
+      <div class="stat-item"><div class="stat-num" style="color:#27AE60">${nDat}</div><div class="stat-lbl">✅ Đạt</div></div>
+      <div class="stat-item"><div class="stat-num" style="color:#E67E22">${nCai}</div><div class="stat-lbl">⚠️ Cải thiện</div></div>
+      <div class="stat-item"><div class="stat-num" style="color:#E74C3C">${nChu}</div><div class="stat-lbl">❌ Chưa đạt</div></div>
     </div>
-  </div>
-  <div class="obj-grid">
-    ${OBJECTIVES.map(obj=>{
-      const sc=objScore(obj); const st=statusInfo(sc);
-      return `
-      <div class="obj-card" data-objid="${obj.id}">
-        <div class="obj-header">
-          <span class="obj-icon">${obj.icon}</span>
-          <div><div class="obj-id">${obj.id}</div><div class="obj-title">${obj.title}</div></div>
-        </div>
-        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${sc}%;background:${st.color}"></div></div>
-        <div class="obj-footer">
-          <span style="color:#888">${obj.krs.length} Key Results</span>
-          <span class="obj-pct" style="color:${st.color}">${sc}%</span>
-        </div>
-        <div class="kr-dots">
-          ${obj.krs.map(kr=>{const p=pct(getActual(kr.id),kr.target);const s=statusInfo(p);return`<div class="kr-dot" style="background:${s.color};opacity:${canEdit(kr)?1:0.35}" title="${kr.text}"></div>`;}).join("")}
-        </div>
-      </div>`;
-    }).join("")}
-  </div>`;
+  </div></div>
+  <div class="obj-grid">${OBJECTIVES.map(obj=>{
+    const sc=objScore(obj); const st=statusInfo(sc);
+    return `<div class="obj-card" data-objid="${obj.id}">
+      <div class="obj-header"><span class="obj-icon">${obj.icon}</span>
+      <div><div class="obj-id">${obj.id}</div><div class="obj-title">${obj.title}</div></div></div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${sc}%;background:${st.color}"></div></div>
+      <div class="obj-footer"><span style="color:#888">${obj.krs.length} KR</span><span style="font-weight:800;color:${st.color}">${sc}%</span></div>
+      <div class="kr-dots">${obj.krs.map(kr=>{const p=pct(getActual(kr.id),kr.target);const s=statusInfo(p);return`<div class="kr-dot" style="background:${s.color};opacity:${canEdit(kr)?1:0.35}"></div>`;}).join("")}</div>
+    </div>`;
+  }).join("")}</div>`;
 }
 
-function renderDetail() {
-  const filtered = OBJECTIVES.filter(o=>!state.activeObj||o.id===state.activeObj);
-  return `
-  <div class="filter-bar">
+function renderDetail(){
+  const filtered=OBJECTIVES.filter(o=>!state.activeObj||o.id===state.activeObj);
+  return `<div class="filter-bar">
     <button class="filter-btn${!state.activeObj?" active":""}" data-filter="all">Tất cả</button>
     ${OBJECTIVES.map(o=>`<button class="filter-btn${state.activeObj===o.id?" active":""}" data-filter="${o.id}">${o.icon} ${o.id}</button>`).join("")}
   </div>
   ${filtered.map(obj=>{
     const sc=objScore(obj); const st=statusInfo(sc);
-    return `
-    <div class="card" style="margin-bottom:14px">
+    return `<div class="card" style="margin-bottom:14px">
       <div class="obj-detail-header">
         <span class="obj-detail-icon">${obj.icon}</span>
-        <div class="obj-detail-info">
-          <div class="obj-detail-id">${obj.id} — ${state.quarter}</div>
-          <div class="obj-detail-title">${obj.title}</div>
-        </div>
+        <div class="obj-detail-info"><div class="obj-detail-id">${obj.id} — ${state.quarter}</div><div class="obj-detail-title">${obj.title}</div></div>
         <div class="obj-detail-score" style="color:${st.color}">${sc}%</div>
       </div>
       ${obj.krs.map((kr,idx)=>{
         const actual=getActual(kr.id); const p=pct(actual,kr.target); const s=statusInfo(p);
         const editable=canEdit(kr); const isEditing=state.editKR===kr.id;
-        const last=state.actuals[kr.id];
-        const ri=roleInfo(kr.ownerRole);
-        return `
-        <div class="kr-row" style="opacity:${editable?1:0.65}">
-          <div class="kr-top">
-            <span class="kr-badge">KR${idx+1}</span>
-            <span class="kr-text">${kr.text}</span>
-          </div>
+        const last=state.actuals[kr.id]; const ri=roleInfo(kr.ownerRole);
+        return `<div class="kr-row" style="opacity:${editable?1:0.65}">
+          <div class="kr-top"><span class="kr-badge">KR${idx+1}</span><span class="kr-text">${kr.text}</span></div>
           <div class="kr-meta">${ri.icon} ${ri.label}${last?` • Cập nhật: ${last.updatedBy} (${new Date(last.updatedAt).toLocaleDateString("vi-VN")})`:""}
           </div>
           <div class="kr-progress-row">
@@ -483,18 +310,12 @@ function renderDetail() {
           </div>
           <div class="kr-bottom">
             <span class="kr-target">Mục tiêu: <b>${kr.target}</b> ${kr.unit}</span>
-            ${isEditing ? `
-              <div class="edit-wrap">
-                <input class="edit-input" id="editInput" type="number" value="${state.editVal}" data-objid="${obj.id}" data-krid="${kr.id}"/>
-                <button class="btn-confirm" data-confirm="${kr.id}" data-objid="${obj.id}">${state.saving?"...":"✓"}</button>
-                <button class="btn-cancel" id="btnCancel">✕</button>
-              </div>
-            ` : `
-              <button class="kr-actual-btn" style="background:${editable?s.bg:"#f5f5f5"};color:${editable?s.color:"#aaa"};border-color:${editable?s.color:"#ddd"}"
-                data-edit="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>
-                ${actual} ${kr.unit}
-              </button>
-            `}
+            ${isEditing?`<div class="edit-wrap">
+              <input class="edit-input" id="editInput" type="number" value="${state.editVal}" data-krid="${kr.id}"/>
+              <button class="btn-confirm" data-confirm="${kr.id}">${state.saving?"...":"✓"}</button>
+              <button class="btn-cancel" id="btnCancel">✕</button>
+            </div>`:`<button class="kr-actual-btn" style="background:${editable?s.bg:"#f5f5f5"};color:${editable?s.color:"#aaa"};border-color:${editable?s.color:"#ddd"}"
+              data-edit="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>${actual} ${kr.unit}</button>`}
             <span class="status-badge" style="background:${s.bg};color:${s.color}">${s.icon} ${s.label}</span>
           </div>
         </div>`;
@@ -503,118 +324,55 @@ function renderDetail() {
   }).join("")}`;
 }
 
-function renderRing(value, size) {
+function renderRing(value,size){
   const r=(size-10)/2; const circ=2*Math.PI*r; const dash=(value/100)*circ;
   const color=value>=80?"#27AE60":value>=60?"#E67E22":"#E74C3C";
   return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg);flex-shrink:0">
     <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="7"/>
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="7"
-      stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
-    <text x="${size/2}" y="${size/2+5}" text-anchor="middle"
-      style="fill:${color};font-size:13px;font-weight:800;transform:rotate(90deg);transform-origin:${size/2}px ${size/2}px">
-      ${value}%
-    </text>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="7" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+    <text x="${size/2}" y="${size/2+5}" text-anchor="middle" style="fill:${color};font-size:13px;font-weight:800;transform:rotate(90deg);transform-origin:${size/2}px ${size/2}px">${value}%</text>
   </svg>`;
 }
 
-function renderAdminModal() {
-  return `
-  <div class="modal-overlay" id="modalOverlay">
+function renderAdminModal(){
+  return `<div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">👑 Phân quyền nhân sự</span>
-        <button class="btn-sm" id="btnCloseModal" style="background:#eee;color:#333">✕ Đóng</button>
-      </div>
-      ${state.users.length===0
-        ? `<div style="text-align:center;padding:32px;color:#aaa">Chưa có ai đăng nhập vào hệ thống</div>`
-        : state.users.map(u=>`
-          <div class="user-row">
-            <div class="user-info">
-              <div class="user-info-name">${u.name}</div>
-              <div class="user-info-email">${u.email}</div>
-            </div>
-            <select class="role-select" data-useremail="${u.email}">
-              <option value="pending"${u.role==="pending"?" selected":""}>⏳ Chờ duyệt</option>
-              ${ROLES.map(r=>`<option value="${r.id}"${u.role===r.id?" selected":""}>${r.icon} ${r.label}</option>`).join("")}
-            </select>
-          </div>`).join("")
-      }
+      <div class="modal-header"><span class="modal-title">👑 Tài khoản nhân sự</span>
+      <button class="btn-sm" id="btnCloseModal" style="background:#eee;color:#333">✕ Đóng</button></div>
+      ${USERS.map(u=>`<div class="user-row">
+        <div class="user-info"><div class="user-info-name">${roleInfo(u.role).icon} ${u.name}</div>
+        <div class="user-info-email">Đăng nhập: <b>${u.username}</b> / Mật khẩu: <b>${u.password}</b></div></div>
+      </div>`).join("")}
+      <div style="padding:14px 20px;font-size:11px;color:#888">Gửi thông tin trên cho từng giảng viên để đăng nhập vào hệ thống.</div>
     </div>
   </div>`;
 }
 
-// ============================================================
-// EVENTS
-// ============================================================
-function attachEvents() {
-  // Quarter
-  const qsel = document.getElementById("qsel");
-  if (qsel) qsel.addEventListener("change", e=>{ setState({quarter:e.target.value}); loadActuals(); });
-
-  // Nav
-  document.getElementById("navDash")?.addEventListener("click", ()=>setState({view:"dashboard"}));
-  document.getElementById("navDetail")?.addEventListener("click", ()=>setState({view:"detail",activeObj:null}));
-
-  // Logout
-  document.getElementById("btnLogout")?.addEventListener("click", logout);
-
-  // Admin
-  document.getElementById("btnAdmin")?.addEventListener("click", ()=>{ loadUsers(); setState({showAdmin:true}); });
-  document.getElementById("btnCloseModal")?.addEventListener("click", ()=>setState({showAdmin:false}));
-  document.getElementById("modalOverlay")?.addEventListener("click", e=>{ if(e.target.id==="modalOverlay") setState({showAdmin:false}); });
-
-  // Role selects in admin
-  document.querySelectorAll(".role-select").forEach(sel=>{
-    sel.addEventListener("change", e=>{
-      apiPost({ action:"updateRole", email:e.target.dataset.useremail, role:e.target.value });
-    });
-  });
-
-  // Obj card click (dashboard)
-  document.querySelectorAll(".obj-card").forEach(card=>{
-    card.addEventListener("click", ()=>setState({view:"detail", activeObj:card.dataset.objid}));
-  });
-
-  // Filter buttons (detail)
-  document.querySelectorAll(".filter-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>setState({activeObj: btn.dataset.filter==="all"?null:btn.dataset.filter}));
-  });
-
-  // Edit KR button
-  document.querySelectorAll("[data-edit]").forEach(btn=>{
-    btn.addEventListener("click", ()=>setState({editKR:btn.dataset.edit, editVal:btn.dataset.actual}));
-  });
-
-  // Edit input
-  const inp = document.getElementById("editInput");
-  if (inp) {
-    inp.addEventListener("input", e=>{ state.editVal=e.target.value; });
-    inp.addEventListener("keydown", e=>{ if(e.key==="Enter") doSave(inp.dataset.objid, inp.dataset.krid); });
-    setTimeout(()=>inp.focus(),50);
-  }
-
-  // Confirm save
-  document.querySelectorAll("[data-confirm]").forEach(btn=>{
-    btn.addEventListener("click", ()=>doSave(btn.dataset.objid, btn.dataset.confirm));
-  });
-
-  // Cancel edit
-  document.getElementById("btnCancel")?.addEventListener("click", ()=>setState({editKR:null}));
+function attachEvents(){
+  // Login
+  const inpUser=document.getElementById("inp-user");
+  const inpPass=document.getElementById("inp-pass");
+  if(inpUser){ inpUser.addEventListener("input",e=>state.usernameInput=e.target.value); inpUser.addEventListener("keydown",e=>e.key==="Enter"&&document.getElementById("inp-pass")?.focus()); }
+  if(inpPass){ inpPass.addEventListener("input",e=>state.passwordInput=e.target.value); inpPass.addEventListener("keydown",e=>e.key==="Enter"&&doLogin()); }
+  document.getElementById("btn-login")?.addEventListener("click",doLogin);
+  // App
+  document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
+  document.getElementById("navDash")?.addEventListener("click",()=>setState({view:"dashboard"}));
+  document.getElementById("navDetail")?.addEventListener("click",()=>setState({view:"detail",activeObj:null}));
+  document.getElementById("btnLogout")?.addEventListener("click",logout);
+  document.getElementById("btnAdmin")?.addEventListener("click",()=>setState({showAdmin:true}));
+  document.getElementById("btnCloseModal")?.addEventListener("click",()=>setState({showAdmin:false}));
+  document.getElementById("modalOverlay")?.addEventListener("click",e=>{if(e.target.id==="modalOverlay")setState({showAdmin:false});});
+  document.querySelectorAll(".obj-card").forEach(c=>c.addEventListener("click",()=>setState({view:"detail",activeObj:c.dataset.objid})));
+  document.querySelectorAll(".filter-btn").forEach(b=>b.addEventListener("click",()=>setState({activeObj:b.dataset.filter==="all"?null:b.dataset.filter})));
+  document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>setState({editKR:b.dataset.edit,editVal:b.dataset.actual})));
+  const inp=document.getElementById("editInput");
+  if(inp){ inp.addEventListener("input",e=>state.editVal=e.target.value); inp.addEventListener("keydown",e=>e.key==="Enter"&&doSave(inp.dataset.krid)); setTimeout(()=>inp.focus(),50); }
+  document.querySelectorAll("[data-confirm]").forEach(b=>b.addEventListener("click",()=>doSave(b.dataset.confirm)));
+  document.getElementById("btnCancel")?.addEventListener("click",()=>setState({editKR:null}));
 }
 
-async function doSave(objId, krId) {
-  if (state.saving) return;
-  setState({ saving:true });
-  await apiPost({ action:"saveActual", quarter:state.quarter, krId, actual:Number(state.editVal), updatedBy:state.user.name });
-  await loadActuals();
-  setState({ saving:false, editKR:null });
-}
-
-// ============================================================
-// BOOT
-// ============================================================
-render(); // show loading
-initGoogleAuth();
+render();
 </script>
 </body>
 </html>
