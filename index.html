@@ -209,7 +209,7 @@ let state={
   okr_editKR:null,  // null=new kr, {oid,kid}=edit kr
   okr_obj_icon:"🎯",okr_obj_title:"",
   okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:"",
-  showImport:false,importType:"nhansu",importResult:null,importing:false,
+  showImport:false,importType:"nhansu",importResult:null,importing:false,um_success:"",
   // Plan
   plans:ls_get("ta_plans")||[],
   showPlanForm:false,pf_title:"",pf_month:currentMonth(),pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
@@ -239,8 +239,22 @@ async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:s
 // SYNC VỚI GOOGLE SHEETS — dữ liệu đồng bộ mọi thiết bị
 // ============================================================
 async function loadUsersFromSheets(){
-  // Không dùng Google Sheets cho users - chỉ dùng localStorage
-  USERS=loadUsers();
+  try{
+    const sheetUsers = await apiGet({action:"getUsers"});
+    const localUsers = loadUsers();
+    if(Array.isArray(sheetUsers) && sheetUsers.length > 0){
+      // Merge: ưu tiên localUsers (mới hơn), bổ sung từ sheetUsers
+      const localUsernames = localUsers.map(u=>u.username);
+      const sheetOnly = sheetUsers.filter(u=>!localUsernames.includes(u.username));
+      const merged = [...localUsers, ...sheetOnly];
+      saveUsers(merged);
+      USERS = merged;
+    } else {
+      USERS = localUsers;
+    }
+  }catch(e){
+    USERS = loadUsers();
+  }
   return USERS;
 }
 
@@ -559,9 +573,10 @@ function renderImportModal(){
   </div>`;
 }
 
-function doLogin(){
-  // Luôn đọc từ localStorage - đảm bảo có nhân viên mới nhất
-  USERS = loadUsers();
+async function doLogin(){
+  setState({loginError:"⏳ Đang kiểm tra..."});
+  // Merge users từ localStorage + Google Sheets
+  await loadUsersFromSheets();
   const inputUser = state.uname.trim().toLowerCase();
   const inputPass = state.upass.trim();
   const u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
@@ -572,16 +587,7 @@ function doLogin(){
     loadLuongFromSheets(state.month);
     loadPlansFromSheets();
   } else {
-    // Thử tìm không phân biệt mật khẩu hoa thường
-    const u2 = USERS.find(u => u.username.toLowerCase() === inputUser && u.password.toLowerCase() === inputPass.toLowerCase());
-    if(u2){
-      setState({user:u2, screen:"app", loginError:""});
-      loadActuals();
-    } else {
-      // Debug: hiện danh sách users để kiểm tra
-      console.log("Users in localStorage:", USERS.map(u=>u.username));
-      setState({loginError:"Sai tên đăng nhập hoặc mật khẩu! ("+USERS.length+" tài khoản)"});
-    }
+    setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
   }
 }
 function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
@@ -646,13 +652,15 @@ function saveUserForm(){
     const i=users.findIndex(u=>u.username===state.editingUser);
     if(i>=0)users[i]={...users[i],name,username,password,role,luong};
   }
-  // Lưu vào localStorage NGAY LẬP TỨC
+  // Lưu vào localStorage ngay
   saveUsers(users);
-  USERS = users; // Cập nhật biến global luôn, không cần reload
-  // Sync lên Google Sheets nền (không chờ)
-  apiPost({action:"saveUser",username,password,name,role,isAdmin:false,luong}).catch(()=>{});
-  alert("✅ Đã lưu!\nTên đăng nhập: " + username + "\nMật khẩu: " + password);
-  setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
+  USERS = users;
+  setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:"",
+    um_success:"✅ Đã lưu! Đăng nhập: "+username+" / MK: "+password});
+  // Sync lên Google Sheets để dùng được trên mọi thiết bị
+  apiPost({action:"saveUser",username,password,name,role,isAdmin:false,luong})
+    .then(r=>console.log("Synced to Sheets:", r))
+    .catch(e=>console.log("Sync error:", e));
 }
 function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);apiPost({action:"deleteUser",username}).catch(()=>{});setState({});}
 
@@ -1152,6 +1160,7 @@ function renderUserModal(){
             <input class="form-input" id="um-luong" type="number" placeholder="4500000" value="${state.um_luong}"/></div>
         </div>
         ${state.um_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.um_error}</div>`:""}
+        ${state.um_success?`<div style="color:#27AE60;font-size:12px;margin-bottom:8px;background:#E8F8F0;padding:8px;border-radius:6px">${state.um_success}</div>`:""}
         <button class="btn-primary" id="btnSaveUser" style="width:100%;margin-top:6px">💾 Lưu</button>
       </div>
     </div>
