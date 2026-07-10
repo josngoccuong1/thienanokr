@@ -243,15 +243,22 @@ async function loadUsersFromSheets(){
     const sheetUsers = await apiGet({action:"getUsers"});
     const localUsers = loadUsers();
     if(Array.isArray(sheetUsers) && sheetUsers.length > 0){
-      // Merge: ưu tiên localUsers (mới hơn), bổ sung từ sheetUsers
-      const localUsernames = localUsers.map(u=>u.username);
-      const sheetOnly = sheetUsers.filter(u=>!localUsernames.includes(u.username));
-      const merged = [...localUsers, ...sheetOnly];
-      saveUsers(merged);
-      USERS = merged;
-    } else {
-      USERS = localUsers;
+      // Sheet có data thật (không phải default) - merge
+      const isDefault = sheetUsers.length <= 7 && sheetUsers.every(u=>
+        ["cuong","piano","guitar","vocal","dance","recording","marketing"].includes(u.username));
+      if(!isDefault){
+        // Sheet có nhân viên mới - merge với local
+        const localMap = {};
+        localUsers.forEach(u=>localMap[u.username]=u);
+        sheetUsers.forEach(u=>{ if(!localMap[u.username]) localMap[u.username]=u; });
+        const merged = Object.values(localMap);
+        saveUsers(merged);
+        USERS = merged;
+        return merged;
+      }
     }
+    // Dùng local
+    USERS = localUsers;
   }catch(e){
     USERS = loadUsers();
   }
@@ -658,11 +665,18 @@ function saveUserForm(){
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:"",
     um_success:"✅ Đã lưu! Đăng nhập: "+username+" / MK: "+password});
   // Sync lên Google Sheets để dùng được trên mọi thiết bị
-  apiPost({action:"saveUser",username,password,name,role,isAdmin:false,luong})
-    .then(r=>console.log("Synced to Sheets:", r))
+  // Dùng GET thay POST để tránh CORS
+  const params = new URLSearchParams({
+    action:"saveUserGet", username, password,
+    name: encodeURIComponent(name), role,
+    isAdmin:"false", luong
+  });
+  fetch(API_URL + "?" + params)
+    .then(r=>r.json())
+    .then(r=>console.log("Synced user to Sheets:", r))
     .catch(e=>console.log("Sync error:", e));
 }
-function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);apiPost({action:"deleteUser",username}).catch(()=>{});setState({});}
+function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);fetch(API_URL+"?action=deleteUserGet&username="+username).catch(()=>{});setState({});}
 
 // ============================================================
 // RENDER
