@@ -235,6 +235,55 @@ async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:s
 // ============================================================
 // ACTIONS
 // ============================================================
+// ============================================================
+// SYNC VỚI GOOGLE SHEETS — dữ liệu đồng bộ mọi thiết bị
+// ============================================================
+async function loadUsersFromSheets(){
+  try{
+    const data=await apiGet({action:"getUsers"});
+    if(Array.isArray(data)&&data.length>0){
+      saveUsers(data); USERS=data; return data;
+    }
+  }catch(e){}
+  USERS=loadUsers(); return USERS;
+}
+
+async function loadThuChiFromSheets(month){
+  try{
+    const data=await apiGet({action:"getThuChi",month:month||""});
+    if(Array.isArray(data)&&data.length>0){
+      const local=ls_get("ta_tx")||[];
+      const ids=data.map(t=>t.id.toString());
+      const localOnly=local.filter(t=>!ids.includes(t.id.toString()));
+      const merged=[...data,...localOnly];
+      ls_set("ta_tx",merged);
+      setState({transactions:merged});
+    }
+  }catch(e){}
+}
+
+async function loadLuongFromSheets(month){
+  try{
+    const data=await apiGet({action:"getLuong",month:month||""});
+    if(data&&typeof data==="object"&&Object.keys(data).length>0){
+      const local=ls_get("ta_luong")||{};
+      const merged={...local,...data};
+      ls_set("ta_luong",merged);
+      setState({luongData:merged});
+    }
+  }catch(e){}
+}
+
+async function loadPlansFromSheets(){
+  try{
+    const data=await apiGet({action:"getPlans"});
+    if(Array.isArray(data)&&data.length>0){
+      ls_set("ta_plans",data);
+      setState({plans:data});
+    }
+  }catch(e){}
+}
+
 // OKR CRUD
 function saveObjective(){
   const title=state.okr_obj_title.trim(),icon=state.okr_obj_icon;
@@ -323,6 +372,8 @@ function importNhanSu(rows){
     }
   });
   saveUsers(users); USERS=loadUsers();
+  // Sync toàn bộ lên Google Sheets
+  apiPost({action:"batchUsers",users:users.filter(u=>!u.isAdmin)}).catch(()=>{});
   setState({importing:false, importResult:{type:"nhansu",added,skipped,errors}});
 }
 
@@ -362,6 +413,9 @@ function importThuChi(rows, type){
     added++;
   });
   ls_set("ta_tx",txs);
+  // Sync lên Google Sheets
+  const newItems=txs.slice(-added);
+  if(newItems.length>0) apiPost({action:"batchThuChi",items:newItems}).catch(()=>{});
   setState({importing:false, transactions:txs, importResult:{type,added,skipped}});
 }
 
@@ -384,6 +438,9 @@ function importLuong(rows){
     added++;
   });
   ls_set("ta_luong",luongData);
+  // Sync lên Google Sheets
+  const luongItems=Object.values(luongData).slice(-added);
+  if(luongItems.length>0) apiPost({action:"batchLuong",items:luongItems}).catch(()=>{});
   setState({importing:false, luongData, importResult:{type:"luong",added,skipped}});
 }
 
@@ -506,14 +563,23 @@ function renderImportModal(){
   </div>`;
 }
 
-function doLogin(){
-  // Luôn đọc lại từ localStorage để có nhân viên mới nhất
-  USERS = loadUsers();
+async function doLogin(){
+  setState({loginError:"⏳ Đang kiểm tra..."});
+  // Load users mới nhất từ Google Sheets
+  await loadUsersFromSheets();
   const inputUser=state.uname.trim().toLowerCase();
   const inputPass=state.upass.trim();
   const u=USERS.find(u=>u.username.toLowerCase()===inputUser&&u.password===inputPass);
-  if(u){setState({user:u,screen:"app",loginError:""});loadActuals();}
-  else setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
+  if(u){
+    setState({user:u,screen:"app",loginError:""});
+    loadActuals();
+    // Load data ngầm
+    loadThuChiFromSheets(state.month);
+    loadLuongFromSheets(state.month);
+    loadPlansFromSheets();
+  } else {
+    setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
+  }
 }
 function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
 
@@ -531,14 +597,19 @@ function savePlan(){
   if(state.editPlan){const i=plans.findIndex(p=>p.id===state.editPlan);if(i>=0)plans[i]={...plans[i],...item};}
   else plans.unshift(item);
   ls_set("ta_plans",plans);
+  // Sync lên Google Sheets
+  apiPost({action:"savePlan",...item}).catch(()=>{});
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
-function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);setState({plans})}
+function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);apiPost({action:"deletePlan",id}).catch(()=>{});setState({plans})}
 
 function saveLuong(){
   const key=state.luong_user+"__"+state.luong_month;
   const luongData={...state.luongData,[key]:{user:state.luong_user,month:state.luong_month,base:Number(state.luong_base),bonus:Number(state.luong_bonus),note:state.luong_note,total:Number(state.luong_base)+Number(state.luong_bonus)}};
   ls_set("ta_luong",luongData);
+  // Sync lên Google Sheets
+  const lkey=state.luong_user+"__"+state.luong_month;
+  apiPost({action:"saveLuong",...luongData[lkey],user:state.luong_user,month:state.luong_month}).catch(()=>{});
   setState({luongData,showLuongModal:false});
 }
 
@@ -548,9 +619,12 @@ function saveTx(){
   if(state.editTx){const i=txs.findIndex(t=>t.id===state.editTx);if(i>=0)txs[i]={...txs[i],...item};}
   else txs.unshift(item);
   ls_set("ta_tx",txs);
+  // Sync lên Google Sheets
+  const savedItem=txs.find(t=>t.id.toString()===item.id.toString())||item;
+  apiPost({action:"saveThuChi",...savedItem}).catch(()=>{});
   setState({transactions:txs,showTxForm:false,editTx:null,tx_amount:"",tx_note:"",tx_date:""});
 }
-function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);setState({transactions})}
+function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);apiPost({action:"deleteThuChi",id}).catch(()=>{});setState({transactions})}
 
 function saveUserForm(){
   const name=state.um_name.trim();
@@ -571,11 +645,13 @@ function saveUserForm(){
   }
   saveUsers(users);
   USERS=loadUsers();
-  // Xác nhận đã lưu
+  // Lưu lên Google Sheets để đồng bộ mọi thiết bị
+  const newUser=users.find(u=>u.username===username);
+  apiPost({action:"saveUser",username,password,name,role,isAdmin:false,luong}).catch(()=>{});
   alert("✅ Đã lưu tài khoản!\nTên đăng nhập: "+username+"\nMật khẩu: "+password+"\nGửi thông tin này cho nhân viên để đăng nhập.");
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
 }
-function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;const users=USERS.filter(u=>u.username!==username);saveUsers(users);USERS=loadUsers();setState({});}
+function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;const users=USERS.filter(u=>u.username!==username);saveUsers(users);USERS=loadUsers();apiPost({action:"deleteUser",username}).catch(()=>{});setState({});}
 
 // ============================================================
 // RENDER
@@ -1091,7 +1167,14 @@ function attachEvents(){
   document.getElementById("btnLogout")?.addEventListener("click",logout);
 
   // TABS
-  document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setState({tab:b.dataset.tab})));
+  document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+    setState({tab:b.dataset.tab});
+    // Load fresh data khi đổi tab
+    if(b.dataset.tab==="thuchi") loadThuChiFromSheets(state.month);
+    if(b.dataset.tab==="luong") loadLuongFromSheets(state.month);
+    if(b.dataset.tab==="plan") loadPlansFromSheets();
+    if(b.dataset.tab==="users") loadUsersFromSheets().then(()=>render());
+  }));
 
   // OKR
   document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
