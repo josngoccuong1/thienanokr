@@ -106,16 +106,24 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxYfXSSOdTmTEv2iJxSXlt5jg4YWQze7SO_d8a_d6gLQhK79UuGMuFhTQ3SS6MknpL2UA/exec";
 
-// Tài khoản đăng nhập — Thầy có thể đổi mật khẩu ở đây
-const USERS = [
-  { username:"cuong",     password:"thienan2025", name:"Thầy Ngọc Cương",  role:"admin",     isAdmin:true },
-  { username:"piano",     password:"piano2025",   name:"GV Piano",          role:"piano",     isAdmin:false },
-  { username:"guitar",    password:"guitar2025",  name:"GV Guitar",         role:"guitar",    isAdmin:false },
-  { username:"vocal",     password:"vocal2025",   name:"GV Thanh Nhạc",     role:"vocal",     isAdmin:false },
-  { username:"dance",     password:"dance2025",   name:"GV Nhảy",           role:"dance",     isAdmin:false },
-  { username:"recording", password:"record2025",  name:"GV Thu Âm",         role:"recording", isAdmin:false },
-  { username:"marketing", password:"mkt2025",     name:"Marketing",         role:"marketing", isAdmin:false },
-];
+// Tài khoản — lưu vào localStorage để thêm/sửa/xóa trong app
+function loadUsers(){
+  try{
+    const s=localStorage.getItem("thienan_users");
+    if(s) return JSON.parse(s);
+  }catch(e){}
+  return [
+    { username:"cuong",     password:"thienan2025", name:"Thầy Ngọc Cương",  role:"admin",     isAdmin:true },
+    { username:"piano",     password:"piano2025",   name:"GV Piano",          role:"piano",     isAdmin:false },
+    { username:"guitar",    password:"guitar2025",  name:"GV Guitar",         role:"guitar",    isAdmin:false },
+    { username:"vocal",     password:"vocal2025",   name:"GV Thanh Nhạc",     role:"vocal",     isAdmin:false },
+    { username:"dance",     password:"dance2025",   name:"GV Nhảy",           role:"dance",     isAdmin:false },
+    { username:"recording", password:"record2025",  name:"GV Thu Âm",         role:"recording", isAdmin:false },
+    { username:"marketing", password:"mkt2025",     name:"Marketing",         role:"marketing", isAdmin:false },
+  ];
+}
+function saveUsers(u){ localStorage.setItem("thienan_users",JSON.stringify(u)); }
+let USERS = loadUsers();
 
 const OBJECTIVES = [
   { id:"O1", icon:"🎓", title:"Tăng trưởng số lượng học viên", krs:[
@@ -168,6 +176,7 @@ let state = {
   editKR:null, editVal:"", saving:false,
   showAdmin:false, loginError:"",
   usernameInput:"", passwordInput:"",
+  editingUser:null, um_name:"", um_username:"", um_role:"piano", um_password:"", um_error:"",
 };
 
 // HELPERS
@@ -335,17 +344,82 @@ function renderRing(value,size){
 }
 
 function renderAdminModal(){
+  const editing = state.editingUser;
+  const editUser = editing && editing!=="new" ? USERS.find(u=>u.username===editing) : null;
   return `<div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <div class="modal-header"><span class="modal-title">👑 Tài khoản nhân sự</span>
-      <button class="btn-sm" id="btnCloseModal" style="background:#eee;color:#333">✕ Đóng</button></div>
-      ${USERS.map(u=>`<div class="user-row">
-        <div class="user-info"><div class="user-info-name">${roleInfo(u.role).icon} ${u.name}</div>
-        <div class="user-info-email">Đăng nhập: <b>${u.username}</b> / Mật khẩu: <b>${u.password}</b></div></div>
+      <div class="modal-header">
+        <span class="modal-title">👑 Quản lý tài khoản GV</span>
+        <button class="btn-sm" id="btnCloseModal" style="background:#eee;color:#333">✕ Đóng</button>
+      </div>
+
+      ${editing ? `
+      <div style="padding:18px 20px;border-bottom:1px solid #eee;background:#FFFDF0">
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:12px">${editing==="new"?"➕ Thêm tài khoản mới":"✏️ Sửa tài khoản"}</div>
+        <input id="um-name" placeholder="Họ tên (vd: Nguyễn Văn A)" value="${state.um_name}"
+          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
+        <input id="um-username" placeholder="Tên đăng nhập (vd: gv_piano2)" value="${state.um_username}"
+          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
+        <input id="um-password" placeholder="Mật khẩu" value="${state.um_password}"
+          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
+        <select id="um-role" style="width:100%;border:2px solid #D4AF37;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:10px;background:#fff">
+          ${ROLES.map(r=>`<option value="${r.id}"${state.um_role===r.id?" selected":""}>${r.icon} ${r.label}</option>`).join("")}
+        </select>
+        ${state.um_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.um_error}</div>`:""}
+        <div style="display:flex;gap:8px">
+          <button id="um-save" style="flex:1;background:#1A1A2E;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">💾 Lưu</button>
+          <button id="um-cancel" style="background:#eee;color:#555;border:none;border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer">Hủy</button>
+        </div>
+      </div>` : ""}
+
+      <div style="padding:10px 20px 4px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#888;font-weight:600">${USERS.length} tài khoản</span>
+        <button id="btnAddUser" style="background:#27AE60;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">➕ Thêm GV</button>
+      </div>
+
+      ${USERS.map(u=>`
+      <div class="user-row" style="align-items:center">
+        <div style="font-size:20px">${roleInfo(u.role).icon}</div>
+        <div class="user-info" style="flex:1">
+          <div class="user-info-name">${u.name}${u.isAdmin?' 👑':''}</div>
+          <div class="user-info-email">👤 ${u.username} &nbsp;🔑 ${u.password} &nbsp;📂 ${roleInfo(u.role).label}</div>
+        </div>
+        ${u.isAdmin?"<div style='font-size:11px;color:#aaa'>Admin</div>":`
+        <div style="display:flex;gap:6px">
+          <button class="btn-edit-user" data-username="${u.username}" style="background:#E8F4FD;color:#2980B9;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">✏️</button>
+          <button class="btn-del-user" data-username="${u.username}" style="background:#FDEDEC;color:#E74C3C;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">🗑️</button>
+        </div>`}
       </div>`).join("")}
-      <div style="padding:14px 20px;font-size:11px;color:#888">Gửi thông tin trên cho từng giảng viên để đăng nhập vào hệ thống.</div>
+
+      <div style="padding:12px 20px;font-size:11px;color:#888;border-top:1px solid #eee">
+        💡 Gửi tên đăng nhập & mật khẩu cho giảng viên để họ đăng nhập vào hệ thống.
+      </div>
     </div>
   </div>`;
+}
+
+function saveUserForm(){
+  const name=state.um_name.trim();
+  const username=state.um_username.trim().toLowerCase().replace(/\s/g,"_");
+  const password=state.um_password.trim();
+  const role=state.um_role;
+  if(!name||!username||!password){ setState({um_error:"Vui lòng điền đầy đủ thông tin!"}); return; }
+  if(state.editingUser==="new"){
+    if(USERS.find(u=>u.username===username)){ setState({um_error:"Tên đăng nhập đã tồn tại!"}); return; }
+    USERS.push({username,password,name,role,isAdmin:false});
+  } else {
+    const idx=USERS.findIndex(u=>u.username===state.editingUser);
+    if(idx>=0) USERS[idx]={...USERS[idx],name,username,password,role};
+  }
+  saveUsers(USERS);
+  setState({editingUser:null,um_name:"",um_username:"",um_password:"",um_role:"piano",um_error:""});
+}
+
+function deleteUser(username){
+  if(!confirm("Xóa tài khoản "+username+"?")) return;
+  USERS=USERS.filter(u=>u.username!==username);
+  saveUsers(USERS);
+  setState({});
 }
 
 function attachEvents(){
@@ -360,9 +434,21 @@ function attachEvents(){
   document.getElementById("navDash")?.addEventListener("click",()=>setState({view:"dashboard"}));
   document.getElementById("navDetail")?.addEventListener("click",()=>setState({view:"detail",activeObj:null}));
   document.getElementById("btnLogout")?.addEventListener("click",logout);
-  document.getElementById("btnAdmin")?.addEventListener("click",()=>setState({showAdmin:true}));
-  document.getElementById("btnCloseModal")?.addEventListener("click",()=>setState({showAdmin:false}));
-  document.getElementById("modalOverlay")?.addEventListener("click",e=>{if(e.target.id==="modalOverlay")setState({showAdmin:false});});
+  document.getElementById("btnAdmin")?.addEventListener("click",()=>setState({showAdmin:true,editingUser:null}));
+  document.getElementById("btnCloseModal")?.addEventListener("click",()=>setState({showAdmin:false,editingUser:null}));
+  document.getElementById("modalOverlay")?.addEventListener("click",e=>{if(e.target.id==="modalOverlay")setState({showAdmin:false,editingUser:null});});
+  document.getElementById("btnAddUser")?.addEventListener("click",()=>setState({editingUser:"new",um_name:"",um_username:"",um_password:"",um_role:"piano",um_error:""}));
+  document.getElementById("um-save")?.addEventListener("click",saveUserForm);
+  document.getElementById("um-cancel")?.addEventListener("click",()=>setState({editingUser:null,um_error:""}));
+  document.getElementById("um-name")?.addEventListener("input",e=>state.um_name=e.target.value);
+  document.getElementById("um-username")?.addEventListener("input",e=>state.um_username=e.target.value);
+  document.getElementById("um-password")?.addEventListener("input",e=>state.um_password=e.target.value);
+  document.getElementById("um-role")?.addEventListener("change",e=>state.um_role=e.target.value);
+  document.querySelectorAll(".btn-edit-user").forEach(b=>b.addEventListener("click",()=>{
+    const u=USERS.find(u=>u.username===b.dataset.username);
+    if(u) setState({editingUser:u.username,um_name:u.name,um_username:u.username,um_password:u.password,um_role:u.role,um_error:""});
+  }));
+  document.querySelectorAll(".btn-del-user").forEach(b=>b.addEventListener("click",()=>deleteUser(b.dataset.username)));
   document.querySelectorAll(".obj-card").forEach(c=>c.addEventListener("click",()=>setState({view:"detail",activeObj:c.dataset.objid})));
   document.querySelectorAll(".filter-btn").forEach(b=>b.addEventListener("click",()=>setState({activeObj:b.dataset.filter==="all"?null:b.dataset.filter})));
   document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>setState({editKR:b.dataset.edit,editVal:b.dataset.actual})));
