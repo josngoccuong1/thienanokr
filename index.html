@@ -105,7 +105,16 @@ const ROLES=[
   {id:"recording",label:"GV Thu Âm",icon:"🎧"},
   {id:"marketing",label:"Marketing",icon:"📢"},
 ];
-const QUARTERS=["Q3/2025","Q4/2025","Q1/2026","Q2/2026"];
+function genQuarters(){
+  const qs=[];
+  const now=new Date();
+  const endYear=now.getFullYear()+5;
+  for(let y=2023;y<=endYear;y++)
+    for(let q=1;q<=4;q++) qs.push(`Q${q}/${y}`);
+  return qs;
+}
+const QUARTERS=genQuarters();
+function currentQuarter(){const n=new Date();return `Q${Math.ceil((n.getMonth()+1)/3)}/${n.getFullYear()}`;}
 // Tự động tạo tháng từ T1/2020 đến 5 năm sau — vô thời hạn quá khứ & tương lai
 function genMonths(){
   const months=[];
@@ -122,8 +131,8 @@ function currentMonth(){const n=new Date();return `T${n.getMonth()+1}/${n.getFul
 const THU_CATS=["Học phí","Bán nhạc cụ","Sự kiện","Khác"];
 const CHI_CATS=["Lương nhân viên","Thuê mặt bằng","Nhạc cụ/vật tư","Marketing","Điện nước","Khác"];
 
-// OKR DATA
-const OBJECTIVES=[
+// OKR DATA - có thể chỉnh sửa trong app
+const DEFAULT_OBJECTIVES=[
   {id:"O1",icon:"🎓",title:"Tăng trưởng số lượng học viên",krs:[
     {id:"O1K1",text:"Tuyển mới học viên Piano",unit:"học viên",target:15,ownerRole:"piano"},
     {id:"O1K2",text:"Tuyển mới học viên Guitar",unit:"học viên",target:10,ownerRole:"guitar"},
@@ -154,6 +163,9 @@ const OBJECTIVES=[
     {id:"O5K3",text:"Chứng chỉ bồi dưỡng GV đạt được",unit:"chứng chỉ",target:4,ownerRole:"admin"},
   ]},
 ];
+function loadObjectives(){return ls_get("ta_objectives")||DEFAULT_OBJECTIVES;}
+function saveObjectives(o){ls_set("ta_objectives",o);}
+let OBJECTIVES=loadObjectives();
 
 // STORAGE HELPERS
 function ls_get(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch(e){return null}}
@@ -185,11 +197,17 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 // ============================================================
 let state={
   screen:"login",user:null,tab:"okr",
-  quarter:QUARTERS[0],month:currentMonth(),
+  quarter:currentQuarter(),month:currentMonth(),
   loginError:"",uname:"",upass:"",
   actuals:{},
   // OKR
   editKR:null,editVal:"",saving:false,
+  // OKR Editor
+  showOKREditor:false,
+  okr_editObj:null, // null=new obj, id=edit obj
+  okr_editKR:null,  // null=new kr, {oid,kid}=edit kr
+  okr_obj_icon:"🎯",okr_obj_title:"",
+  okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:"",
   // Plan
   plans:ls_get("ta_plans")||[],
   showPlanForm:false,pf_title:"",pf_month:currentMonth(),pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
@@ -215,6 +233,48 @@ async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:s
 // ============================================================
 // ACTIONS
 // ============================================================
+// OKR CRUD
+function saveObjective(){
+  const title=state.okr_obj_title.trim(),icon=state.okr_obj_icon;
+  if(!title){setState({okr_error:"Vui lòng nhập tên mục tiêu!"});return;}
+  const objs=[...OBJECTIVES];
+  if(state.okr_editObj==="new"){
+    const id="O"+(objs.length+1)+"_"+Date.now();
+    objs.push({id,icon,title,krs:[]});
+  } else {
+    const i=objs.findIndex(o=>o.id===state.okr_editObj);
+    if(i>=0){objs[i]={...objs[i],icon,title};}
+  }
+  OBJECTIVES=objs;saveObjectives(objs);
+  setState({showOKREditor:false,okr_editObj:null,okr_obj_title:"",okr_error:""});
+}
+function deleteObjective(oid){
+  if(!confirm("Xóa mục tiêu này và tất cả KR bên trong?"))return;
+  OBJECTIVES=OBJECTIVES.filter(o=>o.id!==oid);saveObjectives(OBJECTIVES);setState({});
+}
+function saveKR(){
+  const text=state.okr_kr_text.trim(),unit=state.okr_kr_unit,target=Number(state.okr_kr_target),role=state.okr_kr_role;
+  if(!text||!target){setState({okr_error:"Vui lòng điền đầy đủ KR!"});return;}
+  const objs=[...OBJECTIVES];
+  const oi=objs.findIndex(o=>o.id===state.okr_editKR?.oid);
+  if(oi<0)return;
+  const krs=[...objs[oi].krs];
+  if(!state.okr_editKR.kid){
+    krs.push({id:"kr_"+Date.now(),text,unit,target,ownerRole:role});
+  } else {
+    const ki=krs.findIndex(k=>k.id===state.okr_editKR.kid);
+    if(ki>=0)krs[ki]={...krs[ki],text,unit,target,ownerRole:role};
+  }
+  objs[oi]={...objs[oi],krs};
+  OBJECTIVES=objs;saveObjectives(objs);
+  setState({okr_editKR:null,okr_kr_text:"",okr_kr_target:0,okr_error:""});
+}
+function deleteKR(oid,kid){
+  if(!confirm("Xóa Key Result này?"))return;
+  const objs=OBJECTIVES.map(o=>o.id!==oid?o:{...o,krs:o.krs.filter(k=>k.id!==kid)});
+  OBJECTIVES=objs;saveObjectives(objs);setState({});
+}
+
 function doLogin(){
   const u=USERS.find(u=>u.username===state.uname.trim()&&u.password===state.upass);
   if(u){setState({user:u,screen:"app",loginError:""});loadActuals();}
@@ -341,26 +401,89 @@ function renderOKR(){
   const allKRs=OBJECTIVES.flatMap(o=>o.krs);
   const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/allKRs.length):0;
   const gst=stInfo(gs);
-  return`
+  const ICONS=["🎯","🎓","🎵","📱","💰","👨‍🏫","🏆","📊","🚀","⭐","🎸","🎹","💡","📋","🔥"];
+  const okrEditorModal = state.showOKREditor ? `
+  <div class="modal-overlay" id="okrEditorOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">${state.okr_editObj==="new"?"➕ Thêm Objective":"✏️ Sửa Objective"}</span>
+        <button class="btn-sm" id="btnCloseOKREditor" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px">
+          <div class="form-label">Icon</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            ${ICONS.map(ic=>`<span class="okr-icon-btn" data-icon="${ic}" style="font-size:22px;cursor:pointer;padding:4px;border-radius:6px;border:2px solid ${ic===state.okr_obj_icon?"#D4AF37":"transparent"}">${ic}</span>`).join("")}
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <div class="form-label">Tên mục tiêu (Objective)</div>
+          <input class="form-input" id="okr-obj-title" placeholder="VD: Tăng trưởng học viên" value="${state.okr_obj_title}"/>
+        </div>
+        ${state.okr_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.okr_error}</div>`:""}
+        <button class="btn-primary" id="btnSaveObj" style="width:100%">💾 Lưu Objective</button>
+      </div>
+    </div>
+  </div>` : "";
+
+  const krEditorModal = state.okr_editKR ? `
+  <div class="modal-overlay" id="krEditorOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">${!state.okr_editKR.kid?"➕ Thêm Key Result":"✏️ Sửa Key Result"}</span>
+        <button class="btn-sm" id="btnCloseKREditor" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px">
+          <div class="form-label">Nội dung KR</div>
+          <input class="form-input" id="kr-text" placeholder="VD: Tuyển mới 20 học viên piano" value="${state.okr_kr_text}"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Đơn vị đo</div>
+            <input class="form-input" id="kr-unit" placeholder="học viên / % / reviews" value="${state.okr_kr_unit}"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Mục tiêu</div>
+            <input class="form-input" id="kr-target" type="number" placeholder="20" value="${state.okr_kr_target}"/>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <div class="form-label">Người phụ trách</div>
+          <select class="form-select" id="kr-role">
+            ${ROLES.map(r=>`<option value="${r.id}"${state.okr_kr_role===r.id?" selected":""}>${r.icon} ${r.label}</option>`).join("")}
+          </select>
+        </div>
+        ${state.okr_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.okr_error}</div>`:""}
+        <button class="btn-primary" id="btnSaveKREdit" style="width:100%">💾 Lưu Key Result</button>
+      </div>
+    </div>
+  </div>` : "";
+
+  return okrEditorModal + krEditorModal + `
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
     <select id="qsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
       ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
     </select>
     <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
+    ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm Objective</button>`:""}
   </div>
   ${OBJECTIVES.map(obj=>{
     const sc=obj.krs.length?Math.round(obj.krs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/obj.krs.length):0;
     const st=stInfo(sc);
     return`<div class="card okr-obj">
-      <div class="okr-obj-head" data-oid="${obj.id}">
+      <div class="okr-obj-head">
         <span style="font-size:18px">${obj.icon}</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#1A1A2E">${obj.id}: ${obj.title}</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:80px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div>
-          <span style="font-size:13px;font-weight:800;color:${st.color};width:36px">${sc}%</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#1A1A2E">${obj.title}</div></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:70px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div>
+          <span style="font-size:13px;font-weight:800;color:${st.color};width:34px">${sc}%</span>
+          ${state.user.isAdmin?`<button class="btn-edit okr-edit-obj" data-oid="${obj.id}" data-title="${obj.title}" data-icon="${obj.icon}" style="padding:3px 7px;font-size:11px">✏️</button>
+          <button class="btn-danger okr-del-obj" data-oid="${obj.id}" style="padding:3px 7px;font-size:11px">🗑️</button>`:""}
         </div>
       </div>
       <div class="okr-kr-list">
+        ${state.user.isAdmin?`<div style="padding:6px 0 2px"><button class="btn-success okr-add-kr" data-oid="${obj.id}" style="font-size:11px;padding:4px 10px">➕ Thêm KR</button></div>`:""}
         ${obj.krs.map((kr,i)=>{
           const actual=state.actuals[kr.id]?.actual||0;
           const p=pct(actual,kr.target);const s=stInfo(p);
@@ -379,6 +502,8 @@ function renderOKR(){
               <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
             </div>`:`<button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>${actual} ${kr.unit}</button>`}
             <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
+            ${state.user.isAdmin?`<button class="btn-edit okr-edit-kr" data-oid="${obj.id}" data-kid="${kr.id}" data-text="${kr.text}" data-unit="${kr.unit}" data-target="${kr.target}" data-role="${kr.ownerRole}" style="padding:2px 6px;font-size:10px">✏️</button>
+            <button class="btn-danger okr-del-kr" data-oid="${obj.id}" data-kid="${kr.id}" style="padding:2px 6px;font-size:10px">🗑️</button>`:""}
           </div>`;
         }).join("")}
       </div>
@@ -723,6 +848,26 @@ function attachEvents(){
 
   // OKR
   document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
+  // OKR Editor
+  document.getElementById("btnAddObj")?.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:"new",okr_obj_title:"",okr_obj_icon:"🎯",okr_error:""}));
+  document.getElementById("btnCloseOKREditor")?.addEventListener("click",()=>setState({showOKREditor:false}));
+  document.getElementById("okrEditorOverlay")?.addEventListener("click",e=>{if(e.target.id==="okrEditorOverlay")setState({showOKREditor:false})});
+  document.getElementById("okr-obj-title")?.addEventListener("input",e=>state.okr_obj_title=e.target.value);
+  document.querySelectorAll(".okr-icon-btn").forEach(b=>b.addEventListener("click",()=>setState({okr_obj_icon:b.dataset.icon})));
+  document.getElementById("btnSaveObj")?.addEventListener("click",saveObjective);
+  document.querySelectorAll(".okr-edit-obj").forEach(b=>b.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:b.dataset.oid,okr_obj_title:b.dataset.title,okr_obj_icon:b.dataset.icon,okr_error:""})));
+  document.querySelectorAll(".okr-del-obj").forEach(b=>b.addEventListener("click",()=>deleteObjective(b.dataset.oid)));
+  // KR Editor
+  document.getElementById("btnCloseKREditor")?.addEventListener("click",()=>setState({okr_editKR:null}));
+  document.getElementById("krEditorOverlay")?.addEventListener("click",e=>{if(e.target.id==="krEditorOverlay")setState({okr_editKR:null})});
+  document.getElementById("kr-text")?.addEventListener("input",e=>state.okr_kr_text=e.target.value);
+  document.getElementById("kr-unit")?.addEventListener("input",e=>state.okr_kr_unit=e.target.value);
+  document.getElementById("kr-target")?.addEventListener("input",e=>state.okr_kr_target=e.target.value);
+  document.getElementById("kr-role")?.addEventListener("change",e=>state.okr_kr_role=e.target.value);
+  document.getElementById("btnSaveKREdit")?.addEventListener("click",saveKR);
+  document.querySelectorAll(".okr-add-kr").forEach(b=>b.addEventListener("click",()=>setState({okr_editKR:{oid:b.dataset.oid,kid:null},okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:""})));
+  document.querySelectorAll(".okr-edit-kr").forEach(b=>b.addEventListener("click",()=>setState({okr_editKR:{oid:b.dataset.oid,kid:b.dataset.kid},okr_kr_text:b.dataset.text,okr_kr_unit:b.dataset.unit,okr_kr_target:Number(b.dataset.target),okr_kr_role:b.dataset.role,okr_error:""})));
+  document.querySelectorAll(".okr-del-kr").forEach(b=>b.addEventListener("click",()=>deleteKR(b.dataset.oid,b.dataset.kid)));
   document.querySelectorAll(".kr-edit-btn").forEach(b=>b.addEventListener("click",()=>setState({editKR:b.dataset.krid,editVal:b.dataset.actual})));
   document.getElementById("btnSaveKR")?.addEventListener("click",doSaveKR);
   document.getElementById("btnCancelKR")?.addEventListener("click",()=>setState({editKR:null}));
