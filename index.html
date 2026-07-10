@@ -4,98 +4,87 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
 <meta name="theme-color" content="#1A1A2E"/>
-<title>Thiên Ân OKR</title>
+<title>Thiên Ân — Quản lý</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-height: 100vh; }
-.header { background: linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%); color:#fff; padding: 16px 16px 12px; position: sticky; top: 0; z-index: 50; }
-.header-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.header-title h1 { font-size:15px; font-weight:800; }
-.header-title p { font-size:11px; color:#D4AF37; font-weight:600; }
-.quarter-select { background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(212,175,55,0.5); border-radius:8px; padding:5px 8px; font-size:12px; font-weight:700; margin-left:auto; }
-.quarter-select option { color:#000; }
-.user-bar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.user-name { font-size:12px; color:#ddd; flex:1; }
-.btn-sm { border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; }
-.btn-admin { background:#D4AF37; color:#1A1A2E; }
-.btn-logout { background:rgba(255,255,255,0.15); color:#fff; }
-.nav { display:flex; gap:6px; }
-.nav-btn { border:none; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; }
-.nav-btn.active { background:#D4AF37; color:#1A1A2E; }
-.nav-btn:not(.active) { background:rgba(255,255,255,0.1); color:#fff; }
-.main { padding:14px; max-width:700px; margin:0 auto; }
-.card { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,0.08); margin-bottom:14px; overflow:hidden; }
-.card-pad { padding:18px; }
-.global-card { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-.score-label { font-size:12px; color:#888; font-weight:600; margin-bottom:2px; }
-.score-value { font-size:28px; font-weight:800; }
-.score-badge { display:inline-block; border-radius:20px; padding:3px 12px; font-size:12px; font-weight:700; margin-top:4px; }
-.stats { margin-left:auto; display:flex; gap:14px; }
-.stat-item { text-align:center; }
-.stat-num { font-size:20px; font-weight:800; }
-.stat-lbl { font-size:10px; color:#888; }
-.obj-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
-.obj-card { background:#fff; border-radius:14px; padding:16px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.07); border:2px solid transparent; transition:border-color 0.2s; }
-.obj-card:active { border-color:#D4AF37; }
-.obj-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.obj-icon { font-size:20px; }
-.obj-id { font-size:10px; color:#888; font-weight:700; }
-.obj-title { font-size:13px; font-weight:700; color:#1A1A2E; line-height:1.3; }
-.progress-bar-wrap { background:#F0F0F0; border-radius:6px; height:7px; margin-bottom:8px; }
-.progress-bar-fill { height:100%; border-radius:6px; transition:width 0.5s; }
-.obj-footer { display:flex; justify-content:space-between; font-size:12px; }
-.kr-dots { display:flex; gap:3px; margin-top:8px; flex-wrap:wrap; }
-.kr-dot { width:10px; height:10px; border-radius:3px; }
-.obj-detail-header { background:linear-gradient(135deg,#1A1A2E,#16213E); padding:14px 18px; display:flex; align-items:center; gap:10px; }
-.obj-detail-icon { font-size:20px; }
-.obj-detail-info { flex:1; }
-.obj-detail-id { font-size:11px; color:#D4AF37; font-weight:700; }
-.obj-detail-title { font-size:14px; font-weight:700; color:#fff; }
-.obj-detail-score { font-size:22px; font-weight:800; }
-.filter-bar { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
-.filter-btn { border:2px solid #E5E7EB; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; background:#fff; color:#555; }
-.filter-btn.active { background:#1A1A2E; color:#fff; border-color:#1A1A2E; }
-.kr-row { padding:14px 18px; border-bottom:1px solid #F5F5F5; }
-.kr-row:last-child { border-bottom:none; }
-.kr-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
-.kr-badge { background:#F0F2F5; border-radius:4px; padding:1px 6px; font-size:10px; color:#888; white-space:nowrap; margin-top:1px; }
-.kr-text { font-size:13px; font-weight:600; color:#1A1A2E; flex:1; line-height:1.4; }
-.kr-meta { font-size:10px; color:#aaa; margin-bottom:8px; }
-.kr-progress-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.kr-progress-wrap { flex:1; background:#F0F0F0; border-radius:4px; height:6px; }
-.kr-progress-fill { height:100%; border-radius:4px; transition:width 0.4s; }
-.kr-pct { font-size:11px; font-weight:700; width:32px; text-align:right; }
-.kr-bottom { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.kr-target { font-size:11px; color:#888; }
-.kr-actual-btn { border-radius:8px; padding:6px 14px; font-size:13px; font-weight:800; cursor:pointer; border-width:2px; border-style:solid; }
-.kr-actual-btn:disabled { opacity:0.5; cursor:not-allowed; }
-.status-badge { border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700; white-space:nowrap; margin-left:auto; }
-.edit-wrap { display:flex; align-items:center; gap:6px; }
-.edit-input { width:72px; border:2px solid #D4AF37; border-radius:6px; padding:5px 8px; font-size:13px; font-weight:700; outline:none; }
-.btn-confirm { background:#27AE60; color:#fff; border:none; border-radius:6px; padding:5px 10px; font-size:13px; cursor:pointer; font-weight:700; }
-.btn-cancel { background:#eee; color:#555; border:none; border-radius:6px; padding:5px 8px; font-size:13px; cursor:pointer; }
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; }
-.modal { background:#fff; border-radius:16px; width:100%; max-width:500px; max-height:80vh; overflow:auto; }
-.modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #eee; }
-.modal-title { font-size:16px; font-weight:800; color:#1A1A2E; }
-.user-row { display:flex; align-items:center; gap:10px; padding:12px 20px; border-bottom:1px solid #f5f5f5; flex-wrap:wrap; }
-.user-info { flex:1; min-width:120px; }
-.user-info-name { font-size:13px; font-weight:700; }
-.user-info-email { font-size:11px; color:#888; }
-.role-select { border:2px solid #D4AF37; border-radius:8px; padding:5px 8px; font-size:12px; font-weight:600; color:#1A1A2E; background:#FFFDF0; cursor:pointer; }
-.login-screen { min-height:100vh; background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%); display:flex; align-items:center; justify-content:center; padding:20px; }
-.login-card { background:#fff; border-radius:20px; padding:40px 32px; text-align:center; max-width:340px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
-.login-logo { font-size:48px; margin-bottom:8px; }
-.login-title { font-size:20px; font-weight:800; color:#1A1A2E; margin-bottom:4px; }
-.login-sub { font-size:12px; color:#D4AF37; font-weight:700; letter-spacing:1px; margin-bottom:24px; }
-.login-input { width:100%; border:2px solid #E5E7EB; border-radius:10px; padding:12px 16px; font-size:14px; outline:none; margin-bottom:10px; text-align:left; }
-.login-input:focus { border-color:#D4AF37; }
-.btn-login { width:100%; background:#1A1A2E; color:#fff; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
-.login-error { color:#E74C3C; font-size:12px; margin-top:8px; }
-.loading { min-height:100vh; background:#1A1A2E; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
-.loading-icon { font-size:44px; }
-.loading-text { color:#D4AF37; font-size:15px; font-weight:700; }
-.footer { text-align:center; color:#bbb; font-size:10px; padding:14px 0 24px; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh}
+/* HEADER */
+.header{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);color:#fff;padding:12px 16px 0;position:sticky;top:0;z-index:50}
+.hrow1{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.htitle h1{font-size:14px;font-weight:800}
+.htitle p{font-size:10px;color:#D4AF37;font-weight:600}
+.hright{margin-left:auto;display:flex;align-items:center;gap:6px}
+.btn-sm{border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.btn-gold{background:#D4AF37;color:#1A1A2E}
+.btn-ghost{background:rgba(255,255,255,0.15);color:#fff}
+.tabs{display:flex;gap:2px;overflow-x:auto;padding-bottom:0;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:none;border-radius:8px 8px 0 0;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#fff;color:#1A1A2E}
+.tab:not(.active){background:rgba(255,255,255,0.1);color:#ddd}
+/* MAIN */
+.main{padding:14px;max-width:900px;margin:0 auto}
+/* CARD */
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:14px;overflow:hidden}
+.card-head{background:linear-gradient(135deg,#1A1A2E,#16213E);padding:12px 18px;display:flex;align-items:center;gap:8px}
+.card-head-title{font-size:14px;font-weight:700;color:#fff;flex:1}
+.card-head-sub{font-size:11px;color:#D4AF37}
+.card-pad{padding:16px 18px}
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07);text-align:center}
+.stat-val{font-size:22px;font-weight:800;margin-bottom:2px}
+.stat-lbl{font-size:11px;color:#888}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:#F8F9FA;padding:8px 10px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #E5E7EB}
+.tbl td{padding:8px 10px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#FAFAFA}
+/* BADGE */
+.badge{display:inline-block;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700}
+/* FORM */
+.form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.form-group{flex:1;min-width:140px}
+.form-label{font-size:11px;color:#888;font-weight:600;margin-bottom:4px}
+.form-input{width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+.form-input:focus{border-color:#D4AF37}
+.form-select{width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:7px 10px;font-size:13px;background:#fff}
+.btn-primary{background:#1A1A2E;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-success{background:#27AE60;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-danger{background:#FDEDEC;color:#E74C3C;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+.btn-edit{background:#E8F4FD;color:#2980B9;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+/* PROGRESS */
+.prog-wrap{background:#F0F0F0;border-radius:4px;height:6px;flex:1}
+.prog-fill{height:100%;border-radius:4px;transition:width 0.4s}
+/* LOGIN */
+.login-screen{min-height:100vh;background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{background:#fff;border-radius:20px;padding:40px 32px;text-align:center;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.login-input{width:100%;border:2px solid #E5E7EB;border-radius:10px;padding:12px 16px;font-size:14px;outline:none;margin-bottom:10px}
+.login-input:focus{border-color:#D4AF37}
+.btn-login{width:100%;background:#1A1A2E;color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:85vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
+.modal-body{padding:18px}
+/* OKR */
+.okr-obj{margin-bottom:12px}
+.okr-obj-head{background:#F8F9FA;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;border:2px solid transparent}
+.okr-obj-head:hover{border-color:#D4AF37}
+.okr-kr-list{padding:8px 0 0 14px}
+.okr-kr-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F5F5F5;flex-wrap:wrap}
+.okr-kr-row:last-child{border-bottom:none}
+.kr-edit-btn{background:#FEF9E7;color:#E67E22;border:2px solid #E67E22;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.kr-edit-btn:disabled{opacity:0.4;cursor:not-allowed}
+/* PLAN */
+.plan-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F5}
+.plan-item:last-child{border-bottom:none}
+.plan-status{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+/* LUONG */
+.luong-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F5;flex-wrap:wrap}
+/* FOOTER */
+.footer{text-align:center;color:#bbb;font-size:10px;padding:14px 0 28px}
 </style>
 </head>
 <body>
@@ -106,356 +95,685 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #F0F2F5; min-heig
 // ============================================================
 const API_URL = "https://script.google.com/macros/s/AKfycbxYfXSSOdTmTEv2iJxSXlt5jg4YWQze7SO_d8a_d6gLQhK79UuGMuFhTQ3SS6MknpL2UA/exec";
 
-// Tài khoản — lưu vào localStorage để thêm/sửa/xóa trong app
+// ROLES
+const ROLES=[
+  {id:"admin",label:"Giám đốc / Admin",icon:"👑"},
+  {id:"piano",label:"GV Piano",icon:"🎹"},
+  {id:"guitar",label:"GV Guitar",icon:"🎸"},
+  {id:"vocal",label:"GV Thanh Nhạc",icon:"🎤"},
+  {id:"dance",label:"GV Nhảy",icon:"💃"},
+  {id:"recording",label:"GV Thu Âm",icon:"🎧"},
+  {id:"marketing",label:"Marketing",icon:"📢"},
+];
+const QUARTERS=["Q3/2025","Q4/2025","Q1/2026","Q2/2026"];
+const MONTHS=["T7/2025","T8/2025","T9/2025","T10/2025","T11/2025","T12/2025","T1/2026","T2/2026","T3/2026"];
+const THU_CATS=["Học phí","Bán nhạc cụ","Sự kiện","Khác"];
+const CHI_CATS=["Lương nhân viên","Thuê mặt bằng","Nhạc cụ/vật tư","Marketing","Điện nước","Khác"];
+
+// OKR DATA
+const OBJECTIVES=[
+  {id:"O1",icon:"🎓",title:"Tăng trưởng số lượng học viên",krs:[
+    {id:"O1K1",text:"Tuyển mới học viên Piano",unit:"học viên",target:15,ownerRole:"piano"},
+    {id:"O1K2",text:"Tuyển mới học viên Guitar",unit:"học viên",target:10,ownerRole:"guitar"},
+    {id:"O1K3",text:"Tuyển mới học viên Thanh Nhạc",unit:"học viên",target:8,ownerRole:"vocal"},
+    {id:"O1K4",text:"Tuyển mới học viên Nhảy",unit:"học viên",target:12,ownerRole:"dance"},
+    {id:"O1K5",text:"Tuyển mới học viên Thu Âm",unit:"học viên",target:5,ownerRole:"recording"},
+  ]},
+  {id:"O2",icon:"🎵",title:"Nâng cao chất lượng giảng dạy",krs:[
+    {id:"O2K1",text:"Tỷ lệ học viên hoàn thành khóa học",unit:"%",target:85,ownerRole:"admin"},
+    {id:"O2K2",text:"Học viên thi chứng chỉ AMEB/ABRSM",unit:"người",target:5,ownerRole:"piano"},
+    {id:"O2K3",text:"Điểm hài lòng phụ huynh",unit:"/10",target:8.5,ownerRole:"admin"},
+    {id:"O2K4",text:"Hoàn thiện giáo trình Piano 9 năm",unit:"%",target:100,ownerRole:"piano"},
+  ]},
+  {id:"O3",icon:"📱",title:"Xây dựng thương hiệu Thiên Ân online",krs:[
+    {id:"O3K1",text:"Followers fanpage Facebook",unit:"followers",target:2000,ownerRole:"marketing"},
+    {id:"O3K2",text:"Rating Google Maps",unit:"sao",target:4.8,ownerRole:"marketing"},
+    {id:"O3K3",text:"Reviews trên Google Maps",unit:"reviews",target:50,ownerRole:"marketing"},
+    {id:"O3K4",text:"Views kênh YouTube Thiên Ân",unit:"views",target:10000,ownerRole:"piano"},
+  ]},
+  {id:"O4",icon:"💰",title:"Đạt doanh thu mục tiêu quý",krs:[
+    {id:"O4K1",text:"Doanh thu học phí (2 cơ sở)",unit:"triệu VND",target:180,ownerRole:"admin"},
+    {id:"O4K2",text:"Doanh thu bán piano/guitar",unit:"triệu VND",target:50,ownerRole:"admin"},
+    {id:"O4K3",text:"Doanh thu sự kiện / biểu diễn",unit:"triệu VND",target:30,ownerRole:"admin"},
+  ]},
+  {id:"O5",icon:"👨‍🏫",title:"Phát triển năng lực đội ngũ GV",krs:[
+    {id:"O5K1",text:"Số buổi họp chuyên môn / tháng",unit:"buổi",target:3,ownerRole:"admin"},
+    {id:"O5K2",text:"GV Piano hoàn thành kiểm tra kỹ thuật",unit:"%",target:100,ownerRole:"piano"},
+    {id:"O5K3",text:"Chứng chỉ bồi dưỡng GV đạt được",unit:"chứng chỉ",target:4,ownerRole:"admin"},
+  ]},
+];
+
+// STORAGE HELPERS
+function ls_get(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch(e){return null}}
+function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+
+// USERS
 function loadUsers(){
-  try{
-    const s=localStorage.getItem("thienan_users");
-    if(s) return JSON.parse(s);
-  }catch(e){}
-  return [
-    { username:"cuong",     password:"thienan2025", name:"Thầy Ngọc Cương",  role:"admin",     isAdmin:true },
-    { username:"piano",     password:"piano2025",   name:"GV Piano",          role:"piano",     isAdmin:false },
-    { username:"guitar",    password:"guitar2025",  name:"GV Guitar",         role:"guitar",    isAdmin:false },
-    { username:"vocal",     password:"vocal2025",   name:"GV Thanh Nhạc",     role:"vocal",     isAdmin:false },
-    { username:"dance",     password:"dance2025",   name:"GV Nhảy",           role:"dance",     isAdmin:false },
-    { username:"recording", password:"record2025",  name:"GV Thu Âm",         role:"recording", isAdmin:false },
-    { username:"marketing", password:"mkt2025",     name:"Marketing",         role:"marketing", isAdmin:false },
+  return ls_get("ta_users")||[
+    {username:"cuong",password:"thienan2025",name:"Thầy Ngọc Cương",role:"admin",isAdmin:true,luong:0},
+    {username:"piano",password:"piano2025",name:"GV Piano",role:"piano",isAdmin:false,luong:5000000},
+    {username:"guitar",password:"guitar2025",name:"GV Guitar",role:"guitar",isAdmin:false,luong:4500000},
+    {username:"vocal",password:"vocal2025",name:"GV Thanh Nhạc",role:"vocal",isAdmin:false,luong:4500000},
+    {username:"dance",password:"dance2025",name:"GV Nhảy",role:"dance",isAdmin:false,luong:4000000},
+    {username:"recording",password:"record2025",name:"GV Thu Âm",role:"recording",isAdmin:false,luong:4000000},
+    {username:"marketing",password:"mkt2025",name:"Marketing",role:"marketing",isAdmin:false,luong:4000000},
   ];
 }
-function saveUsers(u){ localStorage.setItem("thienan_users",JSON.stringify(u)); }
-let USERS = loadUsers();
+function saveUsers(u){ls_set("ta_users",u)}
+let USERS=loadUsers();
 
-const OBJECTIVES = [
-  { id:"O1", icon:"🎓", title:"Tăng trưởng số lượng học viên", krs:[
-    { id:"O1K1", text:"Tuyển mới học viên Piano",      unit:"học viên", target:15, ownerRole:"piano" },
-    { id:"O1K2", text:"Tuyển mới học viên Guitar",     unit:"học viên", target:10, ownerRole:"guitar" },
-    { id:"O1K3", text:"Tuyển mới học viên Thanh Nhạc", unit:"học viên", target:8,  ownerRole:"vocal" },
-    { id:"O1K4", text:"Tuyển mới học viên Nhảy",       unit:"học viên", target:12, ownerRole:"dance" },
-    { id:"O1K5", text:"Tuyển mới học viên Thu Âm",     unit:"học viên", target:5,  ownerRole:"recording" },
-  ]},
-  { id:"O2", icon:"🎵", title:"Nâng cao chất lượng giảng dạy", krs:[
-    { id:"O2K1", text:"Tỷ lệ học viên hoàn thành khóa học",    unit:"%",     target:85,  ownerRole:"admin" },
-    { id:"O2K2", text:"Học viên thi chứng chỉ AMEB/ABRSM",     unit:"người", target:5,   ownerRole:"piano" },
-    { id:"O2K3", text:"Điểm hài lòng phụ huynh (khảo sát)",    unit:"/10",   target:8.5, ownerRole:"admin" },
-    { id:"O2K4", text:"Hoàn thiện giáo trình Piano 9 năm",      unit:"%",     target:100, ownerRole:"piano" },
-  ]},
-  { id:"O3", icon:"📱", title:"Xây dựng thương hiệu Thiên Ân online", krs:[
-    { id:"O3K1", text:"Followers fanpage Facebook",  unit:"followers", target:2000,  ownerRole:"marketing" },
-    { id:"O3K2", text:"Rating Google Maps",          unit:"sao",       target:4.8,   ownerRole:"marketing" },
-    { id:"O3K3", text:"Reviews trên Google Maps",    unit:"reviews",   target:50,    ownerRole:"marketing" },
-    { id:"O3K4", text:"Views kênh YouTube Thiên Ân", unit:"views",     target:10000, ownerRole:"piano" },
-  ]},
-  { id:"O4", icon:"💰", title:"Đạt doanh thu mục tiêu quý", krs:[
-    { id:"O4K1", text:"Doanh thu học phí (2 cơ sở)",   unit:"triệu VND", target:180, ownerRole:"admin" },
-    { id:"O4K2", text:"Doanh thu bán piano/guitar",     unit:"triệu VND", target:50,  ownerRole:"admin" },
-    { id:"O4K3", text:"Doanh thu sự kiện / biểu diễn", unit:"triệu VND", target:30,  ownerRole:"admin" },
-  ]},
-  { id:"O5", icon:"👨‍🏫", title:"Phát triển năng lực đội ngũ giảng viên", krs:[
-    { id:"O5K1", text:"Số buổi họp chuyên môn / tháng",        unit:"buổi",      target:3,   ownerRole:"admin" },
-    { id:"O5K2", text:"GV Piano hoàn thành kiểm tra kỹ thuật", unit:"%",         target:100, ownerRole:"piano" },
-    { id:"O5K3", text:"Chứng chỉ bồi dưỡng GV đạt được",      unit:"chứng chỉ", target:4,   ownerRole:"admin" },
-  ]},
-];
+function roleInfo(r){return ROLES.find(x=>x.id===r)||{icon:"👤",label:r}}
+function fmtMoney(n){return Number(n).toLocaleString("vi-VN")+" ₫"}
+function fmtM(n){return (Number(n)/1000000).toFixed(1)+"M"}
+function pct(a,t){if(!t)return 0;return Math.min(Math.round((a/t)*100),100)}
+function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",icon:"✅"};if(p>=60)return{label:"Cải thiện",color:"#E67E22",bg:"#FEF9E7",icon:"⚠️"};return{label:"Chưa đạt",color:"#E74C3C",bg:"#FDEDEC",icon:"❌"}}
 
-const ROLES = [
-  { id:"admin",     label:"Giám đốc / Admin",    icon:"👑" },
-  { id:"piano",     label:"GV Piano",             icon:"🎹" },
-  { id:"guitar",    label:"GV Guitar",            icon:"🎸" },
-  { id:"vocal",     label:"GV Thanh Nhạc",        icon:"🎤" },
-  { id:"dance",     label:"GV Nhảy",              icon:"💃" },
-  { id:"recording", label:"GV Thu Âm & Phối Khí", icon:"🎧" },
-  { id:"marketing", label:"Marketing",            icon:"📢" },
-];
-
-const QUARTERS = ["Q3/2025","Q4/2025","Q1/2026","Q2/2026"];
-
+// ============================================================
 // STATE
-let state = {
-  screen:"login", user:null, quarter:"Q3/2025",
-  actuals:{}, view:"dashboard", activeObj:null,
-  editKR:null, editVal:"", saving:false,
-  showAdmin:false, loginError:"",
-  usernameInput:"", passwordInput:"",
-  editingUser:null, um_name:"", um_username:"", um_role:"piano", um_password:"", um_error:"",
+// ============================================================
+let state={
+  screen:"login",user:null,tab:"okr",
+  quarter:QUARTERS[0],month:MONTHS[0],
+  loginError:"",uname:"",upass:"",
+  actuals:{},
+  // OKR
+  editKR:null,editVal:"",saving:false,
+  // Plan
+  plans:ls_get("ta_plans")||[],
+  showPlanForm:false,pf_title:"",pf_month:MONTHS[0],pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
+  editPlan:null,
+  // Luong
+  luongData:ls_get("ta_luong")||{},
+  showLuongModal:false,luong_user:"",luong_month:MONTHS[0],luong_base:0,luong_bonus:0,luong_note:"",
+  // Thu chi
+  transactions:ls_get("ta_tx")||[],
+  showTxForm:false,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:MONTHS[0],
+  editTx:null,
+  // Users
+  showUserModal:false,editingUser:null,um_name:"",um_username:"",um_role:"piano",um_password:"",um_luong:0,um_error:"",
 };
 
-// HELPERS
-function pct(actual,target){ if(!target)return 0; return Math.min(Math.round((actual/target)*100),100); }
-function statusInfo(p){ if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",icon:"✅"}; if(p>=60)return{label:"Cần cải thiện",color:"#E67E22",bg:"#FEF9E7",icon:"⚠️"}; return{label:"Chưa đạt",color:"#E74C3C",bg:"#FDEDEC",icon:"❌"}; }
-function getActual(krId){ return state.actuals[krId]?.actual??0; }
-function canEdit(kr){ if(!state.user)return false; if(state.user.isAdmin)return true; return kr.ownerRole===state.user.role; }
-function globalScore(){ const all=OBJECTIVES.flatMap(o=>o.krs); if(!all.length)return 0; return Math.round(all.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/all.length); }
-function objScore(obj){ if(!obj.krs.length)return 0; return Math.round(obj.krs.reduce((s,kr)=>s+pct(getActual(kr.id),kr.target),0)/obj.krs.length); }
-function roleInfo(roleId){ return ROLES.find(r=>r.id===roleId)||{icon:"👤",label:roleId||""}; }
-
+// ============================================================
 // API
-async function apiGet(params){ const url=API_URL+"?"+new URLSearchParams(params); const res=await fetch(url); return res.json(); }
-async function apiPost(data){ const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}); return res.json(); }
-async function loadActuals(){ try{ const data=await apiGet({action:"getActuals",quarter:state.quarter}); setState({actuals:data}); }catch(e){} }
+// ============================================================
+async function apiGet(p){try{const r=await fetch(API_URL+"?"+new URLSearchParams(p));return r.json()}catch(e){return{}}}
+async function apiPost(d){try{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});return r.json()}catch(e){return{}}}
+async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:state.quarter});setState({actuals:d||{}})}
 
-// LOGIN
+// ============================================================
+// ACTIONS
+// ============================================================
 function doLogin(){
-  const u=USERS.find(u=>u.username===state.usernameInput.trim()&&u.password===state.passwordInput);
-  if(u){ setState({user:u,screen:"app",loginError:""}); loadActuals(); }
-  else { setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"}); }
+  const u=USERS.find(u=>u.username===state.uname.trim()&&u.password===state.upass);
+  if(u){setState({user:u,screen:"app",loginError:""});loadActuals();}
+  else setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
 }
-function logout(){ setState({user:null,screen:"login",actuals:{},usernameInput:"",passwordInput:""}); }
+function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
 
-// SAVE
-async function doSave(krId){
+async function doSaveKR(){
   if(state.saving)return;
   setState({saving:true});
-  await apiPost({action:"saveActual",quarter:state.quarter,krId,actual:Number(state.editVal),updatedBy:state.user.name});
+  await apiPost({action:"saveActual",quarter:state.quarter,krId:state.editKR,actual:Number(state.editVal),updatedBy:state.user.name});
   await loadActuals();
   setState({saving:false,editKR:null});
 }
 
-// STATE & RENDER
-function setState(patch){ Object.assign(state,patch); render(); }
-function render(){ document.getElementById("app").innerHTML=buildHTML(); attachEvents(); }
+function savePlan(){
+  const plans=[...state.plans];
+  const item={id:Date.now(),title:state.pf_title,month:state.pf_month,target:state.pf_target,owner:state.pf_owner,status:state.pf_status};
+  if(state.editPlan){const i=plans.findIndex(p=>p.id===state.editPlan);if(i>=0)plans[i]={...plans[i],...item};}
+  else plans.unshift(item);
+  ls_set("ta_plans",plans);
+  setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
+}
+function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);setState({plans})}
+
+function saveLuong(){
+  const key=state.luong_user+"__"+state.luong_month;
+  const luongData={...state.luongData,[key]:{user:state.luong_user,month:state.luong_month,base:Number(state.luong_base),bonus:Number(state.luong_bonus),note:state.luong_note,total:Number(state.luong_base)+Number(state.luong_bonus)}};
+  ls_set("ta_luong",luongData);
+  setState({luongData,showLuongModal:false});
+}
+
+function saveTx(){
+  const txs=[...state.transactions];
+  const item={id:Date.now(),type:state.tx_type,cat:state.tx_cat,amount:Number(state.tx_amount),note:state.tx_note,date:state.tx_date,month:state.tx_month};
+  if(state.editTx){const i=txs.findIndex(t=>t.id===state.editTx);if(i>=0)txs[i]={...txs[i],...item};}
+  else txs.unshift(item);
+  ls_set("ta_tx",txs);
+  setState({transactions:txs,showTxForm:false,editTx:null,tx_amount:"",tx_note:"",tx_date:""});
+}
+function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);setState({transactions})}
+
+function saveUserForm(){
+  const name=state.um_name.trim(),username=state.um_username.trim(),password=state.um_password.trim(),role=state.um_role,luong=Number(state.um_luong);
+  if(!name||!username||!password){setState({um_error:"Vui lòng điền đầy đủ!"});return}
+  let users=[...USERS];
+  if(state.editingUser==="new"){
+    if(users.find(u=>u.username===username)){setState({um_error:"Tên đăng nhập đã tồn tại!"});return}
+    users.push({username,password,name,role,isAdmin:false,luong});
+  }else{
+    const i=users.findIndex(u=>u.username===state.editingUser);
+    if(i>=0)users[i]={...users[i],name,username,password,role,luong};
+  }
+  saveUsers(users);USERS=users;
+  setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
+}
+function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);setState({})}
+
+// ============================================================
+// RENDER
+// ============================================================
+function setState(p){Object.assign(state,p);render()}
+function render(){document.getElementById("app").innerHTML=buildHTML();attachEvents()}
 
 function buildHTML(){
-  if(state.screen==="login") return renderLogin();
+  if(state.screen==="login")return renderLogin();
   return renderApp();
 }
 
 function renderLogin(){
-  return `<div class="login-screen">
-    <div class="login-card">
-      <div class="login-logo">🎵</div>
-      <div class="login-title">Học viện Thiên Ân</div>
-      <div class="login-sub">HỆ THỐNG QUẢN LÝ OKR</div>
-      <input class="login-input" id="inp-user" type="text" placeholder="Tên đăng nhập" value="${state.usernameInput}" autocomplete="username"/>
-      <input class="login-input" id="inp-pass" type="password" placeholder="Mật khẩu" value="${state.passwordInput}" autocomplete="current-password"/>
-      <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
-      ${state.loginError?`<div class="login-error">${state.loginError}</div>`:""}
-      <p style="margin-top:16px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    </div>
-  </div>`;
+  return`<div class="login-screen"><div class="login-card">
+    <div style="font-size:48px;margin-bottom:8px">🎵</div>
+    <div style="font-size:20px;font-weight:800;color:#1A1A2E;margin-bottom:4px">Học viện Thiên Ân</div>
+    <div style="font-size:12px;color:#D4AF37;font-weight:700;letter-spacing:1px;margin-bottom:24px">HỆ THỐNG QUẢN LÝ</div>
+    <input class="login-input" id="inp-u" type="text" placeholder="Tên đăng nhập" value="${state.uname}"/>
+    <input class="login-input" id="inp-p" type="password" placeholder="Mật khẩu" value="${state.upass}"/>
+    <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
+    ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
+    <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
+  </div></div>`;
 }
 
 function renderApp(){
-  const u=state.user;
-  const ri=roleInfo(u.role);
-  const gs=globalScore(); const gst=statusInfo(gs);
-  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
-  const nDat=allKRs.filter(kr=>pct(getActual(kr.id),kr.target)>=80).length;
-  const nCai=allKRs.filter(kr=>{const p=pct(getActual(kr.id),kr.target);return p>=60&&p<80}).length;
-  const nChu=allKRs.filter(kr=>pct(getActual(kr.id),kr.target)<60).length;
-  return `
-  <div class="header">
-    <div class="header-top">
+  const u=state.user;const ri=roleInfo(u.role);
+  const tabs=[
+    {id:"okr",label:"📊 OKR",show:true},
+    {id:"plan",label:"📋 Kế hoạch",show:true},
+    {id:"luong",label:"💵 Lương",show:true},
+    {id:"thuchi",label:"💰 Thu chi",show:u.isAdmin},
+    {id:"baocao",label:"📈 Báo cáo",show:u.isAdmin},
+    {id:"users",label:"👥 Nhân sự",show:u.isAdmin},
+  ].filter(t=>t.show);
+
+  return`<div class="header">
+    <div class="hrow1">
       <span style="font-size:22px">🎵</span>
-      <div class="header-title"><h1>Thiên Ân OKR</h1><p>${ri.icon} ${ri.label}${u.isAdmin?" (Admin)":""}</p></div>
-      <select class="quarter-select" id="qsel">${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}</select>
+      <div class="htitle"><h1>Thiên Ân</h1><p>${ri.icon} ${ri.label}</p></div>
+      <div class="hright">
+        <span style="font-size:11px;color:#ddd">${u.name}</span>
+        <button class="btn-sm btn-ghost" id="btnLogout">Đăng xuất</button>
+      </div>
     </div>
-    <div class="user-bar">
-      <span style="font-size:18px">${ri.icon}</span>
-      <span class="user-name">${u.name}</span>
-      ${u.isAdmin?`<button class="btn-sm btn-admin" id="btnAdmin">👑 Tài khoản</button>`:""}
-      <button class="btn-sm btn-logout" id="btnLogout">Đăng xuất</button>
-    </div>
-    <div class="nav">
-      <button class="nav-btn${state.view==="dashboard"?" active":""}" id="navDash">📊 Tổng quan</button>
-      <button class="nav-btn${state.view==="detail"?" active":""}" id="navDetail">📋 Chi tiết</button>
+    <div class="tabs">
+      ${tabs.map(t=>`<button class="tab${state.tab===t.id?" active":""}" data-tab="${t.id}">${t.label}</button>`).join("")}
     </div>
   </div>
   <div class="main">
-    ${state.view==="dashboard"?renderDashboard(gs,gst,nDat,nCai,nChu):renderDetail()}
+    ${state.tab==="okr"?renderOKR():""}
+    ${state.tab==="plan"?renderPlan():""}
+    ${state.tab==="luong"?renderLuong():""}
+    ${state.tab==="thuchi"?renderThuChi():""}
+    ${state.tab==="baocao"?renderBaoCao():""}
+    ${state.tab==="users"?renderUsers():""}
   </div>
-  ${state.showAdmin?renderAdminModal():""}
+  ${state.showTxForm?renderTxModal():""}
+  ${state.showPlanForm?renderPlanModal():""}
+  ${state.showLuongModal?renderLuongModal():""}
+  ${state.showUserModal?renderUserModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
 }
 
-function renderDashboard(gs,gst,nDat,nCai,nChu){
-  return `<div class="card card-pad"><div class="global-card">
-    ${renderRing(gs,80)}
-    <div><div class="score-label">TIẾN ĐỘ TỔNG THỂ — ${state.quarter}</div>
-    <div class="score-value" style="color:${gst.color}">${gs}%</div>
-    <div class="score-badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} ${gst.label}</div></div>
-    <div class="stats">
-      <div class="stat-item"><div class="stat-num" style="color:#27AE60">${nDat}</div><div class="stat-lbl">✅ Đạt</div></div>
-      <div class="stat-item"><div class="stat-num" style="color:#E67E22">${nCai}</div><div class="stat-lbl">⚠️ Cải thiện</div></div>
-      <div class="stat-item"><div class="stat-num" style="color:#E74C3C">${nChu}</div><div class="stat-lbl">❌ Chưa đạt</div></div>
-    </div>
-  </div></div>
-  <div class="obj-grid">${OBJECTIVES.map(obj=>{
-    const sc=objScore(obj); const st=statusInfo(sc);
-    return `<div class="obj-card" data-objid="${obj.id}">
-      <div class="obj-header"><span class="obj-icon">${obj.icon}</span>
-      <div><div class="obj-id">${obj.id}</div><div class="obj-title">${obj.title}</div></div></div>
-      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${sc}%;background:${st.color}"></div></div>
-      <div class="obj-footer"><span style="color:#888">${obj.krs.length} KR</span><span style="font-weight:800;color:${st.color}">${sc}%</span></div>
-      <div class="kr-dots">${obj.krs.map(kr=>{const p=pct(getActual(kr.id),kr.target);const s=statusInfo(p);return`<div class="kr-dot" style="background:${s.color};opacity:${canEdit(kr)?1:0.35}"></div>`;}).join("")}</div>
-    </div>`;
-  }).join("")}</div>`;
-}
-
-function renderDetail(){
-  const filtered=OBJECTIVES.filter(o=>!state.activeObj||o.id===state.activeObj);
-  return `<div class="filter-bar">
-    <button class="filter-btn${!state.activeObj?" active":""}" data-filter="all">Tất cả</button>
-    ${OBJECTIVES.map(o=>`<button class="filter-btn${state.activeObj===o.id?" active":""}" data-filter="${o.id}">${o.icon} ${o.id}</button>`).join("")}
+// ===== OKR =====
+function renderOKR(){
+  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
+  const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/allKRs.length):0;
+  const gst=stInfo(gs);
+  return`
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+    <select id="qsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
+    </select>
+    <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
   </div>
-  ${filtered.map(obj=>{
-    const sc=objScore(obj); const st=statusInfo(sc);
-    return `<div class="card" style="margin-bottom:14px">
-      <div class="obj-detail-header">
-        <span class="obj-detail-icon">${obj.icon}</span>
-        <div class="obj-detail-info"><div class="obj-detail-id">${obj.id} — ${state.quarter}</div><div class="obj-detail-title">${obj.title}</div></div>
-        <div class="obj-detail-score" style="color:${st.color}">${sc}%</div>
+  ${OBJECTIVES.map(obj=>{
+    const sc=obj.krs.length?Math.round(obj.krs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/obj.krs.length):0;
+    const st=stInfo(sc);
+    return`<div class="card okr-obj">
+      <div class="okr-obj-head" data-oid="${obj.id}">
+        <span style="font-size:18px">${obj.icon}</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#1A1A2E">${obj.id}: ${obj.title}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div>
+          <span style="font-size:13px;font-weight:800;color:${st.color};width:36px">${sc}%</span>
+        </div>
       </div>
-      ${obj.krs.map((kr,idx)=>{
-        const actual=getActual(kr.id); const p=pct(actual,kr.target); const s=statusInfo(p);
-        const editable=canEdit(kr); const isEditing=state.editKR===kr.id;
-        const last=state.actuals[kr.id]; const ri=roleInfo(kr.ownerRole);
-        return `<div class="kr-row" style="opacity:${editable?1:0.65}">
-          <div class="kr-top"><span class="kr-badge">KR${idx+1}</span><span class="kr-text">${kr.text}</span></div>
-          <div class="kr-meta">${ri.icon} ${ri.label}${last?` • Cập nhật: ${last.updatedBy} (${new Date(last.updatedAt).toLocaleDateString("vi-VN")})`:""}
-          </div>
-          <div class="kr-progress-row">
-            <div class="kr-progress-wrap"><div class="kr-progress-fill" style="width:${p}%;background:${s.color}"></div></div>
-            <span class="kr-pct" style="color:${s.color}">${p}%</span>
-          </div>
-          <div class="kr-bottom">
-            <span class="kr-target">Mục tiêu: <b>${kr.target}</b> ${kr.unit}</span>
-            ${isEditing?`<div class="edit-wrap">
-              <input class="edit-input" id="editInput" type="number" value="${state.editVal}" data-krid="${kr.id}"/>
-              <button class="btn-confirm" data-confirm="${kr.id}">${state.saving?"...":"✓"}</button>
-              <button class="btn-cancel" id="btnCancel">✕</button>
-            </div>`:`<button class="kr-actual-btn" style="background:${editable?s.bg:"#f5f5f5"};color:${editable?s.color:"#aaa"};border-color:${editable?s.color:"#ddd"}"
-              data-edit="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>${actual} ${kr.unit}</button>`}
-            <span class="status-badge" style="background:${s.bg};color:${s.color}">${s.icon} ${s.label}</span>
-          </div>
-        </div>`;
-      }).join("")}
+      <div class="okr-kr-list">
+        ${obj.krs.map((kr,i)=>{
+          const actual=state.actuals[kr.id]?.actual||0;
+          const p=pct(actual,kr.target);const s=stInfo(p);
+          const editable=state.user.isAdmin||kr.ownerRole===state.user.role;
+          const isEdit=state.editKR===kr.id;
+          const ri2=roleInfo(kr.ownerRole);
+          return`<div class="okr-kr-row" style="opacity:${editable?1:0.6}">
+            <span style="font-size:10px;background:#F0F2F5;border-radius:4px;padding:1px 5px;color:#888;flex-shrink:0">KR${i+1}</span>
+            <span style="font-size:12px;font-weight:600;flex:1;color:#1A1A2E">${kr.text}</span>
+            <span style="font-size:10px;color:#aaa;white-space:nowrap">${ri2.icon} ${ri2.label}</span>
+            <div class="prog-wrap" style="width:60px;flex:none"><div class="prog-fill" style="width:${p}%;background:${s.color}"></div></div>
+            <span style="font-size:11px;font-weight:700;color:${s.color};width:30px;flex-shrink:0">${p}%</span>
+            ${isEdit?`<div style="display:flex;gap:4px;align-items:center">
+              <input id="krInput" type="number" value="${state.editVal}" style="width:60px;border:2px solid #D4AF37;border-radius:6px;padding:3px 6px;font-size:12px;outline:none" data-krid="${kr.id}"/>
+              <button class="btn-success" style="padding:4px 8px;font-size:12px" id="btnSaveKR">${state.saving?"...":"✓"}</button>
+              <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
+            </div>`:`<button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>${actual} ${kr.unit}</button>`}
+            <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
+          </div>`;
+        }).join("")}
+      </div>
     </div>`;
   }).join("")}`;
 }
 
-function renderRing(value,size){
-  const r=(size-10)/2; const circ=2*Math.PI*r; const dash=(value/100)*circ;
-  const color=value>=80?"#27AE60":value>=60?"#E67E22":"#E74C3C";
-  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg);flex-shrink:0">
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="7"/>
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="7" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
-    <text x="${size/2}" y="${size/2+5}" text-anchor="middle" style="fill:${color};font-size:13px;font-weight:800;transform:rotate(90deg);transform-origin:${size/2}px ${size/2}px">${value}%</text>
-  </svg>`;
+// ===== KẾ HOẠCH =====
+function renderPlan(){
+  const plans=state.plans.filter(p=>!state.month||p.month===state.month);
+  const statusColor={
+    "Hoàn thành":"#27AE60","Đang thực hiện":"#E67E22",
+    "Chưa bắt đầu":"#aaa","Bị trễ":"#E74C3C"
+  };
+  return`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <select id="msel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
+    </select>
+    ${state.user.isAdmin?`<button class="btn-success" id="btnAddPlan" style="font-size:12px;padding:6px 14px">➕ Thêm kế hoạch</button>`:""}
+    <div class="badge" style="background:#E8F8F0;color:#27AE60">${plans.filter(p=>p.status==="Hoàn thành").length}/${plans.length} hoàn thành</div>
+  </div>
+  <div class="card">
+    ${plans.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào cho ${state.month}</div>`:""}
+    ${plans.map(p=>`<div class="plan-item card-pad" style="padding:12px 18px">
+      <div class="plan-status" style="background:${statusColor[p.status]||"#aaa"}"></div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:3px">${p.title}</div>
+        <div style="font-size:11px;color:#888">🎯 ${p.target} &nbsp;|&nbsp; 👤 ${p.owner} &nbsp;|&nbsp; 📅 ${p.month}</div>
+      </div>
+      <span class="badge" style="background:${statusColor[p.status]||"#eee"}22;color:${statusColor[p.status]||"#888"};font-size:10px">${p.status}</span>
+      ${state.user.isAdmin?`<div style="display:flex;gap:4px">
+        <button class="btn-edit" data-pid="${p.id}">✏️</button>
+        <button class="btn-danger" data-delplan="${p.id}">🗑️</button>
+      </div>`:""}
+    </div>`).join("")}
+  </div>`;
 }
 
-function renderAdminModal(){
-  const editing = state.editingUser;
-  const editUser = editing && editing!=="new" ? USERS.find(u=>u.username===editing) : null;
-  return `<div class="modal-overlay" id="modalOverlay">
+function renderPlanModal(){
+  const statusList=["Chưa bắt đầu","Đang thực hiện","Hoàn thành","Bị trễ"];
+  return`<div class="modal-overlay" id="planOverlay">
     <div class="modal">
-      <div class="modal-header">
-        <span class="modal-title">👑 Quản lý tài khoản GV</span>
-        <button class="btn-sm" id="btnCloseModal" style="background:#eee;color:#333">✕ Đóng</button>
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">${state.editPlan?"✏️ Sửa":"➕ Thêm"} kế hoạch</span>
+        <button class="btn-sm" id="btnClosePlan" style="background:#eee;color:#333">✕</button>
       </div>
-
-      ${editing ? `
-      <div style="padding:18px 20px;border-bottom:1px solid #eee;background:#FFFDF0">
-        <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:12px">${editing==="new"?"➕ Thêm tài khoản mới":"✏️ Sửa tài khoản"}</div>
-        <input id="um-name" placeholder="Họ tên (vd: Nguyễn Văn A)" value="${state.um_name}"
-          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
-        <input id="um-username" placeholder="Tên đăng nhập (vd: gv_piano2)" value="${state.um_username}"
-          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
-        <input id="um-password" placeholder="Mật khẩu" value="${state.um_password}"
-          style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;margin-bottom:8px"/>
-        <select id="um-role" style="width:100%;border:2px solid #D4AF37;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:10px;background:#fff">
-          ${ROLES.map(r=>`<option value="${r.id}"${state.um_role===r.id?" selected":""}>${r.icon} ${r.label}</option>`).join("")}
-        </select>
-        ${state.um_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.um_error}</div>`:""}
-        <div style="display:flex;gap:8px">
-          <button id="um-save" style="flex:1;background:#1A1A2E;color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">💾 Lưu</button>
-          <button id="um-cancel" style="background:#eee;color:#555;border:none;border-radius:8px;padding:9px 16px;font-size:13px;cursor:pointer">Hủy</button>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px"><div class="form-label">Tên kế hoạch / hành động</div>
+          <input class="form-input" id="pf-title" placeholder="VD: Tổ chức Piano Festival T8" value="${state.pf_title}"/></div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Tháng</div>
+            <select class="form-select" id="pf-month">${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}</select></div>
+          <div class="form-group"><div class="form-label">Người phụ trách</div>
+            <input class="form-input" id="pf-owner" placeholder="Tên người PT" value="${state.pf_owner}"/></div>
         </div>
-      </div>` : ""}
-
-      <div style="padding:10px 20px 4px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:#888;font-weight:600">${USERS.length} tài khoản</span>
-        <button id="btnAddUser" style="background:#27AE60;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">➕ Thêm GV</button>
-      </div>
-
-      ${USERS.map(u=>`
-      <div class="user-row" style="align-items:center">
-        <div style="font-size:20px">${roleInfo(u.role).icon}</div>
-        <div class="user-info" style="flex:1">
-          <div class="user-info-name">${u.name}${u.isAdmin?' 👑':''}</div>
-          <div class="user-info-email">👤 ${u.username} &nbsp;🔑 ${u.password} &nbsp;📂 ${roleInfo(u.role).label}</div>
-        </div>
-        ${u.isAdmin?"<div style='font-size:11px;color:#aaa'>Admin</div>":`
-        <div style="display:flex;gap:6px">
-          <button class="btn-edit-user" data-username="${u.username}" style="background:#E8F4FD;color:#2980B9;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">✏️</button>
-          <button class="btn-del-user" data-username="${u.username}" style="background:#FDEDEC;color:#E74C3C;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">🗑️</button>
-        </div>`}
-      </div>`).join("")}
-
-      <div style="padding:12px 20px;font-size:11px;color:#888;border-top:1px solid #eee">
-        💡 Gửi tên đăng nhập & mật khẩu cho giảng viên để họ đăng nhập vào hệ thống.
+        <div class="form-group" style="margin-bottom:10px"><div class="form-label">Mục tiêu / KPI</div>
+          <input class="form-input" id="pf-target" placeholder="VD: 50 học viên đăng ký" value="${state.pf_target}"/></div>
+        <div class="form-group" style="margin-bottom:16px"><div class="form-label">Trạng thái</div>
+          <select class="form-select" id="pf-status">${statusList.map(s=>`<option${s===state.pf_status?" selected":""}>${s}</option>`).join("")}</select></div>
+        <button class="btn-primary" id="btnSavePlan" style="width:100%">💾 Lưu kế hoạch</button>
       </div>
     </div>
   </div>`;
 }
 
-function saveUserForm(){
-  const name=state.um_name.trim();
-  const username=state.um_username.trim().toLowerCase().replace(/\s/g,"_");
-  const password=state.um_password.trim();
-  const role=state.um_role;
-  if(!name||!username||!password){ setState({um_error:"Vui lòng điền đầy đủ thông tin!"}); return; }
-  if(state.editingUser==="new"){
-    if(USERS.find(u=>u.username===username)){ setState({um_error:"Tên đăng nhập đã tồn tại!"}); return; }
-    USERS.push({username,password,name,role,isAdmin:false});
-  } else {
-    const idx=USERS.findIndex(u=>u.username===state.editingUser);
-    if(idx>=0) USERS[idx]={...USERS[idx],name,username,password,role};
-  }
-  saveUsers(USERS);
-  setState({editingUser:null,um_name:"",um_username:"",um_password:"",um_role:"piano",um_error:""});
+// ===== LƯƠNG =====
+function renderLuong(){
+  const u=state.user;
+  const showUsers=u.isAdmin?USERS:USERS.filter(x=>x.username===u.username);
+  return`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <select id="lmsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
+    </select>
+    ${u.isAdmin?`<button class="btn-success" id="btnAddLuong" style="font-size:12px;padding:6px 14px">💵 Nhập lương</button>`:""}
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-head-title">💵 Bảng lương ${state.month}</span></div>
+    <table class="tbl">
+      <tr><th>Nhân viên</th><th>Bộ môn</th><th>Lương cơ bản</th><th>Thưởng</th><th>Tổng</th><th>Ghi chú</th>${u.isAdmin?"<th></th>":""}</tr>
+      ${showUsers.map(usr=>{
+        const key=usr.username+"__"+state.month;
+        const ld=state.luongData[key];
+        const base=ld?ld.base:usr.luong;
+        const bonus=ld?ld.bonus:0;
+        const total=base+bonus;
+        const ri2=roleInfo(usr.role);
+        return`<tr>
+          <td><b>${usr.name}</b></td>
+          <td>${ri2.icon} ${ri2.label}</td>
+          <td style="color:#1A1A2E;font-weight:700">${fmtMoney(base)}</td>
+          <td style="color:#27AE60;font-weight:700">${bonus>0?"+"+fmtMoney(bonus):"-"}</td>
+          <td style="color:#E67E22;font-weight:800">${fmtMoney(total)}</td>
+          <td style="color:#888;font-size:11px">${ld?.note||"-"}</td>
+          ${u.isAdmin?`<td><button class="btn-edit" data-luong="${usr.username}">✏️</button></td>`:""}
+        </tr>`;
+      }).join("")}
+      ${u.isAdmin?`<tr style="background:#FFFDF0">
+        <td colspan="4" style="font-weight:700;color:#1A1A2E">Tổng lương tháng</td>
+        <td style="font-weight:800;color:#E74C3C;font-size:14px">${fmtMoney(showUsers.reduce((s,usr)=>{const key=usr.username+"__"+state.month;const ld=state.luongData[key];return s+(ld?ld.base+ld.bonus:usr.luong)},0))}</td>
+        <td colspan="2"></td>
+      </tr>`:""}
+    </table>
+  </div>`;
 }
 
-function deleteUser(username){
-  if(!confirm("Xóa tài khoản "+username+"?")) return;
-  USERS=USERS.filter(u=>u.username!==username);
-  saveUsers(USERS);
-  setState({});
+function renderLuongModal(){
+  const usr=USERS.find(u=>u.username===state.luong_user)||{};
+  return`<div class="modal-overlay" id="luongOverlay">
+    <div class="modal">
+      <div class="modal-head"><span style="font-size:15px;font-weight:800">💵 Nhập lương</span>
+        <button class="btn-sm" id="btnCloseLuong" style="background:#eee;color:#333">✕</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Nhân viên</div>
+            <select class="form-select" id="lu-user">
+              ${USERS.filter(u=>!u.isAdmin).map(u=>`<option value="${u.username}"${u.username===state.luong_user?" selected":""}>${u.name}</option>`).join("")}
+            </select></div>
+          <div class="form-group"><div class="form-label">Tháng</div>
+            <select class="form-select" id="lu-month">${MONTHS.map(m=>`<option${m===state.luong_month?" selected":""}>${m}</option>`).join("")}</select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Lương cơ bản (VND)</div>
+            <input class="form-input" id="lu-base" type="number" value="${state.luong_base}" placeholder="5000000"/></div>
+          <div class="form-group"><div class="form-label">Thưởng (VND)</div>
+            <input class="form-input" id="lu-bonus" type="number" value="${state.luong_bonus}" placeholder="0"/></div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px"><div class="form-label">Ghi chú</div>
+          <input class="form-input" id="lu-note" placeholder="VD: Thưởng tuyển sinh tốt" value="${state.luong_note}"/></div>
+        <button class="btn-primary" id="btnSaveLuong" style="width:100%">💾 Lưu lương</button>
+      </div>
+    </div>
+  </div>`;
 }
 
+// ===== THU CHI =====
+function renderThuChi(){
+  const txs=state.transactions.filter(t=>t.month===state.month);
+  const totalThu=txs.filter(t=>t.type==="thu").reduce((s,t)=>s+t.amount,0);
+  const totalChi=txs.filter(t=>t.type==="chi").reduce((s,t)=>s+t.amount,0);
+  const loiNhuan=totalThu-totalChi;
+  return`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <select id="tcmsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
+    </select>
+    <button class="btn-success" id="btnAddThu" style="font-size:12px;padding:6px 14px">➕ Thêm thu</button>
+    <button class="btn-danger" id="btnAddChi" style="font-size:12px;padding:6px 14px;background:#FDEDEC;color:#E74C3C">➕ Thêm chi</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" style="color:#27AE60">${fmtM(totalThu)}</div><div class="stat-lbl">💰 Tổng thu</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#E74C3C">${fmtM(totalChi)}</div><div class="stat-lbl">💸 Tổng chi</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:${loiNhuan>=0?"#27AE60":"#E74C3C"}">${fmtM(loiNhuan)}</div><div class="stat-lbl">${loiNhuan>=0?"📈 Lãi":"📉 Lỗ"}</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-head-title">📋 Chi tiết giao dịch ${state.month}</span></div>
+    ${txs.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có giao dịch nào</div>`:""}
+    <table class="tbl">
+      ${txs.length>0?`<tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Số tiền</th><th>Ghi chú</th><th></th></tr>`:""}
+      ${txs.map(t=>`<tr>
+        <td style="color:#888;font-size:11px">${t.date||"-"}</td>
+        <td><span class="badge" style="background:${t.type==="thu"?"#E8F8F0":"#FDEDEC"};color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"↑ Thu":"↓ Chi"}</span></td>
+        <td style="font-size:12px">${t.cat}</td>
+        <td style="font-weight:700;color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"+":"−"}${fmtMoney(t.amount)}</td>
+        <td style="font-size:11px;color:#888">${t.note||"-"}</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn-edit" data-edittx="${t.id}">✏️</button>
+          <button class="btn-danger" data-deltx="${t.id}">🗑️</button>
+        </div></td>
+      </tr>`).join("")}
+    </table>
+  </div>`;
+}
+
+function renderTxModal(){
+  const isThu=state.tx_type==="thu";
+  const cats=isThu?THU_CATS:CHI_CATS;
+  return`<div class="modal-overlay" id="txOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">${state.editTx?"✏️ Sửa":"➕ Thêm"} ${isThu?"khoản thu":"khoản chi"}</span>
+        <button class="btn-sm" id="btnCloseTx" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Tháng</div>
+            <select class="form-select" id="tx-month">${MONTHS.map(m=>`<option${m===state.tx_month?" selected":""}>${m}</option>`).join("")}</select></div>
+          <div class="form-group"><div class="form-label">Ngày</div>
+            <input class="form-input" id="tx-date" type="date" value="${state.tx_date}"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Danh mục</div>
+            <select class="form-select" id="tx-cat">${cats.map(c=>`<option${c===state.tx_cat?" selected":""}>${c}</option>`).join("")}</select></div>
+          <div class="form-group"><div class="form-label">Số tiền (VND)</div>
+            <input class="form-input" id="tx-amount" type="number" placeholder="0" value="${state.tx_amount}"/></div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px"><div class="form-label">Ghi chú</div>
+          <input class="form-input" id="tx-note" placeholder="Mô tả giao dịch" value="${state.tx_note}"/></div>
+        <button class="btn-primary" id="btnSaveTx" style="width:100%">💾 Lưu giao dịch</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== BÁO CÁO =====
+function renderBaoCao(){
+  const txs=state.transactions;
+  const totalThu=txs.filter(t=>t.type==="thu").reduce((s,t)=>s+t.amount,0);
+  const totalChi=txs.filter(t=>t.type==="chi").reduce((s,t)=>s+t.amount,0);
+  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
+  const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/allKRs.length):0;
+  const totalLuong=USERS.filter(u=>!u.isAdmin).reduce((s,u)=>s+u.luong,0);
+  const plansDone=state.plans.filter(p=>p.status==="Hoàn thành").length;
+
+  return`
+  <div style="margin-bottom:12px">
+    <select id="bcqsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
+    </select>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" style="color:#27AE60">${fmtM(totalThu)}</div><div class="stat-lbl">💰 Tổng thu</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#E74C3C">${fmtM(totalChi)}</div><div class="stat-lbl">💸 Tổng chi</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:${totalThu-totalChi>=0?"#27AE60":"#E74C3C"}">${fmtM(totalThu-totalChi)}</div><div class="stat-lbl">📈 Lãi/Lỗ</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#3498DB">${gs}%</div><div class="stat-lbl">🎯 OKR Score</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#9B59B6">${fmtM(totalLuong)}</div><div class="stat-lbl">👥 Quỹ lương/tháng</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#E67E22">${plansDone}/${state.plans.length}</div><div class="stat-lbl">✅ KH hoàn thành</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-head-title">📊 OKR theo bộ môn</span></div>
+    <table class="tbl">
+      <tr><th>Objective</th><th>Tiến độ</th><th>Score</th></tr>
+      ${OBJECTIVES.map(obj=>{
+        const sc=obj.krs.length?Math.round(obj.krs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/obj.krs.length):0;
+        const st=stInfo(sc);
+        return`<tr>
+          <td>${obj.icon} ${obj.title}</td>
+          <td><div style="display:flex;align-items:center;gap:6px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div></td>
+          <td><span class="badge" style="background:${st.bg};color:${st.color}">${sc}%</span></td>
+        </tr>`;
+      }).join("")}
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-head-title">💰 Thu chi theo danh mục</span></div>
+    <table class="tbl">
+      <tr><th>Danh mục</th><th>Tổng thu</th><th>Tổng chi</th></tr>
+      ${[...THU_CATS,...CHI_CATS].filter((v,i,a)=>a.indexOf(v)===i).map(cat=>{
+        const thu=txs.filter(t=>t.type==="thu"&&t.cat===cat).reduce((s,t)=>s+t.amount,0);
+        const chi=txs.filter(t=>t.type==="chi"&&t.cat===cat).reduce((s,t)=>s+t.amount,0);
+        if(!thu&&!chi)return"";
+        return`<tr>
+          <td>${cat}</td>
+          <td style="color:#27AE60;font-weight:700">${thu>0?fmtMoney(thu):"-"}</td>
+          <td style="color:#E74C3C;font-weight:700">${chi>0?fmtMoney(chi):"-"}</td>
+        </tr>`;
+      }).join("")}
+    </table>
+  </div>`;
+}
+
+// ===== USERS =====
+function renderUsers(){
+  return`
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span style="font-size:13px;font-weight:700;color:#555">${USERS.length} tài khoản</span>
+    <button class="btn-success" id="btnAddUser" style="font-size:12px;padding:6px 14px">➕ Thêm GV</button>
+  </div>
+  <div class="card">
+    <table class="tbl">
+      <tr><th>Họ tên</th><th>Đăng nhập</th><th>Mật khẩu</th><th>Bộ môn</th><th>Lương CB</th><th></th></tr>
+      ${USERS.map(u=>{
+        const ri2=roleInfo(u.role);
+        return`<tr>
+          <td><b>${u.name}</b>${u.isAdmin?" 👑":""}</td>
+          <td style="font-family:monospace;color:#2980B9">${u.username}</td>
+          <td style="font-family:monospace;color:#888">${u.isAdmin?"***":u.password}</td>
+          <td>${ri2.icon} ${ri2.label}</td>
+          <td style="font-weight:700">${u.isAdmin?"-":fmtMoney(u.luong)}</td>
+          <td>${u.isAdmin?"":
+            `<div style="display:flex;gap:4px">
+              <button class="btn-edit" data-edituser="${u.username}">✏️</button>
+              <button class="btn-danger" data-deluser="${u.username}">🗑️</button>
+            </div>`}
+          </td>
+        </tr>`;
+      }).join("")}
+    </table>
+  </div>`;
+}
+
+function renderUserModal(){
+  return`<div class="modal-overlay" id="userOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">${state.editingUser==="new"?"➕ Thêm GV":"✏️ Sửa tài khoản"}</span>
+        <button class="btn-sm" id="btnCloseUser" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px"><div class="form-label">Họ và tên</div>
+          <input class="form-input" id="um-name" placeholder="Nguyễn Văn A" value="${state.um_name}"/></div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Tên đăng nhập</div>
+            <input class="form-input" id="um-username" placeholder="gv_piano2" value="${state.um_username}"/></div>
+          <div class="form-group"><div class="form-label">Mật khẩu</div>
+            <input class="form-input" id="um-password" placeholder="mật khẩu" value="${state.um_password}"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Bộ môn / Vai trò</div>
+            <select class="form-select" id="um-role">
+              ${ROLES.filter(r=>r.id!=="admin").map(r=>`<option value="${r.id}"${state.um_role===r.id?" selected":""}>${r.icon} ${r.label}</option>`).join("")}
+            </select></div>
+          <div class="form-group"><div class="form-label">Lương cơ bản (VND)</div>
+            <input class="form-input" id="um-luong" type="number" placeholder="4500000" value="${state.um_luong}"/></div>
+        </div>
+        ${state.um_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.um_error}</div>`:""}
+        <button class="btn-primary" id="btnSaveUser" style="width:100%;margin-top:6px">💾 Lưu</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// EVENTS
+// ============================================================
 function attachEvents(){
-  // Login
-  const inpUser=document.getElementById("inp-user");
-  const inpPass=document.getElementById("inp-pass");
-  if(inpUser){ inpUser.addEventListener("input",e=>state.usernameInput=e.target.value); inpUser.addEventListener("keydown",e=>e.key==="Enter"&&document.getElementById("inp-pass")?.focus()); }
-  if(inpPass){ inpPass.addEventListener("input",e=>state.passwordInput=e.target.value); inpPass.addEventListener("keydown",e=>e.key==="Enter"&&doLogin()); }
+  // LOGIN
+  document.getElementById("inp-u")?.addEventListener("input",e=>state.uname=e.target.value);
+  document.getElementById("inp-p")?.addEventListener("input",e=>state.upass=e.target.value);
+  document.getElementById("inp-p")?.addEventListener("keydown",e=>e.key==="Enter"&&doLogin());
   document.getElementById("btn-login")?.addEventListener("click",doLogin);
-  // App
-  document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
-  document.getElementById("navDash")?.addEventListener("click",()=>setState({view:"dashboard"}));
-  document.getElementById("navDetail")?.addEventListener("click",()=>setState({view:"detail",activeObj:null}));
   document.getElementById("btnLogout")?.addEventListener("click",logout);
-  document.getElementById("btnAdmin")?.addEventListener("click",()=>setState({showAdmin:true,editingUser:null}));
-  document.getElementById("btnCloseModal")?.addEventListener("click",()=>setState({showAdmin:false,editingUser:null}));
-  document.getElementById("modalOverlay")?.addEventListener("click",e=>{if(e.target.id==="modalOverlay")setState({showAdmin:false,editingUser:null});});
-  document.getElementById("btnAddUser")?.addEventListener("click",()=>setState({editingUser:"new",um_name:"",um_username:"",um_password:"",um_role:"piano",um_error:""}));
-  document.getElementById("um-save")?.addEventListener("click",saveUserForm);
-  document.getElementById("um-cancel")?.addEventListener("click",()=>setState({editingUser:null,um_error:""}));
+
+  // TABS
+  document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setState({tab:b.dataset.tab})));
+
+  // OKR
+  document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
+  document.querySelectorAll(".kr-edit-btn").forEach(b=>b.addEventListener("click",()=>setState({editKR:b.dataset.krid,editVal:b.dataset.actual})));
+  document.getElementById("btnSaveKR")?.addEventListener("click",doSaveKR);
+  document.getElementById("btnCancelKR")?.addEventListener("click",()=>setState({editKR:null}));
+  const ki=document.getElementById("krInput");
+  if(ki){ki.addEventListener("input",e=>state.editVal=e.target.value);ki.addEventListener("keydown",e=>e.key==="Enter"&&doSaveKR());setTimeout(()=>ki.focus(),50);}
+
+  // PLAN
+  document.getElementById("msel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("btnAddPlan")?.addEventListener("click",()=>setState({showPlanForm:true,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",pf_month:state.month}));
+  document.getElementById("btnClosePlan")?.addEventListener("click",()=>setState({showPlanForm:false}));
+  document.getElementById("planOverlay")?.addEventListener("click",e=>{if(e.target.id==="planOverlay")setState({showPlanForm:false})});
+  document.getElementById("pf-title")?.addEventListener("input",e=>state.pf_title=e.target.value);
+  document.getElementById("pf-month")?.addEventListener("change",e=>state.pf_month=e.target.value);
+  document.getElementById("pf-target")?.addEventListener("input",e=>state.pf_target=e.target.value);
+  document.getElementById("pf-owner")?.addEventListener("input",e=>state.pf_owner=e.target.value);
+  document.getElementById("pf-status")?.addEventListener("change",e=>state.pf_status=e.target.value);
+  document.getElementById("btnSavePlan")?.addEventListener("click",savePlan);
+  document.querySelectorAll("[data-pid]").forEach(b=>b.addEventListener("click",()=>{const p=state.plans.find(x=>x.id==b.dataset.pid);if(p)setState({showPlanForm:true,editPlan:p.id,pf_title:p.title,pf_target:p.target,pf_owner:p.owner,pf_status:p.status,pf_month:p.month});}));
+  document.querySelectorAll("[data-delplan]").forEach(b=>b.addEventListener("click",()=>deletePlan(Number(b.dataset.delplan))));
+
+  // LUONG
+  document.getElementById("lmsel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("btnAddLuong")?.addEventListener("click",()=>{const first=USERS.find(u=>!u.isAdmin);setState({showLuongModal:true,luong_user:first?.username||"",luong_month:state.month,luong_base:first?.luong||0,luong_bonus:0,luong_note:""});});
+  document.getElementById("btnCloseLuong")?.addEventListener("click",()=>setState({showLuongModal:false}));
+  document.getElementById("luongOverlay")?.addEventListener("click",e=>{if(e.target.id==="luongOverlay")setState({showLuongModal:false})});
+  document.getElementById("lu-user")?.addEventListener("change",e=>{const u=USERS.find(x=>x.username===e.target.value);state.luong_user=e.target.value;state.luong_base=u?.luong||0;render();});
+  document.getElementById("lu-month")?.addEventListener("change",e=>state.luong_month=e.target.value);
+  document.getElementById("lu-base")?.addEventListener("input",e=>state.luong_base=e.target.value);
+  document.getElementById("lu-bonus")?.addEventListener("input",e=>state.luong_bonus=e.target.value);
+  document.getElementById("lu-note")?.addEventListener("input",e=>state.luong_note=e.target.value);
+  document.getElementById("btnSaveLuong")?.addEventListener("click",saveLuong);
+  document.querySelectorAll("[data-luong]").forEach(b=>b.addEventListener("click",()=>{const u=USERS.find(x=>x.username===b.dataset.luong);const key=b.dataset.luong+"__"+state.month;const ld=state.luongData[key];setState({showLuongModal:true,luong_user:b.dataset.luong,luong_month:state.month,luong_base:ld?.base||u?.luong||0,luong_bonus:ld?.bonus||0,luong_note:ld?.note||""});}));
+
+  // THU CHI
+  document.getElementById("tcmsel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("btnAddThu")?.addEventListener("click",()=>setState({showTxForm:true,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:state.month,editTx:null}));
+  document.getElementById("btnAddChi")?.addEventListener("click",()=>setState({showTxForm:true,tx_type:"chi",tx_cat:CHI_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:state.month,editTx:null}));
+  document.getElementById("btnCloseTx")?.addEventListener("click",()=>setState({showTxForm:false}));
+  document.getElementById("txOverlay")?.addEventListener("click",e=>{if(e.target.id==="txOverlay")setState({showTxForm:false})});
+  document.getElementById("tx-month")?.addEventListener("change",e=>state.tx_month=e.target.value);
+  document.getElementById("tx-date")?.addEventListener("change",e=>state.tx_date=e.target.value);
+  document.getElementById("tx-cat")?.addEventListener("change",e=>state.tx_cat=e.target.value);
+  document.getElementById("tx-amount")?.addEventListener("input",e=>state.tx_amount=e.target.value);
+  document.getElementById("tx-note")?.addEventListener("input",e=>state.tx_note=e.target.value);
+  document.getElementById("btnSaveTx")?.addEventListener("click",saveTx);
+  document.querySelectorAll("[data-edittx]").forEach(b=>b.addEventListener("click",()=>{const t=state.transactions.find(x=>x.id==b.dataset.edittx);if(t)setState({showTxForm:true,tx_type:t.type,tx_cat:t.cat,tx_amount:t.amount,tx_note:t.note,tx_date:t.date,tx_month:t.month,editTx:t.id});}));
+  document.querySelectorAll("[data-deltx]").forEach(b=>b.addEventListener("click",()=>deleteTx(Number(b.dataset.deltx))));
+
+  // BÁO CÁO
+  document.getElementById("bcqsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
+
+  // USERS
+  document.getElementById("btnAddUser")?.addEventListener("click",()=>setState({showUserModal:true,editingUser:"new",um_name:"",um_username:"",um_password:"",um_role:"piano",um_luong:0,um_error:""}));
+  document.getElementById("btnCloseUser")?.addEventListener("click",()=>setState({showUserModal:false}));
+  document.getElementById("userOverlay")?.addEventListener("click",e=>{if(e.target.id==="userOverlay")setState({showUserModal:false})});
   document.getElementById("um-name")?.addEventListener("input",e=>state.um_name=e.target.value);
   document.getElementById("um-username")?.addEventListener("input",e=>state.um_username=e.target.value);
   document.getElementById("um-password")?.addEventListener("input",e=>state.um_password=e.target.value);
   document.getElementById("um-role")?.addEventListener("change",e=>state.um_role=e.target.value);
-  document.querySelectorAll(".btn-edit-user").forEach(b=>b.addEventListener("click",()=>{
-    const u=USERS.find(u=>u.username===b.dataset.username);
-    if(u) setState({editingUser:u.username,um_name:u.name,um_username:u.username,um_password:u.password,um_role:u.role,um_error:""});
-  }));
-  document.querySelectorAll(".btn-del-user").forEach(b=>b.addEventListener("click",()=>deleteUser(b.dataset.username)));
-  document.querySelectorAll(".obj-card").forEach(c=>c.addEventListener("click",()=>setState({view:"detail",activeObj:c.dataset.objid})));
-  document.querySelectorAll(".filter-btn").forEach(b=>b.addEventListener("click",()=>setState({activeObj:b.dataset.filter==="all"?null:b.dataset.filter})));
-  document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>setState({editKR:b.dataset.edit,editVal:b.dataset.actual})));
-  const inp=document.getElementById("editInput");
-  if(inp){ inp.addEventListener("input",e=>state.editVal=e.target.value); inp.addEventListener("keydown",e=>e.key==="Enter"&&doSave(inp.dataset.krid)); setTimeout(()=>inp.focus(),50); }
-  document.querySelectorAll("[data-confirm]").forEach(b=>b.addEventListener("click",()=>doSave(b.dataset.confirm)));
-  document.getElementById("btnCancel")?.addEventListener("click",()=>setState({editKR:null}));
+  document.getElementById("um-luong")?.addEventListener("input",e=>state.um_luong=e.target.value);
+  document.getElementById("btnSaveUser")?.addEventListener("click",saveUserForm);
+  document.querySelectorAll("[data-edituser]").forEach(b=>b.addEventListener("click",()=>{const u=USERS.find(x=>x.username===b.dataset.edituser);if(u)setState({showUserModal:true,editingUser:u.username,um_name:u.name,um_username:u.username,um_password:u.password,um_role:u.role,um_luong:u.luong,um_error:""});}));
+  document.querySelectorAll("[data-deluser]").forEach(b=>b.addEventListener("click",()=>deleteUser(b.dataset.deluser)));
 }
 
 render();
