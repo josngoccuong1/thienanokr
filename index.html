@@ -239,13 +239,9 @@ async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:s
 // SYNC VỚI GOOGLE SHEETS — dữ liệu đồng bộ mọi thiết bị
 // ============================================================
 async function loadUsersFromSheets(){
-  try{
-    const data=await apiGet({action:"getUsers"});
-    if(Array.isArray(data)&&data.length>0){
-      saveUsers(data); USERS=data; return data;
-    }
-  }catch(e){}
-  USERS=loadUsers(); return USERS;
+  // Không dùng Google Sheets cho users - chỉ dùng localStorage
+  USERS=loadUsers();
+  return USERS;
 }
 
 async function loadThuChiFromSheets(month){
@@ -1176,11 +1172,10 @@ function attachEvents(){
   // TABS
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
     setState({tab:b.dataset.tab});
-    // Load fresh data khi đổi tab
     if(b.dataset.tab==="thuchi") loadThuChiFromSheets(state.month);
     if(b.dataset.tab==="luong") loadLuongFromSheets(state.month);
     if(b.dataset.tab==="plan") loadPlansFromSheets();
-    if(b.dataset.tab==="users") loadUsersFromSheets().then(()=>render());
+    // Không gọi loadUsersFromSheets — dùng localStorage
   }));
 
   // OKR
