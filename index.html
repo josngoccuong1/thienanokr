@@ -367,23 +367,77 @@ function importLuong(rows){
   setState({importing:false, luongData, importResult:{type:"luong",added,skipped}});
 }
 
+// ============================================================
+// EXPORT TO EXCEL
+// ============================================================
+function exportToExcel(type){
+  let data=[], filename="", headers=[];
+  if(type==="nhansu"){
+    headers=["Họ và Tên *","Tên Đăng Nhập *","Mật Khẩu *","Bộ Môn *","Lương CB (VND) *"];
+    data=USERS.filter(u=>!u.isAdmin).map(u=>({
+      "Họ và Tên *":u.name,"Tên Đăng Nhập *":u.username,
+      "Mật Khẩu *":u.password,"Bộ Môn *":u.role,"Lương CB (VND) *":u.luong
+    }));
+    filename="ThienAn_NhanSu.xlsx";
+  } else if(type==="thu"){
+    headers=["Tháng *","Ngày *","Danh Mục *","Số Tiền (VND) *","Ghi Chú","Người Thực Hiện","Hình Thức TT"];
+    data=state.transactions.filter(t=>t.type==="thu").map(t=>({
+      "Tháng *":t.month,"Ngày *":t.date,"Danh Mục *":t.cat,
+      "Số Tiền (VND) *":t.amount,"Ghi Chú":t.note||"",
+      "Người Thực Hiện":t.nguoi||"","Hình Thức TT":t.httt||""
+    }));
+    filename="ThienAn_Thu.xlsx";
+  } else if(type==="chi"){
+    headers=["Tháng *","Ngày *","Danh Mục *","Số Tiền (VND) *","Ghi Chú","Người Thực Hiện","Hình Thức TT"];
+    data=state.transactions.filter(t=>t.type==="chi").map(t=>({
+      "Tháng *":t.month,"Ngày *":t.date,"Danh Mục *":t.cat,
+      "Số Tiền (VND) *":t.amount,"Ghi Chú":t.note||"",
+      "Người Thực Hiện":t.nguoi||"","Hình Thức TT":t.httt||""
+    }));
+    filename="ThienAn_Chi.xlsx";
+  } else if(type==="luong"){
+    headers=["Tháng *","Họ và Tên *","Tên ĐN *","Lương CB (VND) *","Thưởng (VND)","Khấu Trừ (VND)","Tổng Lương (VND)","Trạng Thái","Ghi Chú"];
+    data=Object.values(state.luongData).map(l=>({
+      "Tháng *":l.month,"Họ và Tên *":l.name||"","Tên ĐN *":l.user,
+      "Lương CB (VND) *":l.base,"Thưởng (VND)":l.bonus||0,"Khấu Trừ (VND)":0,
+      "Tổng Lương (VND)":l.total||l.base,"Trạng Thái":l.status||"","Ghi Chú":l.note||""
+    }));
+    filename="ThienAn_Luong.xlsx";
+  }
+  // Add example row if empty
+  if(data.length===0){
+    const ex={};
+    if(type==="nhansu") Object.assign(ex,{"Họ và Tên *":"Nguyễn Văn A","Tên Đăng Nhập *":"gv_piano","Mật Khẩu *":"piano2025","Bộ Môn *":"piano","Lương CB (VND) *":5000000});
+    else if(type==="thu"||type==="chi") Object.assign(ex,{"Tháng *":"T7/2025","Ngày *":"01/07/2025","Danh Mục *":type==="thu"?"Học phí":"Thuê mặt bằng","Số Tiền (VND) *":type==="thu"?21500000:8000000,"Ghi Chú":"Ví dụ - xóa dòng này","Người Thực Hiện":"Thầy Ngọc Cương","Hình Thức TT":"Chuyển khoản"});
+    else if(type==="luong") Object.assign(ex,{"Tháng *":"T7/2025","Họ và Tên *":"Nguyễn Văn A","Tên ĐN *":"gv_piano","Lương CB (VND) *":5000000,"Thưởng (VND)":0,"Khấu Trừ (VND)":0,"Tổng Lương (VND)":5000000,"Trạng Thái":"Chưa thanh toán","Ghi Chú":""});
+    data=[ex];
+  }
+  const ws=XLSX.utils.json_to_sheet(data,{header:headers});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Data");
+  XLSX.writeFile(wb,filename);
+}
+
 function renderImportModal(){
   const types=[
-    {id:"nhansu",label:"👥 Nhân Sự",file:"ThienAn_NhanSu.xlsx",color:"#2980B9"},
-    {id:"thu",label:"💰 Thu",file:"ThienAn_Thu.xlsx",color:"#27AE60"},
-    {id:"chi",label:"💸 Chi",file:"ThienAn_Chi.xlsx",color:"#E74C3C"},
-    {id:"luong",label:"💵 Lương",file:"ThienAn_Luong.xlsx",color:"#E67E22"},
+    {id:"nhansu",label:"👥 Nhân Sự",color:"#2980B9"},
+    {id:"thu",label:"💰 Thu",color:"#27AE60"},
+    {id:"chi",label:"💸 Chi",color:"#E74C3C"},
+    {id:"luong",label:"💵 Lương",color:"#E67E22"},
   ];
+  const cur=types.find(t=>t.id===state.importType);
   const res=state.importResult;
   return`<div class="modal-overlay" id="importOverlay">
     <div class="modal">
       <div class="modal-head">
-        <span style="font-size:15px;font-weight:800">📥 Import dữ liệu từ Excel</span>
+        <span style="font-size:15px;font-weight:800">📥 Import / Xuất dữ liệu Excel</span>
         <button class="btn-sm" id="btnCloseImport" style="background:#eee;color:#333">✕</button>
       </div>
       <div class="modal-body">
+
+        <!-- Chọn loại -->
         <div style="margin-bottom:14px">
-          <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">1. Chọn loại dữ liệu muốn import:</div>
+          <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">Chọn loại dữ liệu:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             ${types.map(t=>`<button class="import-type-btn" data-type="${t.id}"
               style="padding:8px 14px;border-radius:10px;border:2px solid ${state.importType===t.id?t.color:"#E5E7EB"};
@@ -392,33 +446,41 @@ function renderImportModal(){
           </div>
         </div>
 
-        <div style="margin-bottom:14px;padding:12px;background:#F8F9FA;border-radius:10px;font-size:12px;color:#555">
-          📋 File mẫu tương ứng: <b>${types.find(t=>t.id===state.importType)?.file}</b><br/>
-          <span style="color:#888;font-size:11px">Tải file mẫu ở tab Nhân sự hoặc Thu chi trong app</span>
+        <!-- 2 nút: Tải về & Import lên -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+
+          <!-- TẢI VỀ -->
+          <div style="border:2px solid #E5E7EB;border-radius:12px;padding:14px;text-align:center">
+            <div style="font-size:20px;margin-bottom:6px">⬇️</div>
+            <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:4px">Tải dữ liệu về</div>
+            <div style="font-size:10px;color:#888;margin-bottom:10px">Xuất file Excel với dữ liệu hiện có (hoặc file mẫu nếu chưa có)</div>
+            <button id="btnExport" class="btn-primary" style="width:100%;font-size:12px;padding:8px">
+              ⬇️ Tải file Excel
+            </button>
+          </div>
+
+          <!-- IMPORT LÊN -->
+          <div style="border:2px solid #D4AF37;border-radius:12px;padding:14px;text-align:center;background:#FFFDF0">
+            <div style="font-size:20px;margin-bottom:6px">⬆️</div>
+            <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:4px">Import từ file Excel</div>
+            <div style="font-size:10px;color:#888;margin-bottom:10px">Chọn file Excel đã điền để nhập dữ liệu vào app</div>
+            <label style="display:block;background:#D4AF37;color:#1A1A2E;border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">
+              ⬆️ Chọn file Excel
+              <input type="file" id="importFileInput" accept=".xlsx" style="display:none"/>
+            </label>
+          </div>
         </div>
 
-        <div style="margin-bottom:16px">
-          <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">2. Upload file Excel đã điền:</div>
-          <label style="display:block;border:2px dashed #D4AF37;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:#FFFDF0">
-            <div style="font-size:24px;margin-bottom:6px">📂</div>
-            <div style="font-size:13px;font-weight:700;color:#1A1A2E">Bấm để chọn file Excel</div>
-            <div style="font-size:11px;color:#aaa;margin-top:4px">Chỉ nhận file .xlsx</div>
-            <input type="file" id="importFileInput" accept=".xlsx" style="display:none"/>
-          </label>
-        </div>
+        ${state.importing?`<div style="text-align:center;padding:16px;color:#888;font-size:13px">⏳ Đang xử lý file...</div>`:""}
 
-        ${state.importing?`<div style="text-align:center;padding:16px;color:#888">⏳ Đang xử lý...</div>`:""}
-
-        ${res&&!res.error?`<div style="background:#E8F8F0;border-radius:10px;padding:14px;margin-bottom:12px">
+        ${res&&!res.error?`<div style="background:#E8F8F0;border-radius:10px;padding:14px">
           <div style="font-size:14px;font-weight:800;color:#27AE60;margin-bottom:6px">✅ Import thành công!</div>
-          <div style="font-size:13px;color:#1A1A2E">• Đã thêm/cập nhật: <b>${res.added}</b> dòng</div>
-          ${res.skipped>0?`<div style="font-size:12px;color:#888">• Bỏ qua (thiếu dữ liệu): ${res.skipped} dòng</div>`:""}
-          <button id="btnDoneImport" class="btn-success" style="margin-top:10px;width:100%">✓ Xong, đóng lại</button>
+          <div style="font-size:13px;color:#1A1A2E">Đã thêm/cập nhật: <b>${res.added}</b> dòng</div>
+          ${res.skipped>0?`<div style="font-size:12px;color:#888;margin-top:4px">Bỏ qua (thiếu dữ liệu): ${res.skipped} dòng</div>`:""}
+          <button id="btnDoneImport" class="btn-success" style="margin-top:10px;width:100%">✓ Xong</button>
         </div>`:""}
 
-        ${res?.error?`<div style="background:#FDEDEC;border-radius:10px;padding:14px;color:#E74C3C;font-size:13px">
-          ❌ ${res.error}
-        </div>`:""}
+        ${res?.error?`<div style="background:#FDEDEC;border-radius:10px;padding:14px;color:#E74C3C;font-size:13px">❌ ${res.error}</div>`:""}
       </div>
     </div>
   </div>`;
@@ -1089,6 +1151,7 @@ function attachEvents(){
   document.getElementById("importOverlay")?.addEventListener("click",e=>{if(e.target.id==="importOverlay")setState({showImport:false})});
   document.querySelectorAll(".import-type-btn").forEach(b=>b.addEventListener("click",()=>setState({importType:b.dataset.type,importResult:null})));
   document.getElementById("importFileInput")?.addEventListener("change",e=>processImportFile(e.target.files[0]));
+  document.getElementById("btnExport")?.addEventListener("click",()=>exportToExcel(state.importType));
 }
 
 render();
