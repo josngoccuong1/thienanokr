@@ -86,6 +86,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 /* FOOTER */
 .footer{text-align:center;color:#bbb;font-size:10px;padding:14px 0 28px}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -208,6 +209,7 @@ let state={
   okr_editKR:null,  // null=new kr, {oid,kid}=edit kr
   okr_obj_icon:"🎯",okr_obj_title:"",
   okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:"",
+  showImport:false,importType:"nhansu",importResult:null,importing:false,
   // Plan
   plans:ls_get("ta_plans")||[],
   showPlanForm:false,pf_title:"",pf_month:currentMonth(),pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
@@ -273,6 +275,153 @@ function deleteKR(oid,kid){
   if(!confirm("Xóa Key Result này?"))return;
   const objs=OBJECTIVES.map(o=>o.id!==oid?o:{...o,krs:o.krs.filter(k=>k.id!==kid)});
   OBJECTIVES=objs;saveObjectives(objs);setState({});
+}
+
+// ============================================================
+// IMPORT EXCEL
+// ============================================================
+function processImportFile(file){
+  if(!file) return;
+  setState({importing:true, importResult:null});
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+
+      if(state.importType==="nhansu") importNhanSu(rows);
+      else if(state.importType==="thu") importThuChi(rows,"thu");
+      else if(state.importType==="chi") importThuChi(rows,"chi");
+      else if(state.importType==="luong") importLuong(rows);
+    }catch(err){
+      setState({importing:false, importResult:{error:"Lỗi đọc file: "+err.message}});
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function importNhanSu(rows){
+  let added=0, skipped=0, errors=[];
+  const users=[...USERS];
+  rows.forEach((r,i)=>{
+    const name=(r["Họ và Tên *"]||r["Họ và Tên"]||"").toString().trim();
+    const username=(r["Tên Đăng Nhập *"]||r["Tên Đăng Nhập"]||"").toString().trim().toLowerCase();
+    const password=(r["Mật Khẩu *"]||r["Mật Khẩu"]||"").toString().trim();
+    const role=(r["Bộ Môn *"]||r["Bộ Môn"]||"piano").toString().trim().toLowerCase();
+    const luong=Number(r["Lương CB (VND) *"]||r["Lương CB (VND)"]||0);
+    if(!name||!username||!password){skipped++;return;}
+    if(users.find(u=>u.username===username)){
+      // Update existing
+      const i=users.findIndex(u=>u.username===username);
+      users[i]={...users[i],name,password,role,luong};
+      added++;
+    } else {
+      users.push({username,password,name,role,isAdmin:false,luong});
+      added++;
+    }
+  });
+  saveUsers(users); USERS=users;
+  setState({importing:false, importResult:{type:"nhansu",added,skipped,errors}});
+}
+
+function importThuChi(rows, type){
+  let added=0, skipped=0;
+  const txs=[...state.transactions];
+  rows.forEach(r=>{
+    const thang=(r["Tháng *"]||r["Tháng"]||"").toString().trim();
+    const ngay=(r["Ngày *"]||r["Ngày"]||"").toString().trim();
+    const cat=(r["Danh Mục *"]||r["Danh Mục"]||"Khác").toString().trim();
+    const amount=Number(r["Số Tiền (VND) *"]||r["Số Tiền (VND)"]||0);
+    const note=(r["Ghi Chú"]||"").toString().trim();
+    const nguoi=(r["Người Thực Hiện"]||"").toString().trim();
+    const httt=(r["Hình Thức TT"]||"").toString().trim();
+    if(!thang||!amount){skipped++;return;}
+    txs.push({id:Date.now()+Math.random(),type,cat,amount,note,date:ngay,month:thang,nguoi,httt});
+    added++;
+  });
+  ls_set("ta_tx",txs);
+  setState({importing:false, transactions:txs, importResult:{type,added,skipped}});
+}
+
+function importLuong(rows){
+  let added=0, skipped=0;
+  const luongData={...state.luongData};
+  rows.forEach(r=>{
+    const thang=(r["Tháng *"]||r["Tháng"]||"").toString().trim();
+    const username=(r["Tên ĐN *"]||r["Tên Đăng Nhập"]||"").toString().trim();
+    const base=Number(r["Lương CB (VND) *"]||r["Lương CB (VND)"]||0);
+    const bonus=Number(r["Thưởng (VND)"]||0);
+    const phuCap=Number(r["Phụ Cấp (VND)"]||0);
+    const khauTru=Number(r["Khấu Trừ (VND)"]||0);
+    const note=(r["Ghi Chú"]||"").toString().trim();
+    const status=(r["Trạng Thái"]||"Chưa thanh toán").toString().trim();
+    const name=(r["Họ và Tên *"]||r["Họ và Tên"]||"").toString().trim();
+    if(!thang||!username){skipped++;return;}
+    const key=username+"__"+thang;
+    luongData[key]={user:username,name,month:thang,base,bonus:bonus+phuCap,note,status,total:base+bonus+phuCap-khauTru};
+    added++;
+  });
+  ls_set("ta_luong",luongData);
+  setState({importing:false, luongData, importResult:{type:"luong",added,skipped}});
+}
+
+function renderImportModal(){
+  const types=[
+    {id:"nhansu",label:"👥 Nhân Sự",file:"ThienAn_NhanSu.xlsx",color:"#2980B9"},
+    {id:"thu",label:"💰 Thu",file:"ThienAn_Thu.xlsx",color:"#27AE60"},
+    {id:"chi",label:"💸 Chi",file:"ThienAn_Chi.xlsx",color:"#E74C3C"},
+    {id:"luong",label:"💵 Lương",file:"ThienAn_Luong.xlsx",color:"#E67E22"},
+  ];
+  const res=state.importResult;
+  return`<div class="modal-overlay" id="importOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">📥 Import dữ liệu từ Excel</span>
+        <button class="btn-sm" id="btnCloseImport" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">1. Chọn loại dữ liệu muốn import:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${types.map(t=>`<button class="import-type-btn" data-type="${t.id}"
+              style="padding:8px 14px;border-radius:10px;border:2px solid ${state.importType===t.id?t.color:"#E5E7EB"};
+              background:${state.importType===t.id?t.color+"22":"#fff"};color:${state.importType===t.id?t.color:"#555"};
+              font-size:12px;font-weight:700;cursor:pointer">${t.label}</button>`).join("")}
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;padding:12px;background:#F8F9FA;border-radius:10px;font-size:12px;color:#555">
+          📋 File mẫu tương ứng: <b>${types.find(t=>t.id===state.importType)?.file}</b><br/>
+          <span style="color:#888;font-size:11px">Tải file mẫu ở tab Nhân sự hoặc Thu chi trong app</span>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">2. Upload file Excel đã điền:</div>
+          <label style="display:block;border:2px dashed #D4AF37;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:#FFFDF0">
+            <div style="font-size:24px;margin-bottom:6px">📂</div>
+            <div style="font-size:13px;font-weight:700;color:#1A1A2E">Bấm để chọn file Excel</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px">Chỉ nhận file .xlsx</div>
+            <input type="file" id="importFileInput" accept=".xlsx" style="display:none"/>
+          </label>
+        </div>
+
+        ${state.importing?`<div style="text-align:center;padding:16px;color:#888">⏳ Đang xử lý...</div>`:""}
+
+        ${res&&!res.error?`<div style="background:#E8F8F0;border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:800;color:#27AE60;margin-bottom:6px">✅ Import thành công!</div>
+          <div style="font-size:13px;color:#1A1A2E">• Đã thêm/cập nhật: <b>${res.added}</b> dòng</div>
+          ${res.skipped>0?`<div style="font-size:12px;color:#888">• Bỏ qua (thiếu dữ liệu): ${res.skipped} dòng</div>`:""}
+          <button id="btnDoneImport" class="btn-success" style="margin-top:10px;width:100%">✓ Xong, đóng lại</button>
+        </div>`:""}
+
+        ${res?.error?`<div style="background:#FDEDEC;border-radius:10px;padding:14px;color:#E74C3C;font-size:13px">
+          ❌ ${res.error}
+        </div>`:""}
+      </div>
+    </div>
+  </div>`;
 }
 
 function doLogin(){
@@ -374,6 +523,7 @@ function renderApp(){
       <div class="htitle"><h1>Thiên Ân</h1><p>${ri.icon} ${ri.label}</p></div>
       <div class="hright">
         <span style="font-size:11px;color:#ddd">${u.name}</span>
+        ${u.isAdmin?`<button class="btn-sm btn-gold" id="btnImport">📥 Import</button>`:""}
         <button class="btn-sm btn-ghost" id="btnLogout">Đăng xuất</button>
       </div>
     </div>
@@ -393,6 +543,7 @@ function renderApp(){
   ${state.showPlanForm?renderPlanModal():""}
   ${state.showLuongModal?renderLuongModal():""}
   ${state.showUserModal?renderUserModal():""}
+  ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
 }
 
@@ -931,6 +1082,13 @@ function attachEvents(){
   document.getElementById("btnSaveUser")?.addEventListener("click",saveUserForm);
   document.querySelectorAll("[data-edituser]").forEach(b=>b.addEventListener("click",()=>{const u=USERS.find(x=>x.username===b.dataset.edituser);if(u)setState({showUserModal:true,editingUser:u.username,um_name:u.name,um_username:u.username,um_password:u.password,um_role:u.role,um_luong:u.luong,um_error:""});}));
   document.querySelectorAll("[data-deluser]").forEach(b=>b.addEventListener("click",()=>deleteUser(b.dataset.deluser)));
+  // IMPORT
+  document.getElementById("btnImport")?.addEventListener("click",()=>setState({showImport:true,importResult:null}));
+  document.getElementById("btnCloseImport")?.addEventListener("click",()=>setState({showImport:false}));
+  document.getElementById("btnDoneImport")?.addEventListener("click",()=>setState({showImport:false,importResult:null}));
+  document.getElementById("importOverlay")?.addEventListener("click",e=>{if(e.target.id==="importOverlay")setState({showImport:false})});
+  document.querySelectorAll(".import-type-btn").forEach(b=>b.addEventListener("click",()=>setState({importType:b.dataset.type,importResult:null})));
+  document.getElementById("importFileInput")?.addEventListener("change",e=>processImportFile(e.target.files[0]));
 }
 
 render();
