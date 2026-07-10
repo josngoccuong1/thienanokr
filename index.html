@@ -106,7 +106,19 @@ const ROLES=[
   {id:"marketing",label:"Marketing",icon:"📢"},
 ];
 const QUARTERS=["Q3/2025","Q4/2025","Q1/2026","Q2/2026"];
-const MONTHS=["T7/2025","T8/2025","T9/2025","T10/2025","T11/2025","T12/2025","T1/2026","T2/2026","T3/2026"];
+// Tự động tạo tháng từ T1/2020 đến 5 năm sau — vô thời hạn quá khứ & tương lai
+function genMonths(){
+  const months=[];
+  const now=new Date();
+  const endYear=now.getFullYear()+5;
+  for(let y=2020;y<=endYear;y++){
+    for(let m=1;m<=12;m++) months.push(`T${m}/${y}`);
+  }
+  return months;
+}
+const MONTHS=genMonths();
+// Tháng hiện tại để set default
+function currentMonth(){const n=new Date();return `T${n.getMonth()+1}/${n.getFullYear()}`;}
 const THU_CATS=["Học phí","Bán nhạc cụ","Sự kiện","Khác"];
 const CHI_CATS=["Lương nhân viên","Thuê mặt bằng","Nhạc cụ/vật tư","Marketing","Điện nước","Khác"];
 
@@ -173,21 +185,21 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 // ============================================================
 let state={
   screen:"login",user:null,tab:"okr",
-  quarter:QUARTERS[0],month:MONTHS[0],
+  quarter:QUARTERS[0],month:currentMonth(),
   loginError:"",uname:"",upass:"",
   actuals:{},
   // OKR
   editKR:null,editVal:"",saving:false,
   // Plan
   plans:ls_get("ta_plans")||[],
-  showPlanForm:false,pf_title:"",pf_month:MONTHS[0],pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
+  showPlanForm:false,pf_title:"",pf_month:currentMonth(),pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
   editPlan:null,
   // Luong
   luongData:ls_get("ta_luong")||{},
-  showLuongModal:false,luong_user:"",luong_month:MONTHS[0],luong_base:0,luong_bonus:0,luong_note:"",
+  showLuongModal:false,luong_user:"",luong_month:currentMonth(),luong_base:0,luong_bonus:0,luong_note:"",
   // Thu chi
   transactions:ls_get("ta_tx")||[],
-  showTxForm:false,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:MONTHS[0],
+  showTxForm:false,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:currentMonth(),
   editTx:null,
   // Users
   showUserModal:false,editingUser:null,um_name:"",um_username:"",um_role:"piano",um_password:"",um_luong:0,um_error:"",
