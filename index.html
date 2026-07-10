@@ -326,12 +326,32 @@ function importNhanSu(rows){
   setState({importing:false, importResult:{type:"nhansu",added,skipped,errors}});
 }
 
+// Chuyển số serial Excel sang ngày dd/mm/yyyy
+function excelDateToStr(val){
+  if(!val) return "";
+  // Nếu đã là chuỗi ngày hợp lệ thì giữ nguyên
+  if(typeof val === "string" && val.includes("/")) return val;
+  // Nếu là số serial Excel
+  if(typeof val === "number" || !isNaN(Number(val))){
+    const n = Number(val);
+    if(n > 10000 && n < 100000){
+      // Excel epoch: ngày 1 = 1/1/1900, nhưng có lỗi leap year 1900
+      const d = new Date((n - 25569) * 86400 * 1000);
+      const day = String(d.getUTCDate()).padStart(2,"0");
+      const mon = String(d.getUTCMonth()+1).padStart(2,"0");
+      const yr = d.getUTCFullYear();
+      return `${day}/${mon}/${yr}`;
+    }
+  }
+  return String(val);
+}
+
 function importThuChi(rows, type){
   let added=0, skipped=0;
   const txs=[...state.transactions];
   rows.forEach(r=>{
     const thang=(r["Tháng *"]||r["Tháng"]||"").toString().trim();
-    const ngay=(r["Ngày *"]||r["Ngày"]||"").toString().trim();
+    const ngay=excelDateToStr(r["Ngày *"]||r["Ngày"]||"");
     const cat=(r["Danh Mục *"]||r["Danh Mục"]||"Khác").toString().trim();
     const amount=Number(r["Số Tiền (VND) *"]||r["Số Tiền (VND)"]||0);
     const note=(r["Ghi Chú"]||"").toString().trim();
