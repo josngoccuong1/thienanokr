@@ -563,22 +563,29 @@ function renderImportModal(){
   </div>`;
 }
 
-async function doLogin(){
-  setState({loginError:"⏳ Đang kiểm tra..."});
-  // Load users mới nhất từ Google Sheets
-  await loadUsersFromSheets();
-  const inputUser=state.uname.trim().toLowerCase();
-  const inputPass=state.upass.trim();
-  const u=USERS.find(u=>u.username.toLowerCase()===inputUser&&u.password===inputPass);
+function doLogin(){
+  // Luôn đọc từ localStorage - đảm bảo có nhân viên mới nhất
+  USERS = loadUsers();
+  const inputUser = state.uname.trim().toLowerCase();
+  const inputPass = state.upass.trim();
+  const u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
   if(u){
-    setState({user:u,screen:"app",loginError:""});
+    setState({user:u, screen:"app", loginError:""});
     loadActuals();
-    // Load data ngầm
     loadThuChiFromSheets(state.month);
     loadLuongFromSheets(state.month);
     loadPlansFromSheets();
   } else {
-    setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
+    // Thử tìm không phân biệt mật khẩu hoa thường
+    const u2 = USERS.find(u => u.username.toLowerCase() === inputUser && u.password.toLowerCase() === inputPass.toLowerCase());
+    if(u2){
+      setState({user:u2, screen:"app", loginError:""});
+      loadActuals();
+    } else {
+      // Debug: hiện danh sách users để kiểm tra
+      console.log("Users in localStorage:", USERS.map(u=>u.username));
+      setState({loginError:"Sai tên đăng nhập hoặc mật khẩu! ("+USERS.length+" tài khoản)"});
+    }
   }
 }
 function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
@@ -643,15 +650,15 @@ function saveUserForm(){
     const i=users.findIndex(u=>u.username===state.editingUser);
     if(i>=0)users[i]={...users[i],name,username,password,role,luong};
   }
+  // Lưu vào localStorage NGAY LẬP TỨC
   saveUsers(users);
-  USERS=loadUsers();
-  // Lưu lên Google Sheets để đồng bộ mọi thiết bị
-  const newUser=users.find(u=>u.username===username);
+  USERS = users; // Cập nhật biến global luôn, không cần reload
+  // Sync lên Google Sheets nền (không chờ)
   apiPost({action:"saveUser",username,password,name,role,isAdmin:false,luong}).catch(()=>{});
-  alert("✅ Đã lưu tài khoản!\nTên đăng nhập: "+username+"\nMật khẩu: "+password+"\nGửi thông tin này cho nhân viên để đăng nhập.");
+  alert("✅ Đã lưu!\nTên đăng nhập: " + username + "\nMật khẩu: " + password);
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
 }
-function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;const users=USERS.filter(u=>u.username!==username);saveUsers(users);USERS=loadUsers();apiPost({action:"deleteUser",username}).catch(()=>{});setState({});}
+function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);apiPost({action:"deleteUser",username}).catch(()=>{});setState({});}
 
 // ============================================================
 // RENDER
