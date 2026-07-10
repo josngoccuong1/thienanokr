@@ -509,7 +509,9 @@ function renderImportModal(){
 function doLogin(){
   // Luôn đọc lại từ localStorage để có nhân viên mới nhất
   USERS = loadUsers();
-  const u=USERS.find(u=>u.username===state.uname.trim()&&u.password===state.upass.trim());
+  const inputUser=state.uname.trim().toLowerCase();
+  const inputPass=state.upass.trim();
+  const u=USERS.find(u=>u.username.toLowerCase()===inputUser&&u.password===inputPass);
   if(u){setState({user:u,screen:"app",loginError:""});loadActuals();}
   else setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
 }
@@ -551,20 +553,29 @@ function saveTx(){
 function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);setState({transactions})}
 
 function saveUserForm(){
-  const name=state.um_name.trim(),username=state.um_username.trim(),password=state.um_password.trim(),role=state.um_role,luong=Number(state.um_luong);
-  if(!name||!username||!password){setState({um_error:"Vui lòng điền đầy đủ!"});return}
+  const name=state.um_name.trim();
+  // Làm sạch tên đăng nhập: bỏ khoảng trắng, chữ thường, bỏ dấu
+  const username=state.um_username.trim().toLowerCase().replace(/\s+/g,"_").replace(/[^a-z0-9_]/g,"");
+  const password=state.um_password.trim();
+  const role=state.um_role;
+  const luong=Number(state.um_luong)||0;
+  if(!name||!username||!password){setState({um_error:"Vui lòng điền đầy đủ họ tên, tên đăng nhập và mật khẩu!"});return}
+  if(username.length<3){setState({um_error:"Tên đăng nhập phải có ít nhất 3 ký tự!"});return}
   let users=[...USERS];
   if(state.editingUser==="new"){
-    if(users.find(u=>u.username===username)){setState({um_error:"Tên đăng nhập đã tồn tại!"});return}
+    if(users.find(u=>u.username===username)){setState({um_error:"Tên đăng nhập '"+username+"' đã tồn tại!"});return}
     users.push({username,password,name,role,isAdmin:false,luong});
   }else{
     const i=users.findIndex(u=>u.username===state.editingUser);
     if(i>=0)users[i]={...users[i],name,username,password,role,luong};
   }
-  saveUsers(users);USERS=loadUsers();
+  saveUsers(users);
+  USERS=loadUsers();
+  // Xác nhận đã lưu
+  alert("✅ Đã lưu tài khoản!\nTên đăng nhập: "+username+"\nMật khẩu: "+password+"\nGửi thông tin này cho nhân viên để đăng nhập.");
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
 }
-function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);setState({})}
+function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;const users=USERS.filter(u=>u.username!==username);saveUsers(users);USERS=loadUsers();setState({});}
 
 // ============================================================
 // RENDER
@@ -1047,8 +1058,9 @@ function renderUserModal(){
         <div class="form-group" style="margin-bottom:10px"><div class="form-label">Họ và tên</div>
           <input class="form-input" id="um-name" placeholder="Nguyễn Văn A" value="${state.um_name}"/></div>
         <div class="form-row">
-          <div class="form-group"><div class="form-label">Tên đăng nhập</div>
-            <input class="form-input" id="um-username" placeholder="gv_piano2" value="${state.um_username}"/></div>
+          <div class="form-group"><div class="form-label">Tên đăng nhập (chỉ dùng a-z, 0-9, gạch dưới)</div>
+            <input class="form-input" id="um-username" placeholder="gv_piano_2" value="${state.um_username}"/>
+            <div style="font-size:10px;color:#888;margin-top:3px">⚠️ Không dùng tiếng Việt, khoảng trắng hoặc ký tự đặc biệt</div></div>
           <div class="form-group"><div class="form-label">Mật khẩu</div>
             <input class="form-input" id="um-password" placeholder="mật khẩu" value="${state.um_password}"/></div>
         </div>
