@@ -322,7 +322,7 @@ function importNhanSu(rows){
       added++;
     }
   });
-  saveUsers(users); USERS=users;
+  saveUsers(users); USERS=loadUsers();
   setState({importing:false, importResult:{type:"nhansu",added,skipped,errors}});
 }
 
@@ -487,7 +487,9 @@ function renderImportModal(){
 }
 
 function doLogin(){
-  const u=USERS.find(u=>u.username===state.uname.trim()&&u.password===state.upass);
+  // Luôn đọc lại từ localStorage để có nhân viên mới nhất
+  USERS = loadUsers();
+  const u=USERS.find(u=>u.username===state.uname.trim()&&u.password===state.upass.trim());
   if(u){setState({user:u,screen:"app",loginError:""});loadActuals();}
   else setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
 }
@@ -539,7 +541,7 @@ function saveUserForm(){
     const i=users.findIndex(u=>u.username===state.editingUser);
     if(i>=0)users[i]={...users[i],name,username,password,role,luong};
   }
-  saveUsers(users);USERS=users;
+  saveUsers(users);USERS=loadUsers();
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:""});
 }
 function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);setState({})}
