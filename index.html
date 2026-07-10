@@ -238,6 +238,47 @@ async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:s
 // ============================================================
 // SYNC VỚI GOOGLE SHEETS — dữ liệu đồng bộ mọi thiết bị
 // ============================================================
+// Sync dữ liệu lên Google Sheets qua GET (tránh CORS)
+function syncGet(params){
+  const url = API_URL + "?" + Object.entries(params)
+    .map(([k,v])=>k+"="+encodeURIComponent(v||"")).join("&");
+  return fetch(url).then(r=>r.json()).catch(e=>console.log("Sync error:",e));
+}
+
+// Load toàn bộ dữ liệu từ Sheets khi đăng nhập
+async function loadAllFromSheets(){
+  try{
+    const data = await apiGet({action:"getAllData"});
+    if(data && !data.error){
+      // Merge ThuChi
+      if(Array.isArray(data.thuchi) && data.thuchi.length > 0){
+        const local = ls_get("ta_tx") || [];
+        const sheetIds = data.thuchi.map(t=>t.id.toString());
+        const localOnly = local.filter(t=>!sheetIds.includes(t.id.toString()));
+        const merged = [...data.thuchi, ...localOnly];
+        ls_set("ta_tx", merged);
+        state.transactions = merged;
+      }
+      // Merge Luong
+      if(data.luong && Object.keys(data.luong).length > 0){
+        const local = ls_get("ta_luong") || {};
+        const merged = {...local, ...data.luong};
+        ls_set("ta_luong", merged);
+        state.luongData = merged;
+      }
+      // Merge Plans
+      if(Array.isArray(data.plans) && data.plans.length > 0){
+        const local = ls_get("ta_plans") || [];
+        const sheetIds = data.plans.map(p=>p.id.toString());
+        const localOnly = local.filter(p=>!sheetIds.includes(p.id.toString()));
+        const merged = [...data.plans, ...localOnly];
+        ls_set("ta_plans", merged);
+        state.plans = merged;
+      }
+    }
+  }catch(e){ console.log("Load all error:", e); }
+}
+
 async function loadUsersFromSheets(){
   try{
     const sheetUsers = await apiGet({action:"getUsers"});
@@ -590,9 +631,7 @@ async function doLogin(){
   if(u){
     setState({user:u, screen:"app", loginError:""});
     loadActuals();
-    loadThuChiFromSheets(state.month);
-    loadLuongFromSheets(state.month);
-    loadPlansFromSheets();
+    loadAllFromSheets().then(()=>render());
   } else {
     setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
   }
@@ -613,19 +652,24 @@ function savePlan(){
   if(state.editPlan){const i=plans.findIndex(p=>p.id===state.editPlan);if(i>=0)plans[i]={...plans[i],...item};}
   else plans.unshift(item);
   ls_set("ta_plans",plans);
-  // Sync lên Google Sheets
-  apiPost({action:"savePlan",...item}).catch(()=>{});
+  // Sync lên Google Sheets qua GET
+  syncGet({action:"savePlanGet", id:item.id, title:item.title,
+    month:item.month, target:item.target||"", owner:item.owner||"", status:item.status||""});
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
-function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);apiPost({action:"deletePlan",id}).catch(()=>{});setState({plans})}
+function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);syncGet({action:"deletePlanGet", id});setState({plans})}
 
 function saveLuong(){
   const key=state.luong_user+"__"+state.luong_month;
   const luongData={...state.luongData,[key]:{user:state.luong_user,month:state.luong_month,base:Number(state.luong_base),bonus:Number(state.luong_bonus),note:state.luong_note,total:Number(state.luong_base)+Number(state.luong_bonus)}};
   ls_set("ta_luong",luongData);
-  // Sync lên Google Sheets
-  const lkey=state.luong_user+"__"+state.luong_month;
-  apiPost({action:"saveLuong",...luongData[lkey],user:state.luong_user,month:state.luong_month}).catch(()=>{});
+  // Sync lên Google Sheets qua GET
+  const lkey2=state.luong_user+"__"+state.luong_month;
+  const ld=luongData[lkey2]||{};
+  syncGet({action:"saveLuongGet", user:state.luong_user,
+    name:USERS.find(u=>u.username===state.luong_user)?.name||"",
+    month:state.luong_month, base:ld.base||0, bonus:ld.bonus||0,
+    note:ld.note||"", status:ld.status||"", total:ld.total||0});
   setState({luongData,showLuongModal:false});
 }
 
@@ -635,12 +679,13 @@ function saveTx(){
   if(state.editTx){const i=txs.findIndex(t=>t.id===state.editTx);if(i>=0)txs[i]={...txs[i],...item};}
   else txs.unshift(item);
   ls_set("ta_tx",txs);
-  // Sync lên Google Sheets
-  const savedItem=txs.find(t=>t.id.toString()===item.id.toString())||item;
-  apiPost({action:"saveThuChi",...savedItem}).catch(()=>{});
+  // Sync lên Google Sheets qua GET
+  syncGet({action:"saveThuChiGet", id:item.id, type:item.type, cat:item.cat,
+    amount:item.amount, note:item.note||"", date:item.date||"",
+    month:item.month, nguoi:item.nguoi||"", httt:item.httt||""});
   setState({transactions:txs,showTxForm:false,editTx:null,tx_amount:"",tx_note:"",tx_date:""});
 }
-function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);apiPost({action:"deleteThuChi",id}).catch(()=>{});setState({transactions})}
+function deleteTx(id){if(!confirm("Xóa giao dịch này?"))return;const transactions=state.transactions.filter(t=>t.id!==id);ls_set("ta_tx",transactions);syncGet({action:"deleteThuChiGet", id});setState({transactions})}
 
 function saveUserForm(){
   const name=state.um_name.trim();
@@ -665,15 +710,18 @@ function saveUserForm(){
   setState({showUserModal:false,editingUser:null,um_name:"",um_username:"",um_password:"",um_luong:0,um_error:"",
     um_success:"✅ Đã lưu! Đăng nhập: "+username+" / MK: "+password});
   // Sync lên Google Sheets để dùng được trên mọi thiết bị
-  // Dùng GET thay POST để tránh CORS
-  const params = new URLSearchParams({
-    action:"saveUserGet", username, password,
-    name: encodeURIComponent(name), role,
-    isAdmin:"false", luong
-  });
-  fetch(API_URL + "?" + params)
+  // Lưu lên Google Sheets qua GET
+  const syncUrl = API_URL
+    + "?action=saveUserGet"
+    + "&username=" + encodeURIComponent(username)
+    + "&password=" + encodeURIComponent(password)
+    + "&name=" + encodeURIComponent(name)
+    + "&role=" + encodeURIComponent(role)
+    + "&isAdmin=false"
+    + "&luong=" + (luong||0);
+  fetch(syncUrl)
     .then(r=>r.json())
-    .then(r=>console.log("Synced user to Sheets:", r))
+    .then(r=>{ console.log("✅ Synced to Sheets:", r); })
     .catch(e=>console.log("Sync error:", e));
 }
 function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);fetch(API_URL+"?action=deleteUserGet&username="+username).catch(()=>{});setState({});}
