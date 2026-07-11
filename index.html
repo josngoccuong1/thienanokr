@@ -648,14 +648,15 @@ function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{
 async function doSaveKR(){
   if(state.saving)return;
   setState({saving:true});
-  try{
-    await apiPost({action:"saveActual",quarter:state.quarter,krId:state.editKR,actual:Number(state.editVal),updatedBy:state.user.name});
-    await loadActuals();
-  }catch(e){
-    // Nếu POST lỗi, thử GET
-    await syncGet({action:"saveActualGet", quarter:state.quarter, krId:state.editKR, actual:Number(state.editVal), updatedBy:state.user.name});
-    await loadActuals();
-  }
+  // Dùng GET để tránh CORS
+  await syncGet({
+    action:"saveActualGet",
+    quarter:state.quarter,
+    krId:state.editKR,
+    actual:Number(state.editVal),
+    updatedBy:encodeURIComponent(state.user.name)
+  });
+  await loadActuals();
   setState({saving:false,editKR:null});
 }
 
