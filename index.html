@@ -626,7 +626,230 @@ function renderImportModal(){
   </div>`;
 }
 
-async function doLogin(){
+async // ============================================================
+// QUẢN LÝ HỌC SINH & ĐIỂM DANH
+// ============================================================
+function loadStudents(){ return ls_get("ta_students")||[]; }
+function saveStudents(s){ ls_set("ta_students",s); }
+function loadAttData(){ return ls_get("ta_attendance")||{}; }
+function saveAttData(d){ ls_set("ta_attendance",d); }
+
+function attKey(studentId, date, session){
+  return studentId+"__"+date+"__"+session;
+}
+
+function markAttendance(studentId, status){
+  const key = attKey(studentId, state.att_date, state.att_session);
+  const data = {...state.att_data, [key]: {studentId, date:state.att_date, session:state.att_session, status, markedBy:state.user.name, markedAt:new Date().toISOString()}};
+  saveAttData(data);
+  // Sync lên Sheets
+  syncGet({action:"saveAttendanceGet", key, studentId, date:state.att_date, session:state.att_session, status, markedBy:encodeURIComponent(state.user.name)});
+  setState({att_data:data});
+}
+
+function getAttStatus(studentId){
+  const key = attKey(studentId, state.att_date, state.att_session);
+  return state.att_data[key]?.status || null;
+}
+
+function saveStudent(data){
+  const students = loadStudents();
+  if(data.id){
+    const i = students.findIndex(s=>s.id===data.id);
+    if(i>=0) students[i]={...students[i],...data};
+    else students.push(data);
+  } else {
+    data.id = "hs_"+Date.now();
+    students.push(data);
+  }
+  saveStudents(students);
+  syncGet({action:"saveStudentGet", ...data, name:encodeURIComponent(data.name||""), note:encodeURIComponent(data.note||"")});
+  return data;
+}
+
+function deleteStudent(id){
+  if(!confirm("Xóa học sinh này?")) return;
+  const students = loadStudents().filter(s=>s.id!==id);
+  saveStudents(students);
+  syncGet({action:"deleteStudentGet", id});
+  setState({students});
+}
+
+// Tính thống kê điểm danh tháng
+function getAttStats(studentId, month){
+  const data = state.att_data;
+  const keys = Object.keys(data).filter(k=>k.startsWith(studentId+"__")&&k.includes(month.replace("T","").replace("/","/")));
+  let present=0, permAbsent=0, absent=0;
+  keys.forEach(k=>{
+    const s=data[k]?.status;
+    if(s==="Đi học") present++;
+    else if(s==="Nghỉ có phép") permAbsent++;
+    else if(s==="Nghỉ không phép") absent++;
+  });
+  return {present, permAbsent, absent, total:keys.length};
+}
+
+// Render tab điểm danh
+function renderAttendance(){
+  const students = loadStudents();
+  const classes = [...new Set(students.map(s=>s.class))].filter(Boolean);
+  const canManageStudents = state.user.isAdmin;
+
+  // Lọc học sinh
+  let filtered = students;
+  if(state.att_class !== "all") filtered = filtered.filter(s=>s.class===state.att_class);
+  if(state.att_search) filtered = filtered.filter(s=>s.name.toLowerCase().includes(state.att_search.toLowerCase()));
+
+  // Chỉ GV thấy lớp của mình
+  if(!state.user.isAdmin){
+    const roleToClass = {piano:"Piano",guitar:"Guitar",vocal:"Thanh Nhạc",dance:"Nhảy",recording:"Thu Âm"};
+    const myClass = roleToClass[state.user.role];
+    if(myClass) filtered = filtered.filter(s=>s.class===myClass);
+  }
+
+  const STATUS_COLORS = {
+    "Đi học": {bg:"#E8F8F0",color:"#27AE60",icon:"✅"},
+    "Nghỉ có phép": {bg:"#FEF9E7",color:"#E67E22",icon:"📋"},
+    "Nghỉ không phép": {bg:"#FDEDEC",color:"#E74C3C",icon:"❌"},
+  };
+
+  return \`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <input id="att-search" type="text" placeholder="🔍 Tìm tên học sinh..." value="\${state.att_search}"
+      style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:13px;outline:none;flex:1;min-width:160px"/>
+    <select id="att-class" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px">
+      <option value="all">Tất cả lớp</option>
+      \${classes.map(c=>\`<option value="\${c}"\${state.att_class===c?" selected":""}>\${c}</option>\`).join("")}
+    </select>
+    <input id="att-date" type="date" value="\${state.att_date}"
+      style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px"/>
+    <select id="att-session" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px">
+      \${["Sáng","Chiều","Tối"].map(s=>\`<option\${s===state.att_session?" selected":""}>\${s}</option>\`).join("")}
+    </select>
+    \${canManageStudents?\`<button class="btn-success" id="btnAddStudent" style="font-size:12px;padding:6px 12px">➕ Thêm HS</button>
+    <button id="btnImportStudent" style="background:#E8F4FD;color:#2980B9;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">📥 Import DS</button>\`:""}
+  </div>
+
+  \${filtered.length===0?\`<div class="card card-pad" style="text-align:center;color:#aaa;padding:32px">
+    \${students.length===0?"Chưa có học sinh nào. Bấm ➕ Thêm HS để bắt đầu.":"Không tìm thấy học sinh phù hợp."}
+  </div>\`:\`
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    \${["Đi học","Nghỉ có phép","Nghỉ không phép"].map(s=>{
+      const sc=STATUS_COLORS[s];
+      const count=filtered.filter(st=>getAttStatus(st.id)===s).length;
+      return\`<div style="background:\${sc.bg};color:\${sc.color};border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700">\${sc.icon} \${s}: \${count}</div>\`;
+    }).join("")}
+    <div style="background:#F0F2F5;color:#555;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700">
+      📋 Chưa điểm danh: \${filtered.filter(st=>!getAttStatus(st.id)).length}
+    </div>
+  </div>
+
+  <div class="card">
+    \${filtered.map(st=>{
+      const status=getAttStatus(st.id);
+      const sc=status?STATUS_COLORS[status]:{bg:"#F8F9FA",color:"#888",icon:"⬜"};
+      return\`<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #F5F5F5;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px">
+          <div style="font-size:13px;font-weight:700;color:#1A1A2E">\${st.name}</div>
+          <div style="font-size:11px;color:#888">\${st.class||""} \${st.phone?("• "+st.phone):""}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          \${["Đi học","Nghỉ có phép","Nghỉ không phép"].map(s=>{
+            const c=STATUS_COLORS[s];
+            const active=status===s;
+            return\`<button class="att-btn" data-sid="\${st.id}" data-status="\${s}"
+              style="padding:6px 10px;border-radius:8px;border:2px solid \${active?c.color:"#E5E7EB"};
+              background:\${active?c.bg:"#fff"};color:\${active?c.color:"#888"};
+              font-size:11px;font-weight:700;cursor:pointer">\${c.icon} \${s}</button>\`;
+          }).join("")}
+        </div>
+        \${canManageStudents?\`<div style="display:flex;gap:4px">
+          <button class="btn-edit att-edit-student" data-sid="\${st.id}" style="padding:4px 8px;font-size:11px">✏️</button>
+          <button class="btn-danger att-del-student" data-sid="\${st.id}" style="padding:4px 8px;font-size:11px">🗑️</button>
+        </div>\`:""}
+      </div>\`;
+    }).join("")}
+  </div>\`}
+
+  \${state.showStudentForm?renderStudentForm():""}
+  \`;
+}
+
+function renderStudentForm(){
+  const st = state.editStudent || {};
+  const classes = ["Piano","Guitar","Thanh Nhạc","Nhảy","Thu Âm","Violin","Trống","Vẽ","Cờ Vua"];
+  return\`<div class="modal-overlay" id="studentFormOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">\${st.id?"✏️ Sửa":"➕ Thêm"} học sinh</span>
+        <button class="btn-sm" id="btnCloseStudentForm" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Họ và tên *</div>
+            <input class="form-input" id="sf-name" placeholder="Nguyễn Văn A" value="\${st.name||""}"/></div>
+          <div class="form-group"><div class="form-label">Bộ môn / Lớp *</div>
+            <select class="form-select" id="sf-class">
+              \${classes.map(c=>\`<option\${c===(st.class||"Piano")?" selected":""}>\${c}</option>\`).join("")}
+            </select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><div class="form-label">Số điện thoại PH</div>
+            <input class="form-input" id="sf-phone" placeholder="0912345678" value="\${st.phone||""}"/></div>
+          <div class="form-group"><div class="form-label">Ngày bắt đầu</div>
+            <input class="form-input" id="sf-start" type="date" value="\${st.startDate||""}"/></div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px"><div class="form-label">Ghi chú</div>
+          <input class="form-input" id="sf-note" placeholder="Ghi chú thêm" value="\${st.note||""}"/></div>
+        <button class="btn-primary" id="btnSaveStudent" style="width:100%">💾 Lưu học sinh</button>
+      </div>
+    </div>
+  </div>\`;
+}
+
+function doSaveStudent(){
+  const name = document.getElementById("sf-name")?.value.trim();
+  if(!name){alert("Vui lòng nhập tên học sinh!");return;}
+  const data = {
+    id: state.editStudent?.id||null,
+    name, class: document.getElementById("sf-class")?.value,
+    phone: document.getElementById("sf-phone")?.value.trim(),
+    startDate: document.getElementById("sf-start")?.value,
+    note: document.getElementById("sf-note")?.value.trim(),
+  };
+  saveStudent(data);
+  const students = loadStudents();
+  setState({students, showStudentForm:false, editStudent:null});
+}
+
+function doImportStudents(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:"array"});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
+      let added=0;
+      rows.forEach(r=>{
+        const name=(r["Họ và Tên"]||r["Tên"]||"").toString().trim();
+        if(!name)return;
+        saveStudent({
+          name, class:r["Bộ Môn"]||r["Lớp"]||"Piano",
+          phone:(r["SĐT PH"]||r["Điện Thoại"]||"").toString(),
+          startDate:"", note:(r["Ghi Chú"]||"").toString()
+        });
+        added++;
+      });
+      setState({students:loadStudents()});
+      alert("✅ Đã import "+added+" học sinh!");
+    }catch(err){alert("Lỗi đọc file: "+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function doLogin(){
   setState({loginError:"⏳ Đang kiểm tra..."});
   // Merge users từ localStorage + Google Sheets
   await loadUsersFromSheets();
@@ -636,6 +859,8 @@ async function doLogin(){
   if(u){
     setState({user:u, screen:"app", loginError:""});
     loadActuals();
+    state.students = loadStudents();
+    state.att_data = loadAttData();
     loadAllFromSheets().then(()=>render());
     // Cache actuals vào localStorage để dùng offline
     setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000); // Reload mỗi 30 giây
@@ -768,7 +993,8 @@ function renderApp(){
   const u=state.user;const ri=roleInfo(u.role);
   const tabs=[
     {id:"okr",label:"📊 OKR",show:true},
-    {id:"plan",label:"📋 Kế hoạch",show:true},
+    {id:"attendance",label:"📋 Điểm danh",show:true},
+    {id:"plan",label:"🗓 Kế hoạch",show:true},
     {id:"luong",label:"💵 Lương",show:true},
     {id:"thuchi",label:"💰 Thu chi",show:u.isAdmin},
     {id:"baocao",label:"📈 Báo cáo",show:u.isAdmin},
@@ -791,6 +1017,7 @@ function renderApp(){
   </div>
   <div class="main">
     ${state.tab==="okr"?renderOKR():""}
+    ${state.tab==="attendance"?renderAttendance():""}
     ${state.tab==="plan"?renderPlan():""}
     ${state.tab==="luong"?renderLuong():""}
     ${state.tab==="thuchi"?renderThuChi():""}
@@ -1258,6 +1485,7 @@ function attachEvents(){
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
     setState({tab:b.dataset.tab});
     if(b.dataset.tab==="okr") loadActuals();
+    if(b.dataset.tab==="attendance"){ state.students=loadStudents(); state.att_data=loadAttData(); render(); }
     if(b.dataset.tab==="thuchi") loadThuChiFromSheets(state.month);
     if(b.dataset.tab==="luong") loadLuongFromSheets(state.month);
     if(b.dataset.tab==="plan") loadPlansFromSheets();
@@ -1363,6 +1591,26 @@ function attachEvents(){
   document.querySelectorAll(".import-type-btn").forEach(b=>b.addEventListener("click",()=>setState({importType:b.dataset.type,importResult:null})));
   document.getElementById("importFileInput")?.addEventListener("change",e=>processImportFile(e.target.files[0]));
   document.getElementById("btnExport")?.addEventListener("click",()=>exportToExcel(state.importType));
+
+  // ĐIỂM DANH
+  document.getElementById("att-search")?.addEventListener("input",e=>setState({att_search:e.target.value}));
+  document.getElementById("att-class")?.addEventListener("change",e=>setState({att_class:e.target.value}));
+  document.getElementById("att-date")?.addEventListener("change",e=>setState({att_date:e.target.value}));
+  document.getElementById("att-session")?.addEventListener("change",e=>setState({att_session:e.target.value}));
+  document.getElementById("btnAddStudent")?.addEventListener("click",()=>setState({showStudentForm:true,editStudent:null}));
+  document.getElementById("btnCloseStudentForm")?.addEventListener("click",()=>setState({showStudentForm:false}));
+  document.getElementById("studentFormOverlay")?.addEventListener("click",e=>{if(e.target.id==="studentFormOverlay")setState({showStudentForm:false})});
+  document.getElementById("btnSaveStudent")?.addEventListener("click",doSaveStudent);
+  document.getElementById("btnImportStudent")?.addEventListener("click",()=>{
+    const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx";
+    inp.onchange=e=>doImportStudents(e.target.files[0]);inp.click();
+  });
+  document.querySelectorAll(".att-btn").forEach(b=>b.addEventListener("click",()=>markAttendance(b.dataset.sid,b.dataset.status)));
+  document.querySelectorAll(".att-edit-student").forEach(b=>b.addEventListener("click",()=>{
+    const st=loadStudents().find(s=>s.id===b.dataset.sid);
+    if(st)setState({showStudentForm:true,editStudent:st});
+  }));
+  document.querySelectorAll(".att-del-student").forEach(b=>b.addEventListener("click",()=>deleteStudent(b.dataset.sid)));
 }
 
 render();
