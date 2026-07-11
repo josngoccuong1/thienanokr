@@ -230,7 +230,12 @@ let state={
 // ============================================================
 async function apiGet(p){try{const r=await fetch(API_URL+"?"+new URLSearchParams(p));return r.json()}catch(e){return{}}}
 async function apiPost(d){try{const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});return r.json()}catch(e){return{}}}
-async function loadActuals(){const d=await apiGet({action:"getActuals",quarter:state.quarter});setState({actuals:d||{}})}
+async function loadActuals(){
+  try{
+    const d=await apiGet({action:"getActuals",quarter:state.quarter});
+    if(d&&!d.error) setState({actuals:d});
+  }catch(e){}
+}
 
 // ============================================================
 // ACTIONS
@@ -632,6 +637,8 @@ async function doLogin(){
     setState({user:u, screen:"app", loginError:""});
     loadActuals();
     loadAllFromSheets().then(()=>render());
+    // Cache actuals vào localStorage để dùng offline
+    setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000); // Reload mỗi 30 giây
   } else {
     setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
   }
@@ -641,8 +648,14 @@ function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{
 async function doSaveKR(){
   if(state.saving)return;
   setState({saving:true});
-  await apiPost({action:"saveActual",quarter:state.quarter,krId:state.editKR,actual:Number(state.editVal),updatedBy:state.user.name});
-  await loadActuals();
+  try{
+    await apiPost({action:"saveActual",quarter:state.quarter,krId:state.editKR,actual:Number(state.editVal),updatedBy:state.user.name});
+    await loadActuals();
+  }catch(e){
+    // Nếu POST lỗi, thử GET
+    await syncGet({action:"saveActualGet", quarter:state.quarter, krId:state.editKR, actual:Number(state.editVal), updatedBy:state.user.name});
+    await loadActuals();
+  }
   setState({saving:false,editKR:null});
 }
 
@@ -1243,14 +1256,21 @@ function attachEvents(){
   // TABS
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
     setState({tab:b.dataset.tab});
+    if(b.dataset.tab==="okr") loadActuals();
     if(b.dataset.tab==="thuchi") loadThuChiFromSheets(state.month);
     if(b.dataset.tab==="luong") loadLuongFromSheets(state.month);
     if(b.dataset.tab==="plan") loadPlansFromSheets();
-    // Không gọi loadUsersFromSheets — dùng localStorage
   }));
 
   // OKR
-  document.getElementById("qsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
+  document.getElementById("qsel")?.addEventListener("change",e=>{
+    setState({quarter:e.target.value});
+    loadActuals();
+  });
+  document.getElementById("bcqsel")?.addEventListener("change",e=>{
+    setState({quarter:e.target.value});
+    loadActuals();
+  });
   // OKR Editor
   document.getElementById("btnAddObj")?.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:"new",okr_obj_title:"",okr_obj_icon:"🎯",okr_error:""}));
   document.getElementById("btnCloseOKREditor")?.addEventListener("click",()=>setState({showOKREditor:false}));
@@ -1278,7 +1298,7 @@ function attachEvents(){
   if(ki){ki.addEventListener("input",e=>state.editVal=e.target.value);ki.addEventListener("keydown",e=>e.key==="Enter"&&doSaveKR());setTimeout(()=>ki.focus(),50);}
 
   // PLAN
-  document.getElementById("msel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("msel")?.addEventListener("change",e=>{setState({month:e.target.value});loadPlansFromSheets();});
   document.getElementById("btnAddPlan")?.addEventListener("click",()=>setState({showPlanForm:true,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",pf_month:state.month}));
   document.getElementById("btnClosePlan")?.addEventListener("click",()=>setState({showPlanForm:false}));
   document.getElementById("planOverlay")?.addEventListener("click",e=>{if(e.target.id==="planOverlay")setState({showPlanForm:false})});
@@ -1292,7 +1312,7 @@ function attachEvents(){
   document.querySelectorAll("[data-delplan]").forEach(b=>b.addEventListener("click",()=>deletePlan(Number(b.dataset.delplan))));
 
   // LUONG
-  document.getElementById("lmsel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("lmsel")?.addEventListener("change",e=>{setState({month:e.target.value});loadLuongFromSheets(e.target.value);});
   document.getElementById("btnAddLuong")?.addEventListener("click",()=>{const first=USERS.find(u=>!u.isAdmin);setState({showLuongModal:true,luong_user:first?.username||"",luong_month:state.month,luong_base:first?.luong||0,luong_bonus:0,luong_note:""});});
   document.getElementById("btnCloseLuong")?.addEventListener("click",()=>setState({showLuongModal:false}));
   document.getElementById("luongOverlay")?.addEventListener("click",e=>{if(e.target.id==="luongOverlay")setState({showLuongModal:false})});
@@ -1305,7 +1325,7 @@ function attachEvents(){
   document.querySelectorAll("[data-luong]").forEach(b=>b.addEventListener("click",()=>{const u=USERS.find(x=>x.username===b.dataset.luong);const key=b.dataset.luong+"__"+state.month;const ld=state.luongData[key];setState({showLuongModal:true,luong_user:b.dataset.luong,luong_month:state.month,luong_base:ld?.base||u?.luong||0,luong_bonus:ld?.bonus||0,luong_note:ld?.note||""});}));
 
   // THU CHI
-  document.getElementById("tcmsel")?.addEventListener("change",e=>setState({month:e.target.value}));
+  document.getElementById("tcmsel")?.addEventListener("change",e=>{setState({month:e.target.value});loadThuChiFromSheets(e.target.value);});
   document.getElementById("btnAddThu")?.addEventListener("click",()=>setState({showTxForm:true,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:state.month,editTx:null}));
   document.getElementById("btnAddChi")?.addEventListener("click",()=>setState({showTxForm:true,tx_type:"chi",tx_cat:CHI_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:state.month,editTx:null}));
   document.getElementById("btnCloseTx")?.addEventListener("click",()=>setState({showTxForm:false}));
