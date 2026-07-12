@@ -1217,7 +1217,9 @@ function renderOKR(){
       <div class="okr-kr-list">
         ${state.user.isAdmin?`<div style="padding:6px 0 2px"><button class="btn-success okr-add-kr" data-oid="${obj.id}" style="font-size:11px;padding:4px 10px">➕ Thêm KR</button></div>`:""}
         ${obj.krs.map((kr,i)=>{
-          const actual=state.actuals[kr.id]?.actual||0;
+          const planTotal=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((sum,p)=>sum+Number(p.actual||0),0);
+          const fromPlans=planTotal>0;
+          const actual=fromPlans?planTotal:(state.actuals[kr.id]?.actual||0);
           const p=pct(actual,kr.target);const s=stInfo(p);
           const editable=state.user.isAdmin||kr.ownerRole===state.user.role;
           const isEdit=state.editKR===kr.id;
