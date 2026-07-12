@@ -212,7 +212,10 @@ let state={
   showImport:false,importType:"nhansu",importResult:null,importing:false,um_success:"",
   // Plan
   plans:ls_get("ta_plans")||[],
-  showPlanForm:false,pf_title:"",pf_month:currentMonth(),pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",
+  showPlanForm:false,
+  pf_title:"",pf_month:currentMonth(),pf_target:0,pf_actual:0,
+  pf_owner:"",pf_status:"Chưa bắt đầu",
+  pf_okr_obj:"",pf_okr_kr:"",  // Gắn vào OKR
   editPlan:null,
   // Luong
   luongData:ls_get("ta_luong")||{},
@@ -956,7 +959,17 @@ async function doSaveKR(){
 
 function savePlan(){
   const plans=[...state.plans];
-  const item={id:Date.now(),title:state.pf_title,month:state.pf_month,target:state.pf_target,owner:state.pf_owner,status:state.pf_status};
+  const item={
+    id:Date.now(),
+    title:state.pf_title,
+    month:state.pf_month,
+    target:Number(state.pf_target)||0,
+    actual:Number(state.pf_actual)||0,
+    owner:state.pf_owner,
+    status:state.pf_status,
+    okrObj:state.pf_okr_obj,   // ID của Objective
+    okrKr:state.pf_okr_kr,     // ID của Key Result
+  };
   if(state.editPlan){const i=plans.findIndex(p=>p.id===state.editPlan);if(i>=0)plans[i]={...plans[i],...item};}
   else plans.unshift(item);
   ls_set("ta_plans",plans);
@@ -1102,9 +1115,19 @@ function renderApp(){
 }
 
 // ===== OKR =====
+function getKRTotal(krId){
+  // Tổng từ plans + actuals (lấy max)
+  const planTotal = state.plans
+    .filter(p=>p.okrKr===krId)
+    .reduce((s,p)=>s+Number(p.actual||0),0);
+  const manualActual = state.actuals[krId]?.actual||0;
+  // Nếu có kế hoạch gắn vào thì dùng tổng kế hoạch, không thì dùng nhập tay
+  return planTotal > 0 ? planTotal : manualActual;
+}
+
 function renderOKR(){
   const allKRs=OBJECTIVES.flatMap(o=>o.krs);
-  const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/allKRs.length):0;
+  const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(getKRTotal(kr.id),kr.target),0)/allKRs.length):0;
   const gst=stInfo(gs);
   const ICONS=["🎯","🎓","🎵","📱","💰","👨‍🏫","🏆","📊","🚀","⭐","🎸","🎹","💡","📋","🔥"];
   const okrEditorModal = state.showOKREditor ? `
@@ -1205,7 +1228,11 @@ function renderOKR(){
               <input id="krInput" type="number" value="${state.editVal}" style="width:60px;border:2px solid #D4AF37;border-radius:6px;padding:3px 6px;font-size:12px;outline:none" data-krid="${kr.id}"/>
               <button class="btn-success" style="padding:4px 8px;font-size:12px" id="btnSaveKR">${state.saving?"...":"✓"}</button>
               <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
-            </div>`:`<button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable?"":"disabled"}>${actual} ${kr.unit}</button>`}
+            </div>`:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable&&!fromPlans?"":"disabled"}
+                style="opacity:${fromPlans?0.7:1}">${actual} ${kr.unit}</button>
+              ${fromPlans?`<span style="font-size:9px;color:#D4AF37">📋 từ KH</span>`:""}
+            </div>`}
             <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
             ${state.user.isAdmin?`<button class="btn-edit okr-edit-kr" data-oid="${obj.id}" data-kid="${kr.id}" data-text="${kr.text}" data-unit="${kr.unit}" data-target="${kr.target}" data-role="${kr.ownerRole}" style="padding:2px 6px;font-size:10px">✏️</button>
             <button class="btn-danger okr-del-kr" data-oid="${obj.id}" data-kid="${kr.id}" style="padding:2px 6px;font-size:10px">🗑️</button>`:""}
@@ -1223,33 +1250,113 @@ function renderPlan(){
     "Hoàn thành":"#27AE60","Đang thực hiện":"#E67E22",
     "Chưa bắt đầu":"#aaa","Bị trễ":"#E74C3C"
   };
+
+  // Tính tổng actual cho từng KR từ các kế hoạch
+  function getKRActualFromPlans(krId){
+    return state.plans
+      .filter(p=>p.okrKr===krId && p.actual)
+      .reduce((s,p)=>s+Number(p.actual||0),0);
+  }
+
   return`
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
     <select id="msel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
+      <option value="">Tất cả tháng</option>
       ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
     </select>
     ${state.user.isAdmin?`<button class="btn-success" id="btnAddPlan" style="font-size:12px;padding:6px 14px">➕ Thêm kế hoạch</button>`:""}
     <div class="badge" style="background:#E8F8F0;color:#27AE60">${plans.filter(p=>p.status==="Hoàn thành").length}/${plans.length} hoàn thành</div>
   </div>
+
+  <!-- Tóm tắt liên kết OKR -->
+  ${OBJECTIVES.some(o=>o.krs.some(kr=>state.plans.some(p=>p.okrKr===kr.id)))?`
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-head"><span class="card-head-title">🎯 Tiến độ KH → OKR</span></div>
+    ${OBJECTIVES.map(obj=>{
+      const linkedKRs = obj.krs.filter(kr=>state.plans.some(p=>p.okrKr===kr.id));
+      if(!linkedKRs.length) return "";
+      return`<div style="padding:10px 18px;border-bottom:1px solid #F5F5F5">
+        <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:8px">${obj.icon} ${obj.title}</div>
+        ${linkedKRs.map(kr=>{
+          const planActual = getKRActualFromPlans(kr.id);
+          const p = Math.min(Math.round((planActual/kr.target)*100),100);
+          const st = stInfo(p);
+          const linkedPlans = state.plans.filter(pl=>pl.okrKr===kr.id);
+          return`<div style="margin-bottom:8px;padding:8px;background:#F8F9FA;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:11px;color:#888;flex:1">KR: ${kr.text} (MT: ${kr.target} ${kr.unit})</span>
+              <span style="font-size:13px;font-weight:800;color:${st.color}">${planActual}/${kr.target} ${kr.unit} (${p}%)</span>
+            </div>
+            <div style="background:#F0F0F0;border-radius:4px;height:6px;margin-bottom:6px">
+              <div style="width:${p}%;height:100%;background:${st.color};border-radius:4px"></div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${linkedPlans.map(pl=>`<span style="font-size:10px;background:#fff;border:1px solid #ddd;border-radius:4px;padding:2px 6px;color:#555">
+                ${pl.title}: <b>${pl.actual||0}</b> ${kr.unit}
+              </span>`).join("")}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    }).join("")}
+  </div>`:""}
+
+  <!-- Danh sách kế hoạch -->
   <div class="card">
-    ${plans.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào cho ${state.month}</div>`:""}
-    ${plans.map(p=>`<div class="plan-item card-pad" style="padding:12px 18px">
-      <div class="plan-status" style="background:${statusColor[p.status]||"#aaa"}"></div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:3px">${p.title}</div>
-        <div style="font-size:11px;color:#888">🎯 ${p.target} &nbsp;|&nbsp; 👤 ${p.owner} &nbsp;|&nbsp; 📅 ${p.month}</div>
-      </div>
-      <span class="badge" style="background:${statusColor[p.status]||"#eee"}22;color:${statusColor[p.status]||"#888"};font-size:10px">${p.status}</span>
-      ${state.user.isAdmin?`<div style="display:flex;gap:4px">
-        <button class="btn-edit" data-pid="${p.id}">✏️</button>
-        <button class="btn-danger" data-delplan="${p.id}">🗑️</button>
-      </div>`:""}
-    </div>`).join("")}
+    ${plans.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào ${state.month?"cho "+state.month:""}. ${state.user.isAdmin?"Bấm ➕ Thêm kế hoạch.":""}</div>`:""}
+    ${plans.map(p=>{
+      // Tìm KR được gắn
+      let krInfo = null;
+      if(p.okrKr){
+        OBJECTIVES.forEach(o=>{
+          const kr=o.krs.find(k=>k.id===p.okrKr);
+          if(kr) krInfo={obj:o, kr};
+        });
+      }
+      const pct = p.target>0?Math.min(Math.round((Number(p.actual||0)/Number(p.target))*100),100):0;
+      const st = stInfo(pct);
+      return`<div class="plan-item card-pad" style="padding:12px 18px">
+        <div class="plan-status" style="background:${statusColor[p.status]||"#aaa"}"></div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:3px">${p.title}</div>
+          <div style="font-size:11px;color:#888;margin-bottom:4px">
+            👤 ${p.owner||"-"} &nbsp;|&nbsp; 📅 ${p.month}
+            ${krInfo?`&nbsp;|&nbsp; 🎯 <span style="color:#D4AF37;font-weight:700">${krInfo.obj.icon} ${krInfo.kr.text}</span>`:""}
+          </div>
+          ${p.target>0?`<div style="display:flex;align-items:center;gap:8px">
+            <div style="background:#F0F0F0;border-radius:4px;height:5px;flex:1">
+              <div style="width:${pct}%;height:100%;background:${st.color};border-radius:4px"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${st.color}">${p.actual||0}/${p.target} (${pct}%)</span>
+          </div>`:""}
+        </div>
+        <span class="badge" style="background:${statusColor[p.status]||"#eee"}22;color:${statusColor[p.status]||"#888"};font-size:10px">${p.status}</span>
+        ${state.user.isAdmin?`<div style="display:flex;gap:4px">
+          <button class="btn-edit" data-pid="${p.id}">✏️</button>
+          <button class="btn-danger" data-delplan="${p.id}">🗑️</button>
+        </div>`:""}
+      </div>`;
+    }).join("")}
   </div>`;
 }
 
+
 function renderPlanModal(){
   const statusList=["Chưa bắt đầu","Đang thực hiện","Hoàn thành","Bị trễ"];
+  // Build OKR options
+  let objOptions = "<option value=\"\">-- Không gắn OKR --</option>";
+  OBJECTIVES.forEach(o=>{
+    objOptions += "<option value=\""+o.id+"\"" + (state.pf_okr_obj===o.id?" selected":"") + ">"+o.icon+" "+o.title+"</option>";
+  });
+  // Build KR options based on selected obj
+  let krOptions = "<option value=\"\">-- Chọn Key Result --</option>";
+  if(state.pf_okr_obj){
+    const obj = OBJECTIVES.find(o=>o.id===state.pf_okr_obj);
+    if(obj) obj.krs.forEach((kr,i)=>{
+      krOptions += "<option value=\""+kr.id+"\"" + (state.pf_okr_kr===kr.id?" selected":"") + ">KR"+(i+1)+": "+kr.text+" (MT: "+kr.target+" "+kr.unit+")</option>";
+    });
+  }
+
   return`<div class="modal-overlay" id="planOverlay">
     <div class="modal">
       <div class="modal-head">
@@ -1257,25 +1364,65 @@ function renderPlanModal(){
         <button class="btn-sm" id="btnClosePlan" style="background:#eee;color:#333">✕</button>
       </div>
       <div class="modal-body">
-        <div class="form-group" style="margin-bottom:10px"><div class="form-label">Tên kế hoạch / hành động</div>
-          <input class="form-input" id="pf-title" placeholder="VD: Tổ chức Piano Festival T8" value="${state.pf_title}"/></div>
-        <div class="form-row">
-          <div class="form-group"><div class="form-label">Tháng</div>
-            <select class="form-select" id="pf-month">${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}</select></div>
-          <div class="form-group"><div class="form-label">Người phụ trách</div>
-            <input class="form-input" id="pf-owner" placeholder="Tên người PT" value="${state.pf_owner}"/></div>
+
+        <!-- Thông tin cơ bản -->
+        <div class="form-group" style="margin-bottom:10px">
+          <div class="form-label">Tên kế hoạch / hành động *</div>
+          <input class="form-input" id="pf-title" placeholder="VD: Chạy ads Facebook tuyển sinh Piano" value="${state.pf_title}"/>
         </div>
-        <div class="form-group" style="margin-bottom:10px"><div class="form-label">Mục tiêu / KPI</div>
-          <input class="form-input" id="pf-target" placeholder="VD: 50 học viên đăng ký" value="${state.pf_target}"/></div>
-        <div class="form-group" style="margin-bottom:16px"><div class="form-label">Trạng thái</div>
-          <select class="form-select" id="pf-status">${statusList.map(s=>`<option${s===state.pf_status?" selected":""}>${s}</option>`).join("")}</select></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Tháng</div>
+            <select class="form-select" id="pf-month">
+              ${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Người phụ trách</div>
+            <input class="form-input" id="pf-owner" placeholder="Tên người phụ trách" value="${state.pf_owner}"/>
+          </div>
+        </div>
+
+        <!-- Gắn vào OKR -->
+        <div style="background:#F8F9FA;border-radius:10px;padding:12px;margin-bottom:10px;border:2px solid #E5E7EB">
+          <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:8px">🎯 Gắn vào OKR (tuỳ chọn)</div>
+          <div class="form-group" style="margin-bottom:8px">
+            <div class="form-label">Objective</div>
+            <select class="form-select" id="pf-okr-obj">${objOptions}</select>
+          </div>
+          ${state.pf_okr_obj?`<div class="form-group">
+            <div class="form-label">Key Result</div>
+            <select class="form-select" id="pf-okr-kr">${krOptions}</select>
+          </div>`:""}
+        </div>
+
+        <!-- Mục tiêu & Thực tế -->
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Mục tiêu (con số)</div>
+            <input class="form-input" id="pf-target" type="number" placeholder="VD: 10" value="${state.pf_target}"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Thực tế đạt được</div>
+            <input class="form-input" id="pf-actual" type="number" placeholder="0" value="${state.pf_actual}"/>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px">
+          <div class="form-label">Trạng thái</div>
+          <select class="form-select" id="pf-status">
+            ${statusList.map(s=>`<option${s===state.pf_status?" selected":""}>${s}</option>`).join("")}
+          </select>
+        </div>
+
         <button class="btn-primary" id="btnSavePlan" style="width:100%">💾 Lưu kế hoạch</button>
       </div>
     </div>
   </div>`;
 }
 
-// ===== LƯƠNG =====
+
 function renderLuong(){
   const u=state.user;
   const showUsers=u.isAdmin?USERS:USERS.filter(x=>x.username===u.username);
@@ -1601,12 +1748,15 @@ function attachEvents(){
   document.getElementById("btnClosePlan")?.addEventListener("click",()=>setState({showPlanForm:false}));
   document.getElementById("planOverlay")?.addEventListener("click",e=>{if(e.target.id==="planOverlay")setState({showPlanForm:false})});
   document.getElementById("pf-title")?.addEventListener("input",e=>state.pf_title=e.target.value);
+  document.getElementById("pf-okr-obj")?.addEventListener("change",e=>setState({pf_okr_obj:e.target.value,pf_okr_kr:""}));
+  document.getElementById("pf-okr-kr")?.addEventListener("change",e=>state.pf_okr_kr=e.target.value);
+  document.getElementById("pf-actual")?.addEventListener("input",e=>state.pf_actual=e.target.value);
   document.getElementById("pf-month")?.addEventListener("change",e=>state.pf_month=e.target.value);
   document.getElementById("pf-target")?.addEventListener("input",e=>state.pf_target=e.target.value);
   document.getElementById("pf-owner")?.addEventListener("input",e=>state.pf_owner=e.target.value);
   document.getElementById("pf-status")?.addEventListener("change",e=>state.pf_status=e.target.value);
   document.getElementById("btnSavePlan")?.addEventListener("click",savePlan);
-  document.querySelectorAll("[data-pid]").forEach(b=>b.addEventListener("click",()=>{const p=state.plans.find(x=>x.id==b.dataset.pid);if(p)setState({showPlanForm:true,editPlan:p.id,pf_title:p.title,pf_target:p.target,pf_owner:p.owner,pf_status:p.status,pf_month:p.month});}));
+  document.querySelectorAll("[data-pid]").forEach(b=>b.addEventListener("click",()=>{const p=state.plans.find(x=>x.id==b.dataset.pid);if(p)setState({showPlanForm:true,editPlan:p.id,pf_title:p.title,pf_target:p.target||0,pf_actual:p.actual||0,pf_owner:p.owner,pf_status:p.status,pf_month:p.month,pf_okr_obj:p.okrObj||"",pf_okr_kr:p.okrKr||""});}));
   document.querySelectorAll("[data-delplan]").forEach(b=>b.addEventListener("click",()=>deletePlan(Number(b.dataset.delplan))));
 
   // LUONG
