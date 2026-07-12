@@ -1119,13 +1119,14 @@ function renderApp(){
 
 // ===== OKR =====
 function getKRTotal(krId){
-  // Tổng từ plans + actuals (lấy max)
-  const planTotal = state.plans
-    .filter(p=>p.okrKr===krId)
-    .reduce((s,p)=>s+Number(p.actual||0),0);
-  const manualActual = state.actuals[krId]?.actual||0;
-  // Nếu có kế hoạch gắn vào thì dùng tổng kế hoạch, không thì dùng nhập tay
-  return planTotal > 0 ? planTotal : manualActual;
+  try{
+    const plans = state.plans || [];
+    const planTotal = plans
+      .filter(p=>p.okrKr===krId)
+      .reduce((s,p)=>s+Number(p.actual||0),0);
+    const manualActual = (state.actuals||{})[krId]?.actual||0;
+    return planTotal > 0 ? planTotal : manualActual;
+  }catch(e){ return (state.actuals||{})[krId]?.actual||0; }
 }
 
 function renderOKR(){
