@@ -918,24 +918,27 @@ function doImportStudents(file){
   reader.readAsArrayBuffer(file);
 }
 
-async function doLogin(){
-  setState({loginError:"⏳ Đang kiểm tra..."});
-  // Merge users từ localStorage + Google Sheets
-  await loadUsersFromSheets();
+function doLogin(){
+  // Đọc users từ localStorage trước - nhanh và đáng tin cậy
+  USERS = loadUsers();
   const inputUser = state.uname.trim().toLowerCase();
   const inputPass = state.upass.trim();
   const u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
   if(u){
     setState({user:u, screen:"app", loginError:""});
-    loadActuals();
     state.students = loadStudents();
     state.att_data = loadAttData() || {};
-    // Load TẤT CẢ dữ liệu từ Sheets
-    loadAllFromSheets().then(()=>render());
-    // Load thu chi tất cả tháng
-    loadThuChiFromSheets("").then(()=>render());
-    // Cache actuals vào localStorage để dùng offline
-    setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000); // Reload mỗi 30 giây
+    state.plans = ls_get("ta_plans") || [];
+    state.transactions = ls_get("ta_tx") || [];
+    state.luongData = ls_get("ta_luong") || {};
+    loadActuals();
+    // Load từ Sheets ngầm sau khi đã vào app
+    setTimeout(()=>{
+      loadUsersFromSheets();
+      loadAllFromSheets().then(()=>render());
+      loadThuChiFromSheets("").then(()=>render());
+      setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000);
+    }, 500);
   } else {
     setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
   }
