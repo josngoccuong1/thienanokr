@@ -199,6 +199,7 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 let state={
   screen:"login",user:null,tab:"okr",
   quarter:currentQuarter(),month:currentMonth(),
+  txViewAll:false,txPage:1,
   loginError:"",uname:"",upass:"",
   actuals:{},
   // OKR
@@ -254,6 +255,27 @@ async function syncGet(params){
 }
 
 // Load toàn bộ dữ liệu từ Sheets khi đăng nhập
+// Merge kế hoạch từ Sheets với local — GIỮ link OKR (okrObj/okrKr) & actual từ local,
+// vì Sheets hiện chưa lưu các trường này. Tránh mất dữ liệu khi load lại.
+function mergePlans(sheetPlans){
+  const local = ls_get("ta_plans") || [];
+  const localMap = {};
+  local.forEach(p=>{ localMap[p.id.toString()] = p; });
+  const sheetIds = sheetPlans.map(p=>p.id.toString());
+  const mergedSheet = sheetPlans.map(sp=>{
+    const lp = localMap[sp.id.toString()];
+    if(!lp) return sp;
+    return {
+      ...sp,
+      okrObj: lp.okrObj || sp.okrObj || "",
+      okrKr:  lp.okrKr  || sp.okrKr  || "",
+      actual: (lp.actual!==undefined && lp.actual!=="") ? lp.actual : (sp.actual||0)
+    };
+  });
+  const localOnly = local.filter(p=>!sheetIds.includes(p.id.toString()));
+  return [...mergedSheet, ...localOnly];
+}
+
 async function loadAllFromSheets(){
   try{
     const data = await apiGet({action:"getAllData"});
@@ -275,12 +297,9 @@ async function loadAllFromSheets(){
         ls_set("ta_luong", merged);
         state.luongData = merged;
       }
-      // Merge Plans
+      // Merge Plans (giữ link OKR & actual từ local)
       if(Array.isArray(data.plans) && data.plans.length > 0){
-        const local = ls_get("ta_plans") || [];
-        const sheetIds = data.plans.map(p=>p.id.toString());
-        const localOnly = local.filter(p=>!sheetIds.includes(p.id.toString()));
-        const merged = [...data.plans, ...localOnly];
+        const merged = mergePlans(data.plans);
         ls_set("ta_plans", merged);
         state.plans = merged;
       }
@@ -347,8 +366,9 @@ async function loadPlansFromSheets(){
   try{
     const data=await apiGet({action:"getPlans"});
     if(Array.isArray(data)&&data.length>0){
-      ls_set("ta_plans",data);
-      setState({plans:data});
+      const merged=mergePlans(data);
+      ls_set("ta_plans",merged);
+      setState({plans:merged});
     }
   }catch(e){}
 }
@@ -978,7 +998,9 @@ function savePlan(){
   ls_set("ta_plans",plans);
   // Sync lên Google Sheets qua GET
   syncGet({action:"savePlanGet", id:item.id, title:item.title,
-    month:item.month, target:item.target||"", owner:item.owner||"", status:item.status||""});
+    month:item.month, target:item.target||"", actual:item.actual||"",
+    owner:item.owner||"", status:item.status||"",
+    okrObj:item.okrObj||"", okrKr:item.okrKr||""});
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
 function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);syncGet({action:"deletePlanGet", id});setState({plans})}
@@ -1500,14 +1522,43 @@ function renderLuongModal(){
 
 // ===== THU CHI =====
 function renderThuChi(){
-  const txs=state.transactions.filter(t=>t.month===state.month);
-  const totalThu=txs.filter(t=>t.type==="thu").reduce((s,t)=>s+t.amount,0);
-  const totalChi=txs.filter(t=>t.type==="chi").reduce((s,t)=>s+t.amount,0);
+  const isAll = !!state.txViewAll;
+  const allTxs = isAll ? [...state.transactions] : state.transactions.filter(t=>t.month===state.month);
+  const totalThu=allTxs.filter(t=>t.type==="thu").reduce((s,t)=>s+Number(t.amount||0),0);
+  const totalChi=allTxs.filter(t=>t.type==="chi").reduce((s,t)=>s+Number(t.amount||0),0);
   const loiNhuan=totalThu-totalChi;
+
+  // ---- Phân trang ----
+  const pageSize=20;
+  const total=allTxs.length;
+  const totalPages=Math.max(1,Math.ceil(total/pageSize));
+  const page=Math.min(Math.max(1,state.txPage||1),totalPages);
+  const pageTxs=allTxs.slice((page-1)*pageSize, page*pageSize);
+  const startIdx=total===0?0:(page-1)*pageSize+1;
+  const endIdx=Math.min(page*pageSize,total);
+
+  // Nút số trang (cửa sổ quanh trang hiện tại)
+  const nums=[]; const win=2;
+  const wStart=Math.max(1,page-win), wEnd=Math.min(totalPages,page+win);
+  if(wStart>1){ nums.push(1); if(wStart>2) nums.push("…"); }
+  for(let i=wStart;i<=wEnd;i++) nums.push(i);
+  if(wEnd<totalPages){ if(wEnd<totalPages-1) nums.push("…"); nums.push(totalPages); }
+  const pbtn=(label,pg,disabled,active)=>`<button class="tx-page-btn" data-page="${pg}" ${disabled?"disabled":""} style="min-width:32px;padding:5px 10px;border-radius:6px;border:1px solid ${active?"#1A1A2E":"#E5E7EB"};background:${active?"#1A1A2E":"#fff"};color:${disabled?"#ccc":active?"#fff":"#333"};font-weight:700;font-size:12px;cursor:${disabled?"default":"pointer"}">${label}</button>`;
+  const numBtns=nums.map(n=> n==="…" ? `<span style="padding:4px 4px;color:#aaa">…</span>` : pbtn(n,n,false,n===page)).join("");
+  const pager = totalPages>1 ? `
+    <div style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;padding:12px 8px">
+      ${pbtn("‹ Trước",page-1,page<=1,false)}
+      ${numBtns}
+      ${pbtn("Sau ›",page+1,page>=totalPages,false)}
+    </div>` : "";
+
+  const title = isAll ? "Tất cả các tháng" : state.month;
+
   return`
   <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
     <select id="tcmsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
-      ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
+      <option value="__all__"${isAll?" selected":""}>📅 Tất cả các tháng</option>
+      ${MONTHS.map(m=>`<option value="${m}"${(!isAll&&m===state.month)?" selected":""}>${m}</option>`).join("")}
     </select>
     <button class="btn-success" id="btnAddThu" style="font-size:12px;padding:6px 14px">➕ Thêm thu</button>
     <button class="btn-danger" id="btnAddChi" style="font-size:12px;padding:6px 14px;background:#FDEDEC;color:#E74C3C">➕ Thêm chi</button>
@@ -1520,22 +1571,27 @@ function renderThuChi(){
   </div>
 
   <div class="card">
-    <div class="card-head"><span class="card-head-title">📋 Chi tiết giao dịch ${state.month}</span></div>
-    ${txs.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có giao dịch nào</div>`:""}
+    <div class="card-head">
+      <span class="card-head-title">📋 Chi tiết giao dịch ${title}</span>
+      <span class="card-head-sub">${total>0?`${startIdx}–${endIdx} / ${total} giao dịch`:""}</span>
+    </div>
+    ${total===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có giao dịch nào</div>`:""}
     <table class="tbl">
-      ${txs.length>0?`<tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Số tiền</th><th>Ghi chú</th><th></th></tr>`:""}
-      ${txs.map(t=>`<tr>
+      ${total>0?`<tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Số tiền</th><th>Ghi chú</th>${isAll?"<th>Tháng</th>":""}<th></th></tr>`:""}
+      ${pageTxs.map(t=>`<tr>
         <td style="color:#888;font-size:11px">${t.date||"-"}</td>
         <td><span class="badge" style="background:${t.type==="thu"?"#E8F8F0":"#FDEDEC"};color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"↑ Thu":"↓ Chi"}</span></td>
         <td style="font-size:12px">${t.cat}</td>
         <td style="font-weight:700;color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"+":"−"}${fmtMoney(t.amount)}</td>
         <td style="font-size:11px;color:#888">${t.note||"-"}</td>
+        ${isAll?`<td style="font-size:11px;color:#888">${t.month||"-"}</td>`:""}
         <td><div style="display:flex;gap:4px">
           <button class="btn-edit" data-edittx="${t.id}">✏️</button>
           <button class="btn-danger" data-deltx="${t.id}">🗑️</button>
         </div></td>
       </tr>`).join("")}
     </table>
+    ${pager}
   </div>`;
 }
 
@@ -1780,15 +1836,19 @@ function attachEvents(){
 
   // THU CHI
   document.getElementById("tcmsel")?.addEventListener("change",e=>{
-    setState({month:e.target.value, tx_month:e.target.value});
+    const v=e.target.value;
+    if(v==="__all__"){ setState({txViewAll:true, txPage:1}); }
+    else { setState({txViewAll:false, month:v, tx_month:v, txPage:1}); }
     loadThuChiFromSheets(""); // Load tất cả tháng
   });
   document.getElementById("btnAddThu")?.addEventListener("click",()=>{
-    const m=document.getElementById("tcmsel")?.value||state.month;
+    let m=document.getElementById("tcmsel")?.value||state.month;
+    if(m==="__all__") m=state.month||currentMonth();
     setState({showTxForm:true,tx_type:"thu",tx_cat:THU_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:m,editTx:null});
   });
   document.getElementById("btnAddChi")?.addEventListener("click",()=>{
-    const m=document.getElementById("tcmsel")?.value||state.month;
+    let m=document.getElementById("tcmsel")?.value||state.month;
+    if(m==="__all__") m=state.month||currentMonth();
     setState({showTxForm:true,tx_type:"chi",tx_cat:CHI_CATS[0],tx_amount:"",tx_note:"",tx_date:"",tx_month:m,editTx:null});
   });
   document.getElementById("btnCloseTx")?.addEventListener("click",()=>setState({showTxForm:false}));
@@ -1801,6 +1861,7 @@ function attachEvents(){
   document.getElementById("btnSaveTx")?.addEventListener("click",saveTx);
   document.querySelectorAll("[data-edittx]").forEach(b=>b.addEventListener("click",()=>{const t=state.transactions.find(x=>x.id==b.dataset.edittx);if(t)setState({showTxForm:true,tx_type:t.type,tx_cat:t.cat,tx_amount:t.amount,tx_note:t.note,tx_date:t.date,tx_month:t.month,editTx:t.id});}));
   document.querySelectorAll("[data-deltx]").forEach(b=>b.addEventListener("click",()=>deleteTx(Number(b.dataset.deltx))));
+  document.querySelectorAll(".tx-page-btn").forEach(b=>b.addEventListener("click",()=>{ if(!b.disabled) setState({txPage:Number(b.dataset.page)}); }));
 
   // BÁO CÁO
   document.getElementById("bcqsel")?.addEventListener("change",e=>{setState({quarter:e.target.value});loadActuals();});
