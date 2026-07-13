@@ -43,6 +43,9 @@ a{color:var(--blue)}
 .card-b{padding:16px 18px}
 
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.segbar{display:flex;gap:8px;margin-bottom:16px;background:#F3F4F6;padding:5px;border-radius:12px}
+.seg{flex:1;border:none;background:transparent;padding:11px 8px;border-radius:9px;font-size:13px;font-weight:700;color:#6B7280;cursor:pointer;font-family:inherit;transition:.15s}
+.seg.active{background:#fff;color:var(--navy);box-shadow:0 1px 5px rgba(0,0,0,.13)}
 @media(max-width:560px){.grid{grid-template-columns:1fr}}
 .field{display:flex;flex-direction:column;gap:5px}
 .field.full{grid-column:1/-1}
@@ -74,6 +77,18 @@ textarea{resize:vertical;min-height:44px}
 .submit:disabled{opacity:.55;cursor:default}
 
 .note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.paygrid{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start}
+@media(max-width:560px){.paygrid{grid-template-columns:1fr;justify-items:center}}
+.qrbox{text-align:center}
+.qrbox img{width:180px;height:180px;border:1px solid var(--line);border-radius:12px;background:#fff;object-fit:contain}
+.qrhint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4}
+.bankinfo{width:100%}
+.bkrow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;flex-wrap:wrap}
+.bkrow span{color:var(--muted);min-width:96px}
+.bkrow b{color:var(--ink);font-weight:700}
+.copy{margin-left:auto;background:#EEF2FF;color:#3355CC;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.billbox{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.billlbl{font-size:13px;font-weight:700;color:#374151}
 .pill{display:inline-block;background:#FFF7E0;color:var(--gold-dark);border:1px solid #F0DFA8;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;margin-bottom:12px}
 
 /* overlay */
@@ -115,17 +130,21 @@ textarea{resize:vertical;min-height:44px}
   </div>
 
   <div class="wrap">
-    <!-- Đơn vị -->
+    <!-- Đơn vị / Cá nhân -->
     <div class="card">
-      <div class="card-h"><span>🏫</span><span class="t">Thông tin đơn vị</span></div>
+      <div class="card-h"><span id="unitIcon">🏫</span><span class="t" id="unitTitle">Thông tin đơn vị</span></div>
       <div class="card-b">
+        <div class="segbar">
+          <button type="button" class="seg active" data-rtype="unit">🏫 Đăng ký theo đơn vị</button>
+          <button type="button" class="seg" data-rtype="personal">👤 Cá nhân tự đăng ký</button>
+        </div>
         <div class="grid">
-          <div class="field full">
+          <div class="field full" id="f_uname">
             <label>Tên đơn vị / trung tâm <span class="req">*</span></label>
             <input id="u_name" placeholder="VD: Trung tâm Âm nhạc ABC"/>
           </div>
           <div class="field">
-            <label>Người phụ trách <span class="req">*</span></label>
+            <label id="lbl_contact">Người phụ trách <span class="req">*</span></label>
             <input id="u_contact" placeholder="Họ tên người đăng ký"/>
           </div>
           <div class="field">
@@ -136,7 +155,7 @@ textarea{resize:vertical;min-height:44px}
             <label>Email</label>
             <input id="u_email" inputmode="email" placeholder="email@domain.com"/>
           </div>
-          <div class="field">
+          <div class="field" id="f_uaddr">
             <label>Địa chỉ</label>
             <input id="u_address" placeholder="Tỉnh / thành phố"/>
           </div>
@@ -152,6 +171,36 @@ textarea{resize:vertical;min-height:44px}
         <div id="studentList"></div>
         <button class="add-row" id="btnAdd">➕ Thêm thí sinh</button>
         <div class="note">Bảng dự thi phân theo độ tuổi. Nếu chưa chắc, cứ chọn theo tuổi hiện tại của thí sinh — Ban tổ chức sẽ xác nhận lại.</div>
+      </div>
+    </div>
+
+    <!-- Thanh toán -->
+    <div class="card">
+      <div class="card-h"><span>💳</span><span class="t">Thanh toán phí đăng ký</span><span class="n" id="payTotalTag">0 ₫</span></div>
+      <div class="card-b">
+        <div class="paygrid">
+          <div class="qrbox">
+            <img id="vietqr" alt="QR chuyển khoản" />
+            <div class="qrhint">Quét bằng app ngân hàng<br>(đã điền sẵn số tiền)</div>
+          </div>
+          <div class="bankinfo">
+            <div class="bkrow"><span>Ngân hàng</span><b id="bkBank">—</b></div>
+            <div class="bkrow"><span>Số tài khoản</span><b id="bkAcc">—</b> <button type="button" class="copy" data-copy="bkAcc">Sao chép</button></div>
+            <div class="bkrow"><span>Chủ tài khoản</span><b id="bkHolder">—</b></div>
+            <div class="bkrow"><span>Số tiền</span><b id="bkAmount" style="color:var(--gold-dark)">0 ₫</b></div>
+            <div class="bkrow"><span>Nội dung CK</span><b id="bkNote">—</b> <button type="button" class="copy" data-copy="bkNote">Sao chép</button></div>
+          </div>
+        </div>
+        <div class="billbox">
+          <label class="billlbl">Ảnh bill chuyển khoản <span class="req">*</span></label>
+          <div class="note" style="margin:2px 0 10px">Chuyển khoản xong, chụp/lưu biên lai rồi tải lên đây. Bắt buộc có bill mới gửi được đăng ký.</div>
+          <input type="file" id="billFile" accept="image/*" style="display:none"/>
+          <button type="button" class="add-row" id="btnBill">📎 Tải ảnh bill lên</button>
+          <div id="billPreview" class="hidden" style="margin-top:12px">
+            <img id="billImg" style="max-width:180px;border-radius:10px;border:1px solid var(--line)"/>
+            <div style="margin-top:6px"><button type="button" class="rm" id="billRemove">✕ Xóa ảnh</button> <span id="billOk" style="color:var(--green);font-size:12px;font-weight:700">✓ Đã đính kèm</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -223,6 +272,13 @@ const CONFIG = {
   // Mật khẩu trang Ban tổ chức (phải trùng với ADMIN_PASSWORD trong Code.gs)
   ADMIN_PASSWORD: "thienan2026",
   FESTIVAL_NAME: "Festival Piano Thiên Ân 2026",
+  // Thông tin chuyển khoản (điền tài khoản Ban tổ chức)
+  BANK: {
+    bank: "970415",             // VietinBank (BIN, xác nhận từ QR thầy gửi)
+    account: "104885645791",
+    holder: "TO THI THU HOAI",
+    note: "Festival Piano"       // nội dung CK gợi ý (sẽ tự thêm mã đăng ký)
+  },
   // Bảng dự thi theo độ tuổi — sửa nhãn/độ tuổi tùy ý
   AGE_CATEGORIES: [
     "Bảng A — Mầm non (dưới 6 tuổi)",
@@ -259,6 +315,24 @@ document.querySelectorAll('.keys').forEach(buildKeys);
 /* ================= PUBLIC: REGISTRATION ================= */
 let students = [];
 let submitting = false;
+let regType = "unit"; // "unit" | "personal"
+let billData = null;          // ảnh bill (dataURL) — bắt buộc trước khi gửi
+let sessionRegCode = genCode(); // mã đăng ký của phiên (dùng cho nội dung CK + khi gửi)
+
+function setRegType(t){
+  regType = t;
+  const personal = (t==="personal");
+  document.querySelectorAll(".seg").forEach(b=>b.classList.toggle("active", b.dataset.rtype===t));
+  $("f_uname").classList.toggle("hidden", personal);
+  $("f_uaddr").classList.toggle("hidden", personal);
+  $("unitTitle").textContent = personal ? "Thông tin người đăng ký" : "Thông tin đơn vị";
+  $("unitIcon").textContent = personal ? "👤" : "🏫";
+  $("lbl_contact").innerHTML = personal
+    ? 'Họ và tên người đăng ký <span class="req">*</span>'
+    : 'Người phụ trách <span class="req">*</span>';
+  $("u_contact").placeholder = personal ? "Họ tên của bạn (hoặc phụ huynh)" : "Họ tên người đăng ký";
+  if(personal) $("u_name").classList.remove("err");
+}
 
 function newStudent(){ return {name:"",dob:"",gender:"Nam",category:"",piece:"",teacher:"",note:""}; }
 
@@ -316,13 +390,27 @@ function renderStudents(){
   updateTotals();
 }
 
+function transferNote(){ return (CONFIG.BANK.note||"Festival") + " " + sessionRegCode; }
+function refreshPayment(){
+  const total = students.length * CONFIG.FEE_PER_STUDENT;
+  const b = CONFIG.BANK, note = transferNote();
+  $("payTotalTag").textContent = money(total);
+  $("bkBank").textContent = b.bank;
+  $("bkAcc").textContent = b.account;
+  $("bkHolder").textContent = b.holder;
+  $("bkAmount").textContent = money(total);
+  $("bkNote").textContent = note;
+  $("vietqr").src = `https://img.vietqr.io/image/${encodeURIComponent(b.bank)}-${encodeURIComponent(b.account)}-compact2.png`
+    + `?amount=${total}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(b.holder)}`;
+}
 function updateTotals(){
   const n = students.length;
   const total = n * CONFIG.FEE_PER_STUDENT;
   $("barCount").textContent = n;
   $("barTotal").textContent = money(total);
   $("stCount").textContent = n + " thí sinh";
-  $("btnSubmit").disabled = (n===0);
+  refreshPayment();
+  $("btnSubmit").disabled = (n===0 || !billData);
 }
 
 /* event delegation cho danh sách thí sinh */
@@ -339,12 +427,54 @@ $("studentList").addEventListener("click", e=>{
 });
 $("btnAdd").addEventListener("click", ()=>{ students.push(newStudent()); renderStudents();
   $("studentList").lastElementChild?.scrollIntoView({behavior:"smooth",block:"center"}); });
+document.querySelectorAll(".seg").forEach(b=>b.addEventListener("click", ()=>setRegType(b.dataset.rtype)));
+
+/* Thanh toán: tải bill + copy số TK/nội dung */
+function compressImage(file, maxW=1400, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width, h=img.height;
+        if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+        const c=document.createElement("canvas"); c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(c.toDataURL("image/jpeg",quality));
+      };
+      img.onerror=reject; img.src=e.target.result;
+    };
+    reader.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+$("btnBill").addEventListener("click", ()=>$("billFile").click());
+$("billFile").addEventListener("change", async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  if(!file.type.startsWith("image/")){ alert("Vui lòng chọn tệp ảnh (jpg/png)."); return; }
+  $("btnBill").textContent="Đang xử lý ảnh…";
+  try{
+    billData = await compressImage(file);
+    $("billImg").src = billData;
+    $("billPreview").classList.remove("hidden");
+    $("btnBill").textContent="📎 Chọn ảnh khác";
+    updateTotals();
+  }catch(err){ alert("Không đọc được ảnh, thử ảnh khác."); $("btnBill").textContent="📎 Tải ảnh bill lên"; }
+});
+$("billRemove").addEventListener("click", ()=>{
+  billData=null; $("billFile").value=""; $("billPreview").classList.add("hidden");
+  $("btnBill").textContent="📎 Tải ảnh bill lên"; updateTotals();
+});
+document.querySelectorAll(".copy").forEach(btn=>btn.addEventListener("click",()=>{
+  const t=$(btn.dataset.copy).textContent;
+  navigator.clipboard?.writeText(t).then(()=>{ const o=btn.textContent; btn.textContent="✓ Đã chép"; setTimeout(()=>btn.textContent=o,1200); });
+}));
 
 /* validate + submit */
 function markErr(el){ el && el.classList.add("err"); }
 function validate(){
   let ok = true, firstBad=null;
-  ["u_name","u_contact","u_phone"].forEach(id=>{
+  const reqIds = regType==="personal" ? ["u_contact","u_phone"] : ["u_name","u_contact","u_phone"];
+  reqIds.forEach(id=>{
     const el=$(id); el.classList.remove("err");
     if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
   });
@@ -354,6 +484,8 @@ function validate(){
       if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
     });
   });
+  if(!billData){ ok=false; firstBad=firstBad||$("btnBill"); }
+  if(!ok && !billData){ setTimeout(()=>{ if(!billData) $("btnBill").scrollIntoView({behavior:"smooth",block:"center"}); },50); }
   if(!ok && firstBad){ firstBad.scrollIntoView({behavior:"smooth",block:"center"}); firstBad.focus?.(); }
   return ok;
 }
@@ -366,14 +498,16 @@ async function submitReg(){
   submitting = true;
   const btn = $("btnSubmit"); const old = btn.textContent; btn.textContent = "Đang gửi…"; btn.disabled = true;
 
-  const regCode = genCode();
+  const regCode = sessionRegCode;
   const payload = {
     action:"register",
     regCode,
     feePerStudent: CONFIG.FEE_PER_STUDENT,
-    unit:{ name:$("u_name").value.trim(), contact:$("u_contact").value.trim(),
-           phone:$("u_phone").value.trim(), email:$("u_email").value.trim(), address:$("u_address").value.trim() },
-    students: students.map(s=>({...s}))
+    unit:{ name: regType==="personal" ? "Cá nhân" : $("u_name").value.trim(), contact:$("u_contact").value.trim(),
+           phone:$("u_phone").value.trim(), email:$("u_email").value.trim(),
+           address: regType==="personal" ? "" : $("u_address").value.trim() },
+    students: students.map(s=>({...s})),
+    bill: billData || ""
   };
 
   // CHẾ ĐỘ THỬ: lưu tạm trên máy, không gọi máy chủ
@@ -384,7 +518,8 @@ async function submitReg(){
       "Đơn vị":payload.unit.name, "Người phụ trách":payload.unit.contact, "SĐT":payload.unit.phone,
       "Email":payload.unit.email, "Địa chỉ":payload.unit.address,
       "Họ tên thí sinh":s.name, "Ngày sinh":s.dob, "Giới tính":s.gender, "Bảng dự thi":s.category,
-      "Tác phẩm dự thi":s.piece, "Giáo viên HD":s.teacher, "Ghi chú":s.note, "Phí (VNĐ)":payload.feePerStudent
+      "Tác phẩm dự thi":s.piece, "Giáo viên HD":s.teacher, "Ghi chú":s.note, "Phí (VNĐ)":payload.feePerStudent,
+      "Ảnh bill":"(bill - chế độ thử)", "Trạng thái phí":"Chờ duyệt"
     }));
     localStorage.setItem(DEMO_KEY, JSON.stringify(store));
     submitting=false; btn.textContent=old; btn.disabled=false;
@@ -435,6 +570,9 @@ function showError(){
 }
 function resetForm(){
   ["u_name","u_contact","u_phone","u_email","u_address"].forEach(id=>$(id).value="");
+  setRegType("unit");
+  billData=null; $("billFile").value=""; $("billPreview").classList.add("hidden"); $("btnBill").textContent="📎 Tải ảnh bill lên";
+  sessionRegCode = genCode();
   students = [newStudent()]; renderStudents();
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -486,10 +624,19 @@ function drawAdminTable(){
   $("sUnits").textContent = new Set(rows.map(r=>r["Đơn vị"])).size;
   const fee = rows.reduce((s,r)=>s+Number(r["Phí (VNĐ)"]||0),0);
   $("sFee").textContent = new Intl.NumberFormat('vi-VN').format(fee);
-  const cols = ["Mã ĐK","Đơn vị","Họ tên thí sinh","Ngày sinh","Giới tính","Bảng dự thi","Tác phẩm dự thi","Giáo viên HD","SĐT"];
+  const cols = ["Mã ĐK","Đơn vị","Họ tên thí sinh","Ngày sinh","Bảng dự thi","SĐT","Phí (VNĐ)","Trạng thái phí","Ảnh bill"];
   let h = "<tr>" + cols.map(c=>`<th>${c}</th>`).join("") + "</tr>";
   h += rows.map(r=>"<tr>"+cols.map(c=>{
-    let v=r[c]; if(c==="Ngày sinh"&&v){ try{ v=new Date(v).toLocaleDateString('vi-VN'); }catch(_){}}
+    let v=r[c];
+    if(c==="Ngày sinh"&&v){ try{ v=new Date(v).toLocaleDateString('vi-VN'); }catch(_){}}
+    if(c==="Phí (VNĐ)"&&v!==""&&v!=null){ v=new Intl.NumberFormat('vi-VN').format(Number(v)); }
+    if(c==="Ảnh bill"){
+      return /^https?:\/\//.test(String(v)) ? `<td><a href="${esc(v)}" target="_blank" style="color:#2980B9;font-weight:700">📄 Xem</a></td>` : `<td style="color:#aaa">${esc(v||"—")}</td>`;
+    }
+    if(c==="Trạng thái phí"){
+      const paid = String(v).indexOf("Đã")===0;
+      return `<td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${paid?"#E8F8F0":"#FFF3CD"};color:${paid?"#27AE60":"#8A6D00"}">${esc(v||"Chờ duyệt")}</span></td>`;
+    }
     return `<td>${esc(v)}</td>`;
   }).join("")+"</tr>").join("");
   if(rows.length===0) h += `<tr><td colspan="${cols.length}" class="center" style="padding:26px;color:#aaa">Chưa có đăng ký nào</td></tr>`;
@@ -535,7 +682,8 @@ function init(){
         "Email":"", "Địa chỉ":"Thanh Hóa",
         "Họ tên thí sinh":"Đỗ Ngọc Cương", "Ngày sinh":"", "Giới tính":"Nam",
         "Bảng dự thi":"Bảng F — Tự do (18 tuổi trở lên)", "Tác phẩm dự thi":"(bản demo)",
-        "Giáo viên HD":"", "Ghi chú":"Đăng ký thử", "Phí (VNĐ)":CONFIG.FEE_PER_STUDENT
+        "Giáo viên HD":"", "Ghi chú":"Đăng ký thử", "Phí (VNĐ)":CONFIG.FEE_PER_STUDENT,
+        "Ảnh bill":"(bill - chế độ thử)", "Trạng thái phí":"Chờ duyệt"
       }]));
     }
   }
