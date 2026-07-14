@@ -527,20 +527,21 @@ async function submitReg(){
     return;
   }
 
-  let sent = false;
+  let sent = false, serverErr = "";
   try{
-    const res = await fetch(CONFIG.SCRIPT_URL, {
+    // no-cors: trình duyệt không đọc được phản hồi (khác tên miền) nhưng máy chủ VẪN nhận & lưu đầy đủ.
+    await fetch(CONFIG.SCRIPT_URL, {
       method:"POST",
+      mode:"no-cors",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify(payload)
     });
     sent = true;
-    try{ const d = await res.json(); if(d && d.ok===false) sent = false; }catch(_){ /* opaque ok */ }
-  }catch(err){ sent = false; }
+  }catch(err){ sent = false; serverErr = String(err && err.message || err); }
 
   submitting = false; btn.textContent = old; btn.disabled = false;
   if(sent){ showSuccess(regCode, payload.students.length); }
-  else{ showError(); }
+  else{ showError(serverErr); }
 }
 $("btnSubmit").addEventListener("click", submitReg);
 
@@ -557,12 +558,13 @@ function showSuccess(code, n){
   document.body.appendChild(ov);
   ov.querySelector("#okBtn").onclick = ()=>{ ov.remove(); resetForm(); };
 }
-function showError(){
+function showError(detail){
   const ov = document.createElement("div"); ov.className="ov";
   ov.innerHTML = `<div class="modal">
     <div class="ico">⚠️</div>
     <h3>Chưa gửi được</h3>
     <p>Kết nối tới máy chủ đang gặp trục trặc. Vui lòng kiểm tra mạng và thử lại. Nếu vẫn lỗi, liên hệ Ban tổ chức.</p>
+    ${detail?`<p style="font-size:11px;color:#B45309;background:#FFF7E0;border-radius:8px;padding:8px;margin-top:10px;word-break:break-word">Chi tiết lỗi: ${esc(detail)}</p>`:""}
     <button id="okBtn">Thử lại</button>
   </div>`;
   document.body.appendChild(ov);
