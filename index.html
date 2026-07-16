@@ -191,6 +191,28 @@ let USERS=loadUsers();
 function roleInfo(r){return ROLES.find(x=>x.id===r)||{icon:"👤",label:r}}
 function fmtMoney(n){return Number(n).toLocaleString("vi-VN")+" ₫"}
 function fmtM(n){return (Number(n)/1000000).toFixed(1)+"M"}
+// Hiển thị ngày dạng dd/mm/yyyy (xử lý cả chuỗi ISO từ Google Sheets, theo giờ VN)
+function fmtDate(v){
+  if(!v) return "-";
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);           // 2026-07-11
+  if(m) return m[3]+"/"+m[2]+"/"+m[1];
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) return s;      // đã là dd/mm/yyyy
+  const d=new Date(s);
+  if(!isNaN(d.getTime())) return d.toLocaleDateString("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",day:"2-digit",month:"2-digit",year:"numeric"});
+  return s;
+}
+// Chuyển về yyyy-mm-dd cho ô <input type="date">
+function toInputDate(v){
+  if(!v) return "";
+  const s=String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);   // dd/mm/yyyy
+  if(m) return m[3]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[1]).slice(-2);
+  const d=new Date(s);
+  if(!isNaN(d.getTime())) return d.toLocaleDateString("en-CA",{timeZone:"Asia/Ho_Chi_Minh"});
+  return "";
+}
 function pct(a,t){if(!t)return 0;return Math.min(Math.round((a/t)*100),100)}
 function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",icon:"✅"};if(p>=60)return{label:"Cải thiện",color:"#E67E22",bg:"#FEF9E7",icon:"⚠️"};return{label:"Chưa đạt",color:"#E74C3C",bg:"#FDEDEC",icon:"❌"}}
 
@@ -1580,7 +1602,7 @@ function renderThuChi(){
     <table class="tbl">
       ${total>0?`<tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Số tiền</th><th>Ghi chú</th>${isAll?"<th>Tháng</th>":""}<th></th></tr>`:""}
       ${pageTxs.map(t=>`<tr>
-        <td style="color:#888;font-size:11px">${t.date||"-"}</td>
+        <td style="color:#888;font-size:11px">${fmtDate(t.date)}</td>
         <td><span class="badge" style="background:${t.type==="thu"?"#E8F8F0":"#FDEDEC"};color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"↑ Thu":"↓ Chi"}</span></td>
         <td style="font-size:12px">${t.cat}</td>
         <td style="font-weight:700;color:${t.type==="thu"?"#27AE60":"#E74C3C"}">${t.type==="thu"?"+":"−"}${fmtMoney(t.amount)}</td>
@@ -1860,7 +1882,7 @@ function attachEvents(){
   document.getElementById("tx-amount")?.addEventListener("input",e=>state.tx_amount=e.target.value);
   document.getElementById("tx-note")?.addEventListener("input",e=>state.tx_note=e.target.value);
   document.getElementById("btnSaveTx")?.addEventListener("click",saveTx);
-  document.querySelectorAll("[data-edittx]").forEach(b=>b.addEventListener("click",()=>{const t=state.transactions.find(x=>x.id==b.dataset.edittx);if(t)setState({showTxForm:true,tx_type:t.type,tx_cat:t.cat,tx_amount:t.amount,tx_note:t.note,tx_date:t.date,tx_month:t.month,editTx:t.id});}));
+  document.querySelectorAll("[data-edittx]").forEach(b=>b.addEventListener("click",()=>{const t=state.transactions.find(x=>x.id==b.dataset.edittx);if(t)setState({showTxForm:true,tx_type:t.type,tx_cat:t.cat,tx_amount:t.amount,tx_note:t.note,tx_date:toInputDate(t.date),tx_month:t.month,editTx:t.id});}));
   document.querySelectorAll("[data-deltx]").forEach(b=>b.addEventListener("click",()=>deleteTx(Number(b.dataset.deltx))));
   document.querySelectorAll(".tx-page-btn").forEach(b=>b.addEventListener("click",()=>{ if(!b.disabled) setState({txPage:Number(b.dataset.page)}); }));
 
