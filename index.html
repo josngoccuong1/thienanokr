@@ -1546,7 +1546,9 @@ function renderLuongModal(){
 // ===== THU CHI =====
 function renderThuChi(){
   const isAll = !!state.txViewAll;
-  const allTxs = isAll ? [...state.transactions] : state.transactions.filter(t=>t.month===state.month);
+  // Mới nhập nhất lên đầu (id = thời điểm nhập)
+  const allTxs = (isAll ? [...state.transactions] : state.transactions.filter(t=>t.month===state.month))
+    .sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0));
   const totalThu=allTxs.filter(t=>t.type==="thu").reduce((s,t)=>s+Number(t.amount||0),0);
   const totalChi=allTxs.filter(t=>t.type==="chi").reduce((s,t)=>s+Number(t.amount||0),0);
   const loiNhuan=totalThu-totalChi;
