@@ -1281,7 +1281,7 @@ function renderOKR(){
               <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
             </div>`:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
               <button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable&&!fromPlans?"":"disabled"}
-                style="opacity:${fromPlans?0.7:1}">${actual} ${kr.unit}</button>
+                style="opacity:${fromPlans?0.7:1};white-space:nowrap">${actual}<span style="color:#999;font-weight:600">/${kr.target}</span> ${kr.unit}</button>
               ${fromPlans?`<span style="font-size:9px;color:#D4AF37">📋 từ KH</span>`:""}
             </div>`}
             <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
