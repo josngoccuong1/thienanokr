@@ -278,25 +278,24 @@ async function syncGet(params){
 }
 
 // Load toàn bộ dữ liệu từ Sheets khi đăng nhập
-// Merge kế hoạch từ Sheets với local — GIỮ link OKR (okrObj/okrKr) & actual từ local,
-// vì Sheets hiện chưa lưu các trường này. Tránh mất dữ liệu khi load lại.
+// Google Sheets = NGUỒN SỰ THẬT DUY NHẤT cho danh sách kế hoạch.
+// Kế hoạch đã xóa ở máy khác sẽ biến mất ở đây (không "sống lại" như trước).
+// Chỉ lấy từ máy các trường mà Sheets trả về rỗng (phòng khi backend chưa cập nhật).
 function mergePlans(sheetPlans){
   const local = ls_get("ta_plans") || [];
   const localMap = {};
   local.forEach(p=>{ localMap[p.id.toString()] = p; });
-  const sheetIds = sheetPlans.map(p=>p.id.toString());
-  const mergedSheet = sheetPlans.map(sp=>{
+  return sheetPlans.map(sp=>{
     const lp = localMap[sp.id.toString()];
     if(!lp) return sp;
+    const has = v => v!==undefined && v!==null && v!=="";
     return {
       ...sp,
-      okrObj: lp.okrObj || sp.okrObj || "",
-      okrKr:  lp.okrKr  || sp.okrKr  || "",
-      actual: (lp.actual!==undefined && lp.actual!=="") ? lp.actual : (sp.actual||0)
+      okrObj: has(sp.okrObj) ? sp.okrObj : (lp.okrObj||""),
+      okrKr:  has(sp.okrKr)  ? sp.okrKr  : (lp.okrKr ||""),
+      actual: has(sp.actual) ? sp.actual : (has(lp.actual)?lp.actual:0)
     };
   });
-  const localOnly = local.filter(p=>!sheetIds.includes(p.id.toString()));
-  return [...mergedSheet, ...localOnly];
 }
 
 async function loadAllFromSheets(){
@@ -320,8 +319,8 @@ async function loadAllFromSheets(){
         ls_set("ta_luong", merged);
         state.luongData = merged;
       }
-      // Merge Plans (giữ link OKR & actual từ local)
-      if(Array.isArray(data.plans) && data.plans.length > 0){
+      // Merge Plans — Sheets là nguồn sự thật (chấp nhận cả mảng rỗng)
+      if(Array.isArray(data.plans)){
         const merged = mergePlans(data.plans);
         ls_set("ta_plans", merged);
         state.plans = merged;
@@ -339,11 +338,12 @@ async function loadUsersFromSheets(){
       const isDefault = sheetUsers.length <= 7 && sheetUsers.every(u=>
         ["cuong","piano","guitar","vocal","dance","recording","marketing"].includes(u.username));
       if(!isDefault){
-        // Sheet có nhân viên mới - merge với local
-        const localMap = {};
-        localUsers.forEach(u=>localMap[u.username]=u);
-        sheetUsers.forEach(u=>{ if(!localMap[u.username]) localMap[u.username]=u; });
-        const merged = Object.values(localMap);
+        // Sheets = NGUỒN SỰ THẬT: sửa/xóa nhân sự ở máy nào cũng đồng bộ sang máy khác.
+        const map = {};
+        sheetUsers.forEach(u=>map[u.username]=u);
+        // Luôn giữ tài khoản quản trị mặc định để không bao giờ mất quyền đăng nhập
+        localUsers.filter(u=>u.isAdmin).forEach(u=>{ if(!map[u.username]) map[u.username]=u; });
+        const merged = Object.values(map);
         saveUsers(merged);
         USERS = merged;
         return merged;
@@ -388,7 +388,8 @@ async function loadLuongFromSheets(month){
 async function loadPlansFromSheets(){
   try{
     const data=await apiGet({action:"getPlans"});
-    if(Array.isArray(data)&&data.length>0){
+    // Chấp nhận cả mảng rỗng: xóa hết ở máy khác thì máy này cũng phải trống
+    if(Array.isArray(data)){
       const merged=mergePlans(data);
       ls_set("ta_plans",merged);
       setState({plans:merged});
