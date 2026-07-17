@@ -988,12 +988,14 @@ function doLogin(){
     if(u){ USERS = [...USERS.filter(x=>x.username!==u.username), u]; saveUsers(USERS); }
   }
   if(u){
+    // Đọc dữ liệu đệm an toàn: nếu dữ liệu cũ hỏng thì bỏ qua, không làm sập app
+    const safe=(k,d)=>{ try{ const v=ls_get(k); return v==null?d:v; }catch(e){ return d; } };
     setState({user:u, screen:"app", loginError:""});
-    state.students = loadStudents();
-    state.att_data = loadAttData() || {};
-    state.plans = ls_get("ta_plans") || [];
-    state.transactions = ls_get("ta_tx") || [];
-    state.luongData = ls_get("ta_luong") || {};
+    state.students = (()=>{ try{ return loadStudents(); }catch(e){ return []; } })();
+    state.att_data = (()=>{ try{ return loadAttData()||{}; }catch(e){ return {}; } })();
+    state.plans = Array.isArray(safe("ta_plans",[])) ? safe("ta_plans",[]) : [];
+    state.transactions = Array.isArray(safe("ta_tx",[])) ? safe("ta_tx",[]) : [];
+    state.luongData = safe("ta_luong",{}) || {};
     loadActuals();
     // Load từ Sheets ngầm sau khi đã vào app
     setTimeout(()=>{
@@ -1121,7 +1123,36 @@ function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))ret
 // RENDER
 // ============================================================
 function setState(p){Object.assign(state,p);render()}
-function render(){document.getElementById("app").innerHTML=buildHTML();attachEvents()}
+function render(){
+  try{
+    document.getElementById("app").innerHTML=buildHTML();
+    attachEvents();
+  }catch(err){
+    console.error("Lỗi hiển thị:",err);
+    document.getElementById("app").innerHTML=`
+      <div style="max-width:520px;margin:60px auto;background:#fff;border-radius:14px;padding:28px;box-shadow:0 4px 18px rgba(0,0,0,.1);font-family:'Segoe UI',Arial,sans-serif">
+        <div style="font-size:40px;text-align:center">⚠️</div>
+        <h2 style="text-align:center;color:#1A1A2E;margin:8px 0">Dữ liệu trong máy bị lỗi</h2>
+        <p style="color:#666;font-size:13px;line-height:1.6;text-align:center">
+          App không hiển thị được do dữ liệu cũ lưu trong trình duyệt. Bấm nút dưới để làm mới —
+          <b>dữ liệu thật trên Google Sheets vẫn an toàn</b>, sẽ tự tải lại.
+        </p>
+        <div style="background:#FFF3CD;border-radius:8px;padding:10px;font-size:11px;color:#8A6D00;margin:12px 0;word-break:break-word">
+          Chi tiết: ${String(err && err.message || err)}
+        </div>
+        <button onclick="khoiPhucDuLieu()" style="width:100%;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;cursor:pointer">
+          🔧 Làm mới & đăng nhập lại
+        </button>
+      </div>`;
+  }
+}
+// Xóa dữ liệu đệm hỏng trong máy (KHÔNG đụng Google Sheets)
+function khoiPhucDuLieu(){
+  ["ta_plans","ta_tx","ta_luong","ta_users","ta_actuals","ta_students","ta_att"].forEach(k=>{
+    try{ localStorage.removeItem(k); }catch(e){}
+  });
+  location.reload();
+}
 
 function buildHTML(){
   if(state.screen==="login")return renderLogin();
@@ -1138,7 +1169,10 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v5 · đăng nhập an toàn</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v6 · đăng nhập an toàn</p>
+    <button onclick="khoiPhucDuLieu()" style="margin-top:10px;background:none;border:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer;font-family:inherit">
+      Không đăng nhập được? Bấm để làm mới
+    </button>
   </div></div>`;
 }
 
