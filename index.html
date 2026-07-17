@@ -184,7 +184,17 @@ const DEFAULT_USERS = [
   {username:"marketing",password:"mkt2025",name:"Marketing",role:"marketing",isAdmin:false,luong:4000000},
 ];
 function loadUsers(){
-  return ls_get("ta_users") || DEFAULT_USERS.map(u=>({...u}));
+  const saved = ls_get("ta_users");
+  if(!Array.isArray(saved) || saved.length===0) return DEFAULT_USERS.map(u=>({...u}));
+  const map = {};
+  saved.forEach(u=>{ if(u && u.username) map[u.username] = u; });
+  // CHỐT AN TOÀN: tài khoản quản trị LUÔN tồn tại, dù bộ nhớ máy hay Sheets có mất.
+  DEFAULT_USERS.filter(d=>d.isAdmin).forEach(d=>{
+    if(!map[d.username]) map[d.username] = {...d};
+    else map[d.username].isAdmin = true;
+    if(!map[d.username].password) map[d.username].password = d.password;
+  });
+  return Object.values(map);
 }
 function saveUsers(u){ls_set("ta_users",u)}
 let USERS=loadUsers();
