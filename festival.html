@@ -274,9 +274,9 @@ const CONFIG = {
   FESTIVAL_NAME: "Festival Piano Thiên Ân 2026",
   // Thông tin chuyển khoản (điền tài khoản Ban tổ chức)
   BANK: {
-    bank: "970415",             // VietinBank (BIN, xác nhận từ QR thầy gửi)
-    account: "104885645791",
-    holder: "TO THI THU HOAI",
+    bank: "970407",             // Techcombank (BIN, xác nhận từ QR thầy gửi)
+    account: "3669999998",
+    holder: "TRINH THI THU",
     note: "Festival Piano"       // nội dung CK gợi ý (sẽ tự thêm mã đăng ký)
   },
   // Bảng dự thi theo độ tuổi — sửa nhãn/độ tuổi tùy ý
@@ -529,14 +529,13 @@ async function submitReg(){
 
   let sent = false, serverErr = "";
   try{
-    // no-cors: trình duyệt không đọc được phản hồi (khác tên miền) nhưng máy chủ VẪN nhận & lưu đầy đủ.
-    await fetch(CONFIG.SCRIPT_URL, {
+    const res = await fetch(CONFIG.SCRIPT_URL, {
       method:"POST",
-      mode:"no-cors",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify(payload)
     });
     sent = true;
+    try{ const d = await res.json(); if(d && d.ok===false){ sent = false; serverErr = d.error||""; } }catch(_){ /* opaque coi như ok */ }
   }catch(err){ sent = false; serverErr = String(err && err.message || err); }
 
   submitting = false; btn.textContent = old; btn.disabled = false;
