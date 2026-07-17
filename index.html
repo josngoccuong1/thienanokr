@@ -976,6 +976,30 @@ function doImportStudents(file){
   reader.readAsArrayBuffer(file);
 }
 
+// ===== GHI NHỚ ĐĂNG NHẬP =====
+function saveSession(u){ try{ ls_set("ta_session",{username:u.username, ts:Date.now()}); }catch(e){} }
+function clearSession(){ try{ localStorage.removeItem("ta_session"); }catch(e){} }
+
+// Vào app (dùng chung cho đăng nhập mới và khôi phục phiên cũ)
+function enterApp(u){
+  const safe=(k,d)=>{ try{ const v=ls_get(k); return v==null?d:v; }catch(e){ return d; } };
+  state.user=u; state.screen="app"; state.loginError=""; state.uname=""; state.upass="";
+  try{ state.students = loadStudents(); }catch(e){ state.students=[]; }
+  try{ state.att_data = loadAttData()||{}; }catch(e){ state.att_data={}; }
+  state.plans        = Array.isArray(safe("ta_plans",[])) ? safe("ta_plans",[]) : [];
+  state.transactions = Array.isArray(safe("ta_tx",[]))    ? safe("ta_tx",[])    : [];
+  state.luongData    = safe("ta_luong",{}) || {};
+  saveSession(u);
+  render();
+  loadActuals();
+  setTimeout(()=>{
+    loadUsersFromSheets();
+    loadAllFromSheets().then(()=>render());
+    loadThuChiFromSheets("").then(()=>render());
+    setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000);
+  }, 500);
+}
+
 function doLogin(){
   // Đọc users từ localStorage trước - nhanh và đáng tin cậy
   USERS = loadUsers();
@@ -988,27 +1012,12 @@ function doLogin(){
     if(u){ USERS = [...USERS.filter(x=>x.username!==u.username), u]; saveUsers(USERS); }
   }
   if(u){
-    // Đọc dữ liệu đệm an toàn: nếu dữ liệu cũ hỏng thì bỏ qua, không làm sập app
-    const safe=(k,d)=>{ try{ const v=ls_get(k); return v==null?d:v; }catch(e){ return d; } };
-    setState({user:u, screen:"app", loginError:""});
-    state.students = (()=>{ try{ return loadStudents(); }catch(e){ return []; } })();
-    state.att_data = (()=>{ try{ return loadAttData()||{}; }catch(e){ return {}; } })();
-    state.plans = Array.isArray(safe("ta_plans",[])) ? safe("ta_plans",[]) : [];
-    state.transactions = Array.isArray(safe("ta_tx",[])) ? safe("ta_tx",[]) : [];
-    state.luongData = safe("ta_luong",{}) || {};
-    loadActuals();
-    // Load từ Sheets ngầm sau khi đã vào app
-    setTimeout(()=>{
-      loadUsersFromSheets();
-      loadAllFromSheets().then(()=>render());
-      loadThuChiFromSheets("").then(()=>render());
-      setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000);
-    }, 500);
+    enterApp(u);
   } else {
     setState({loginError:"Sai tên đăng nhập hoặc mật khẩu!"});
   }
 }
-function logout(){setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
+function logout(){clearSession();setState({user:null,screen:"login",uname:"",upass:"",actuals:{}})}
 
 async function doSaveKR(){
   if(state.saving)return;
@@ -1148,7 +1157,7 @@ function render(){
 }
 // Xóa dữ liệu đệm hỏng trong máy (KHÔNG đụng Google Sheets)
 function khoiPhucDuLieu(){
-  ["ta_plans","ta_tx","ta_luong","ta_users","ta_actuals","ta_students","ta_att"].forEach(k=>{
+  ["ta_plans","ta_tx","ta_luong","ta_users","ta_actuals","ta_students","ta_att","ta_session"].forEach(k=>{
     try{ localStorage.removeItem(k); }catch(e){}
   });
   location.reload();
@@ -1169,7 +1178,7 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v6 · đăng nhập an toàn</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v7 · tự động ghi nhớ đăng nhập</p>
     <button onclick="khoiPhucDuLieu()" style="margin-top:10px;background:none;border:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer;font-family:inherit">
       Không đăng nhập được? Bấm để làm mới
     </button>
@@ -1988,7 +1997,17 @@ function attachEvents(){
   document.querySelectorAll(".att-del-student").forEach(b=>b.addEventListener("click",()=>deleteStudent(b.dataset.sid)));
 }
 
-render();
+// Khởi động: nếu đã đăng nhập trước đó thì vào thẳng, không phải gõ lại mật khẩu
+(function(){
+  try{
+    const s = ls_get("ta_session");
+    if(s && s.username){
+      const u = loadUsers().find(x=>x.username===s.username);
+      if(u){ enterApp(u); return; }
+    }
+  }catch(e){ console.log("Session restore:",e); }
+  render();
+})();
 </script>
 </body>
 </html>
