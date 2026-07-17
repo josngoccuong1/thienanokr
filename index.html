@@ -355,7 +355,13 @@ async function loadUsersFromSheets(){
       if(!isDefault){
         // Sheets = NGUỒN SỰ THẬT: sửa/xóa nhân sự ở máy nào cũng đồng bộ sang máy khác.
         const map = {};
-        sheetUsers.forEach(u=>{ if(u && u.username) map[u.username]=u; });
+        sheetUsers.forEach(u=>{
+          if(!u || u.username==null || u.username==="") return;
+          // Ép về CHỮ: Sheets trả tài khoản/mật khẩu toàn số về dạng số -> gây lỗi so sánh khi đăng nhập
+          u.username = String(u.username).trim();
+          u.password = String(u.password==null?"":u.password).trim();
+          map[u.username] = u;
+        });
         // CHỐT AN TOÀN: tài khoản quản trị lấy từ danh sách CỨNG trong code
         // (không lấy từ bộ nhớ máy — vì bộ nhớ máy có thể đã bị ghi đè và mất admin).
         DEFAULT_USERS.filter(d=>d.isAdmin).forEach(d=>{
@@ -1000,17 +1006,37 @@ function enterApp(u){
   }, 500);
 }
 
-function doLogin(){
-  // Đọc users từ localStorage trước - nhanh và đáng tin cậy
-  USERS = loadUsers();
+async function doLogin(){
   const inputUser = state.uname.trim().toLowerCase();
   const inputPass = state.upass.trim();
-  let u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
+  // QUAN TRỌNG: Google Sheets trả tên/mật khẩu toàn số về dạng SỐ (123),
+  // còn ô nhập luôn là CHỮ ("123") -> phải ép cùng kiểu, nếu không sẽ luôn báo sai mật khẩu.
+  const norm = v => String(v==null?"":v).trim();
+  const findUser = list => (Array.isArray(list)?list:[]).find(
+    x => x && x.username!=null &&
+         norm(x.username).toLowerCase()===inputUser &&
+         norm(x.password)===inputPass);
+
+  USERS = loadUsers();
+  let u = findUser(USERS);
+
+  // Chưa thấy trong máy -> HỎI GOOGLE SHEETS.
+  // (Tài khoản giáo viên tạo ở máy khác chỉ nằm trên Sheets, máy này chưa có.)
+  if(!u){
+    setState({loginError:"⏳ Đang kiểm tra tài khoản..."});
+    try{
+      await loadUsersFromSheets();
+      USERS = loadUsers();
+      u = findUser(USERS);
+    }catch(e){ console.log("Kiểm tra tài khoản:",e); }
+  }
+
   // CỬA HẬU: tài khoản quản trị gốc luôn đăng nhập được, kể cả khi bộ nhớ máy hỏng
   if(!u){
     u = DEFAULT_USERS.find(d => d.isAdmin && d.username.toLowerCase() === inputUser && d.password === inputPass);
     if(u){ USERS = [...USERS.filter(x=>x.username!==u.username), u]; saveUsers(USERS); }
   }
+
   if(u){
     enterApp(u);
   } else {
@@ -1178,7 +1204,7 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v7 · tự động ghi nhớ đăng nhập</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v9 · sửa lỗi mật khẩu dạng số</p>
     <button onclick="khoiPhucDuLieu()" style="margin-top:10px;background:none;border:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer;font-family:inherit">
       Không đăng nhập được? Bấm để làm mới
     </button>
@@ -2007,6 +2033,8 @@ function attachEvents(){
     }
   }catch(e){ console.log("Session restore:",e); }
   render();
+  // Tải sẵn danh sách tài khoản từ Sheets để giáo viên đăng nhập được ngay trên máy mới
+  try{ loadUsersFromSheets().catch(()=>{}); }catch(e){}
 })();
 </script>
 </body>
