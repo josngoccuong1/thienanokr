@@ -174,16 +174,17 @@ function ls_get(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):nu
 function ls_set(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
 // USERS
+const DEFAULT_USERS = [
+  {username:"cuong",password:"thienan2025",name:"Thầy Ngọc Cương",role:"admin",isAdmin:true,luong:0},
+  {username:"piano",password:"piano2025",name:"GV Piano",role:"piano",isAdmin:false,luong:5000000},
+  {username:"guitar",password:"guitar2025",name:"GV Guitar",role:"guitar",isAdmin:false,luong:4500000},
+  {username:"vocal",password:"vocal2025",name:"GV Thanh Nhạc",role:"vocal",isAdmin:false,luong:4500000},
+  {username:"dance",password:"dance2025",name:"GV Nhảy",role:"dance",isAdmin:false,luong:4000000},
+  {username:"recording",password:"record2025",name:"GV Thu Âm",role:"recording",isAdmin:false,luong:4000000},
+  {username:"marketing",password:"mkt2025",name:"Marketing",role:"marketing",isAdmin:false,luong:4000000},
+];
 function loadUsers(){
-  return ls_get("ta_users")||[
-    {username:"cuong",password:"thienan2025",name:"Thầy Ngọc Cương",role:"admin",isAdmin:true,luong:0},
-    {username:"piano",password:"piano2025",name:"GV Piano",role:"piano",isAdmin:false,luong:5000000},
-    {username:"guitar",password:"guitar2025",name:"GV Guitar",role:"guitar",isAdmin:false,luong:4500000},
-    {username:"vocal",password:"vocal2025",name:"GV Thanh Nhạc",role:"vocal",isAdmin:false,luong:4500000},
-    {username:"dance",password:"dance2025",name:"GV Nhảy",role:"dance",isAdmin:false,luong:4000000},
-    {username:"recording",password:"record2025",name:"GV Thu Âm",role:"recording",isAdmin:false,luong:4000000},
-    {username:"marketing",password:"mkt2025",name:"Marketing",role:"marketing",isAdmin:false,luong:4000000},
-  ];
+  return ls_get("ta_users") || DEFAULT_USERS.map(u=>({...u}));
 }
 function saveUsers(u){ls_set("ta_users",u)}
 let USERS=loadUsers();
@@ -334,9 +335,14 @@ async function loadUsersFromSheets(){
       if(!isDefault){
         // Sheets = NGUỒN SỰ THẬT: sửa/xóa nhân sự ở máy nào cũng đồng bộ sang máy khác.
         const map = {};
-        sheetUsers.forEach(u=>map[u.username]=u);
-        // Luôn giữ tài khoản quản trị mặc định để không bao giờ mất quyền đăng nhập
-        localUsers.filter(u=>u.isAdmin).forEach(u=>{ if(!map[u.username]) map[u.username]=u; });
+        sheetUsers.forEach(u=>{ if(u && u.username) map[u.username]=u; });
+        // CHỐT AN TOÀN: tài khoản quản trị lấy từ danh sách CỨNG trong code
+        // (không lấy từ bộ nhớ máy — vì bộ nhớ máy có thể đã bị ghi đè và mất admin).
+        DEFAULT_USERS.filter(d=>d.isAdmin).forEach(d=>{
+          if(!map[d.username]) map[d.username] = {...d};      // thiếu thì khôi phục
+          else map[d.username].isAdmin = true;                 // có thì luôn giữ quyền admin
+          if(!map[d.username].password) map[d.username].password = d.password;
+        });
         const merged = Object.values(map);
         saveUsers(merged);
         USERS = merged;
