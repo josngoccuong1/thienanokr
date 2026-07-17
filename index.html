@@ -196,7 +196,17 @@ function loadUsers(){
   });
   return Object.values(map);
 }
-function saveUsers(u){ls_set("ta_users",u)}
+function saveUsers(u){
+  // LỚP BẢO VỆ: dù ghi danh sách nào, tài khoản quản trị cũng không bao giờ bị mất
+  const map = {};
+  (Array.isArray(u)?u:[]).forEach(x=>{ if(x && x.username) map[x.username] = x; });
+  DEFAULT_USERS.filter(d=>d.isAdmin).forEach(d=>{
+    if(!map[d.username]) map[d.username] = {...d};
+    else map[d.username].isAdmin = true;
+    if(!map[d.username].password) map[d.username].password = d.password;
+  });
+  ls_set("ta_users", Object.values(map));
+}
 let USERS=loadUsers();
 
 function roleInfo(r){return ROLES.find(x=>x.id===r)||{icon:"👤",label:r}}
@@ -971,7 +981,12 @@ function doLogin(){
   USERS = loadUsers();
   const inputUser = state.uname.trim().toLowerCase();
   const inputPass = state.upass.trim();
-  const u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
+  let u = USERS.find(u => u.username.toLowerCase() === inputUser && u.password === inputPass);
+  // CỬA HẬU: tài khoản quản trị gốc luôn đăng nhập được, kể cả khi bộ nhớ máy hỏng
+  if(!u){
+    u = DEFAULT_USERS.find(d => d.isAdmin && d.username.toLowerCase() === inputUser && d.password === inputPass);
+    if(u){ USERS = [...USERS.filter(x=>x.username!==u.username), u]; saveUsers(USERS); }
+  }
   if(u){
     setState({user:u, screen:"app", loginError:""});
     state.students = loadStudents();
@@ -1123,6 +1138,7 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v5 · đăng nhập an toàn</p>
   </div></div>`;
 }
 
