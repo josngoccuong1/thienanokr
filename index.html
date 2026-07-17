@@ -302,22 +302,16 @@ async function loadAllFromSheets(){
   try{
     const data = await apiGet({action:"getAllData"});
     if(data && !data.error){
-      // Merge ThuChi - tất cả tháng
-      if(Array.isArray(data.thuchi) && data.thuchi.length > 0){
-        const local = ls_get("ta_tx") || [];
-        const sheetIds = data.thuchi.map(t=>t.id.toString());
-        const localOnly = local.filter(t=>!sheetIds.includes(t.id.toString()));
-        const merged = [...data.thuchi, ...localOnly];
-        ls_set("ta_tx", merged);
-        state.transactions = merged;
-        console.log("Loaded",merged.length,"transactions from Sheets");
+      // Thu chi — Sheets là nguồn sự thật (xóa ở máy khác thì máy này cũng mất)
+      if(Array.isArray(data.thuchi)){
+        ls_set("ta_tx", data.thuchi);
+        state.transactions = data.thuchi;
+        console.log("Loaded",data.thuchi.length,"transactions from Sheets");
       }
-      // Merge Luong
-      if(data.luong && Object.keys(data.luong).length > 0){
-        const local = ls_get("ta_luong") || {};
-        const merged = {...local, ...data.luong};
-        ls_set("ta_luong", merged);
-        state.luongData = merged;
+      // Lương — Sheets là nguồn sự thật
+      if(data.luong && typeof data.luong==="object"){
+        ls_set("ta_luong", data.luong);
+        state.luongData = data.luong;
       }
       // Merge Plans — Sheets là nguồn sự thật (chấp nhận cả mảng rỗng)
       if(Array.isArray(data.plans)){
@@ -359,28 +353,22 @@ async function loadUsersFromSheets(){
 
 async function loadThuChiFromSheets(month){
   try{
-    // Load TẤT CẢ tháng từ Sheets để đồng bộ đầy đủ
+    // Load TẤT CẢ tháng từ Sheets — Sheets là nguồn sự thật (chấp nhận cả rỗng)
     const data=await apiGet({action:"getThuChi",month:""});
-    if(Array.isArray(data)&&data.length>0){
-      const local=ls_get("ta_tx")||[];
-      const sheetIds=data.map(t=>t.id.toString());
-      // Giữ local items chưa có trên Sheets
-      const localOnly=local.filter(t=>!sheetIds.includes(t.id.toString()));
-      const merged=[...data,...localOnly];
-      ls_set("ta_tx",merged);
-      setState({transactions:merged});
+    if(Array.isArray(data)){
+      ls_set("ta_tx",data);
+      setState({transactions:data});
     }
   }catch(e){ console.log("loadThuChi error:",e); }
 }
 
 async function loadLuongFromSheets(month){
   try{
-    const data=await apiGet({action:"getLuong",month:month||""});
-    if(data&&typeof data==="object"&&Object.keys(data).length>0){
-      const local=ls_get("ta_luong")||{};
-      const merged={...local,...data};
-      ls_set("ta_luong",merged);
-      setState({luongData:merged});
+    // LUÔN lấy TẤT CẢ tháng — nếu chỉ lấy 1 tháng sẽ ghi đè mất lương các tháng khác
+    const data=await apiGet({action:"getLuong",month:""});
+    if(data&&typeof data==="object"&&!data.error){
+      ls_set("ta_luong",data);
+      setState({luongData:data});
     }
   }catch(e){}
 }
