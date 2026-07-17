@@ -211,6 +211,16 @@ let USERS=loadUsers();
 
 function roleInfo(r){return ROLES.find(x=>x.id===r)||{icon:"👤",label:r}}
 function fmtMoney(n){return Number(n).toLocaleString("vi-VN")+" ₫"}
+// Kế hoạch này có phải của người đang đăng nhập không (so tên, bỏ dấu, không phân biệt hoa thường)
+function _tenGon(s){
+  return String(s==null?"":s).trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
+}
+function isMyPlan(p){
+  if(!state.user) return false;
+  const me=_tenGon(state.user.name), owner=_tenGon(p&&p.owner);
+  return !!owner && !!me && owner===me;
+}
 function fmtM(n){return (Number(n)/1000000).toFixed(1)+"M"}
 // Hiển thị ngày dạng dd/mm/yyyy (xử lý cả chuỗi ISO từ Google Sheets, theo giờ VN)
 function fmtDate(v){
@@ -1226,7 +1236,7 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v10 · sửa lỗi nhân đôi & xóa</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v11 · phân quyền GV / Giám đốc</p>
     <button onclick="khoiPhucDuLieu()" style="margin-top:10px;background:none;border:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer;font-family:inherit">
       Không đăng nhập được? Bấm để làm mới
     </button>
@@ -1378,7 +1388,8 @@ function renderOKR(){
           const fromPlans=planTotal>0;
           const actual=fromPlans?planTotal:(state.actuals[kr.id]?.actual||0);
           const p=pct(actual,kr.target);const s=stInfo(p);
-          const editable=state.user.isAdmin||kr.ownerRole===state.user.role;
+          // Chỉ Giám đốc/Admin được sửa số ở tab OKR. GV cập nhật qua tab Kế hoạch của mình.
+          const editable=state.user.isAdmin;
           const isEdit=state.editKR===kr.id;
           const ri2=roleInfo(kr.ownerRole);
           return`<div class="okr-kr-row" style="opacity:${editable?1:0.6}">
@@ -1494,9 +1505,9 @@ function renderPlan(){
           </div>`:""}
         </div>
         <span class="badge" style="background:${statusColor[p.status]||"#eee"}22;color:${statusColor[p.status]||"#888"};font-size:10px">${p.status}</span>
-        ${state.user.isAdmin?`<div style="display:flex;gap:4px">
+        ${(state.user.isAdmin||isMyPlan(p))?`<div style="display:flex;gap:4px">
           <button class="btn-edit" data-pid="${p.id}">✏️</button>
-          <button class="btn-danger" data-delplan="${p.id}">🗑️</button>
+          ${state.user.isAdmin?`<button class="btn-danger" data-delplan="${p.id}">🗑️</button>`:""}
         </div>`:""}
       </div>`;
     }).join("")}
@@ -1505,6 +1516,8 @@ function renderPlan(){
 
 
 function renderPlanModal(){
+  // GV chỉ được cập nhật "Thực tế đạt được" và "Trạng thái"; các mục khác do Giám đốc giao
+  const roLock = (state.user && state.user.isAdmin) ? "" : "disabled";
   const statusList=["Chưa bắt đầu","Đang thực hiện","Hoàn thành","Bị trễ"];
   // Build OKR options
   let objOptions = "<option value=\"\">-- Không gắn OKR --</option>";
@@ -1531,19 +1544,19 @@ function renderPlanModal(){
         <!-- Thông tin cơ bản -->
         <div class="form-group" style="margin-bottom:10px">
           <div class="form-label">Tên kế hoạch / hành động *</div>
-          <input class="form-input" id="pf-title" placeholder="VD: Chạy ads Facebook tuyển sinh Piano" value="${state.pf_title}"/>
+          <input class="form-input" id="pf-title" placeholder="VD: Chạy ads Facebook tuyển sinh Piano" value="${state.pf_title}" ${roLock}/>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <div class="form-label">Tháng</div>
-            <select class="form-select" id="pf-month">
+            <select class="form-select" id="pf-month" ${roLock}>
               ${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}
             </select>
           </div>
           <div class="form-group">
             <div class="form-label">Người phụ trách</div>
-            <input class="form-input" id="pf-owner" placeholder="Tên người phụ trách" value="${state.pf_owner}"/>
+            <input class="form-input" id="pf-owner" placeholder="Tên người phụ trách" value="${state.pf_owner}" ${roLock}/>
           </div>
         </div>
 
@@ -1552,11 +1565,11 @@ function renderPlanModal(){
           <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:8px">🎯 Gắn vào OKR (tuỳ chọn)</div>
           <div class="form-group" style="margin-bottom:8px">
             <div class="form-label">Objective</div>
-            <select class="form-select" id="pf-okr-obj">${objOptions}</select>
+            <select class="form-select" id="pf-okr-obj" ${roLock}>${objOptions}</select>
           </div>
           ${state.pf_okr_obj?`<div class="form-group">
             <div class="form-label">Key Result</div>
-            <select class="form-select" id="pf-okr-kr">${krOptions}</select>
+            <select class="form-select" id="pf-okr-kr" ${roLock}>${krOptions}</select>
           </div>`:""}
         </div>
 
@@ -1564,7 +1577,7 @@ function renderPlanModal(){
         <div class="form-row">
           <div class="form-group">
             <div class="form-label">Mục tiêu (con số)</div>
-            <input class="form-input" id="pf-target" type="number" placeholder="VD: 10" value="${state.pf_target}"/>
+            <input class="form-input" id="pf-target" type="number" placeholder="VD: 10" value="${state.pf_target}" ${roLock}/>
           </div>
           <div class="form-group">
             <div class="form-label">Thực tế đạt được</div>
@@ -1579,6 +1592,9 @@ function renderPlanModal(){
           </select>
         </div>
 
+        ${roLock?`<div style="background:#FFF7E0;border:1px solid #F0DFA8;border-radius:8px;padding:9px 11px;font-size:11px;color:#8A6D00;margin-bottom:10px;line-height:1.5">
+          ℹ️ Bạn chỉ cập nhật được <b>Thực tế đạt được</b> và <b>Trạng thái</b>. Các mục khác do Giám đốc giao.
+        </div>`:""}
         <button class="btn-primary" id="btnSavePlan" style="width:100%">💾 Lưu kế hoạch</button>
       </div>
     </div>
