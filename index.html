@@ -1063,7 +1063,9 @@ async function doSaveKR(){
 function savePlan(){
   const plans=[...state.plans];
   const item={
-    id:Date.now(),
+    // GIỮ NGUYÊN ID khi sửa. (Trước đây luôn tạo ID mới -> Sheets tưởng là kế hoạch khác
+    // nên thêm dòng mới, gây nhân đôi kế hoạch sau khi tải lại.)
+    id: (state.editPlan!==null && state.editPlan!==undefined) ? state.editPlan : Date.now(),
     title:state.pf_title,
     month:state.pf_month,
     target:Number(state.pf_target)||0,
@@ -1073,7 +1075,12 @@ function savePlan(){
     okrObj:state.pf_okr_obj,   // ID của Objective
     okrKr:state.pf_okr_kr,     // ID của Key Result
   };
-  if(state.editPlan){const i=plans.findIndex(p=>p.id===state.editPlan);if(i>=0)plans[i]={...plans[i],...item};}
+  if(state.editPlan!==null && state.editPlan!==undefined){
+    const key=String(state.editPlan);
+    const i=plans.findIndex(p=>String(p.id)===key);
+    if(i>=0) plans[i]={...plans[i],...item};
+    else plans.unshift(item);
+  }
   else plans.unshift(item);
   ls_set("ta_plans",plans);
   // Sync lên Google Sheets qua GET
@@ -1083,7 +1090,14 @@ function savePlan(){
     okrObj:item.okrObj||"", okrKr:item.okrKr||""});
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
-function deletePlan(id){if(!confirm("Xóa kế hoạch này?"))return;const plans=state.plans.filter(p=>p.id!==id);ls_set("ta_plans",plans);syncGet({action:"deletePlanGet", id});setState({plans})}
+function deletePlan(id){
+  if(!confirm("Xóa kế hoạch này?"))return;
+  const key=String(id);
+  const plans=state.plans.filter(p=>String(p.id)!==key);
+  ls_set("ta_plans",plans);
+  syncGet({action:"deletePlanGet", id:key});
+  setState({plans});
+}
 
 function saveLuong(){
   const key=state.luong_user+"__"+state.luong_month;
@@ -1152,7 +1166,15 @@ function saveUserForm(){
     .then(r=>{ console.log("✅ Synced to Sheets:", r); })
     .catch(e=>console.log("Sync error:", e));
 }
-function deleteUser(username){if(!confirm("Xóa tài khoản "+username+"?"))return;USERS=USERS.filter(u=>u.username!==username);saveUsers(USERS);fetch(API_URL+"?action=deleteUserGet&username="+username).catch(()=>{});setState({});}
+function deleteUser(username){
+  if(!confirm("Xóa tài khoản "+username+"?"))return;
+  // So sánh dạng CHỮ: tài khoản toàn số (123) được Sheets trả về dạng số -> so sánh trực tiếp sẽ trượt
+  const key=String(username).trim();
+  USERS=USERS.filter(u=>String(u.username).trim()!==key);
+  saveUsers(USERS);
+  fetch(API_URL+"?action=deleteUserGet&username="+encodeURIComponent(key)).catch(()=>{});
+  setState({});
+}
 
 // ============================================================
 // RENDER
@@ -1204,7 +1226,7 @@ function renderLogin(){
     <button class="btn-login" id="btn-login">🔓 Đăng nhập</button>
     ${state.loginError?`<div style="color:#E74C3C;font-size:12px;margin-top:8px">${state.loginError}</div>`:""}
     <p style="margin-top:14px;font-size:11px;color:#aaa">Liên hệ Thầy Cương để được cấp tài khoản</p>
-    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v9 · sửa lỗi mật khẩu dạng số</p>
+    <p style="margin-top:4px;font-size:10px;color:#27AE60;font-weight:700">v10 · sửa lỗi nhân đôi & xóa</p>
     <button onclick="khoiPhucDuLieu()" style="margin-top:10px;background:none;border:none;color:#888;font-size:11px;text-decoration:underline;cursor:pointer;font-family:inherit">
       Không đăng nhập được? Bấm để làm mới
     </button>
