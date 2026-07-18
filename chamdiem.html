@@ -492,17 +492,30 @@ function renderJudge(){
   const list = DATA.contestants
     .filter(c=>c.checkin)
     .filter(c=>!jvCat || c.category===jvCat)
-    .sort((a,b)=>(Number(a.sbd)||999)-(Number(b.sbd)||999));
+    // Theo ĐÚNG thứ tự danh sách trong sheet (thầy đã sắp A-Z / cố định trước),
+    // KHÔNG theo thứ tự check-in. MC đọc tên theo danh sách cố định này.
+    .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
 
   const done = list.filter(c=>myScore(c.row)).length;
   const finished = list.filter(c=>c.done).length;
   $("jvCount").textContent = done + "/" + list.length + " đã chấm · " + finished + " xong";
 
   $("jvList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào check-in</div>` :
-    list.map(c=>{
+    list.map((c,idx)=>{
       const s = myScore(c.row);
       const done = !!c.done;
-      return `<div class="item" style="${done?"background:#F6FBF7":""}">
+      // Tiêu đề ngăn cách khi đổi sang trung tâm khác (gom cụm cùng đơn vị diễn liền nhau)
+      const curUnit = c.unit || "Cá nhân";
+      const prevUnit = idx>0 ? (list[idx-1].unit || "Cá nhân") : null;
+      const groupHead = (curUnit !== prevUnit) ? (()=>{
+        const cnt = list.filter(x=>(x.unit||"Cá nhân")===curUnit).length;
+        return `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
+          <span style="font-size:14px">🏫</span>
+          <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(curUnit)}</span>
+          <span style="color:#D4AF37;font-weight:700;font-size:11px">${cnt} thí sinh</span>
+        </div>`;
+      })() : "";
+      return groupHead + `<div class="item" style="${done?"background:#F6FBF7":""}">
         <div class="sbd" data-sc="${c.row}" style="cursor:pointer">${c.sbd||"—"}</div>
         <div class="info" data-sc="${c.row}" style="cursor:pointer">
           <div class="nm">${esc(c.name)} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
