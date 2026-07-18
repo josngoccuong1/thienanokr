@@ -196,7 +196,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa</div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v2 · Điểm danh theo thứ tự danh sách</span></div>
   </div>
 
   <!-- ============ CHECK-IN ============ -->
@@ -489,46 +489,51 @@ function renderJudge(){
   $("jvCats").innerHTML = catChips("jv", jvCat);
   $("jvCats").querySelectorAll("[data-cat]").forEach(b=>b.addEventListener("click",()=>{ jvCat=b.dataset.cat; renderJudge(); }));
 
+  // HIỆN TOÀN BỘ danh sách theo thứ tự sheet cố định (KHÔNG lọc theo check-in).
+  // Ai chưa check-in vẫn hiện đúng vị trí nhưng bị mờ + không bấm Xong được.
   const list = DATA.contestants
-    .filter(c=>c.checkin)
     .filter(c=>!jvCat || c.category===jvCat)
-    // Theo ĐÚNG thứ tự danh sách trong sheet (thầy đã sắp A-Z / cố định trước),
-    // KHÔNG theo thứ tự check-in. MC đọc tên theo danh sách cố định này.
     .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
 
-  const done = list.filter(c=>myScore(c.row)).length;
+  const checkedInCount = list.filter(c=>c.checkin).length;
   const finished = list.filter(c=>c.done).length;
-  $("jvCount").textContent = done + "/" + list.length + " đã chấm · " + finished + " xong";
+  $("jvCount").textContent = checkedInCount + " đã check-in · " + finished + " xong / " + list.length;
 
-  $("jvList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào check-in</div>` :
+  $("jvList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>` :
     list.map((c,idx)=>{
       const s = myScore(c.row);
       const done = !!c.done;
+      const inned = !!c.checkin;   // đã check-in chưa
       // Tiêu đề ngăn cách khi đổi sang trung tâm khác (gom cụm cùng đơn vị diễn liền nhau)
       const curUnit = c.unit || "Cá nhân";
       const prevUnit = idx>0 ? (list[idx-1].unit || "Cá nhân") : null;
       const groupHead = (curUnit !== prevUnit) ? (()=>{
-        const cnt = list.filter(x=>(x.unit||"Cá nhân")===curUnit).length;
+        const g = list.filter(x=>(x.unit||"Cá nhân")===curUnit);
         return `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
           <span style="font-size:14px">🏫</span>
           <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(curUnit)}</span>
-          <span style="color:#D4AF37;font-weight:700;font-size:11px">${cnt} thí sinh</span>
+          <span style="color:#D4AF37;font-weight:700;font-size:11px">${g.filter(x=>x.checkin).length}/${g.length} đã đến</span>
         </div>`;
       })() : "";
-      return groupHead + `<div class="item" style="${done?"background:#F6FBF7":""}">
-        <div class="sbd" data-sc="${c.row}" style="cursor:pointer">${c.sbd||"—"}</div>
-        <div class="info" data-sc="${c.row}" style="cursor:pointer">
+      const rowBg = done ? "background:#F6FBF7" : (inned ? "" : "background:#FAFAFA;opacity:.6");
+      return groupHead + `<div class="item" style="${rowBg}">
+        <div class="sbd${inned?"":" none"}" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${c.sbd||"—"}</div>
+        <div class="info" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>
           <div class="nm">${esc(c.name)} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
           <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
         </div>
         <div style="display:flex;align-items:center;gap:7px">
-          ${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
-             :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
-          <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
-            style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
-            background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
-            ${done?"✓ Xong":"Xong"}
-          </button>
+          ${!inned
+            ? `<span class="badge b-gray">Chưa check-in</span>
+               <button disabled title="Thí sinh chưa check-in"
+                 style="border:2px solid #E5E7EB;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap;background:#F3F4F6;color:#BCC2CC;cursor:not-allowed">Xong</button>`
+            : `${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
+                 :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
+               <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
+                 style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
+                 background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
+                 ${done?"✓ Xong":"Xong"}
+               </button>`}
         </div>
       </div>`;
     }).join("");
