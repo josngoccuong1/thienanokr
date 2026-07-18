@@ -344,7 +344,7 @@ let ciCat = "", jvCat = "", scoring = null, scoreVals = {};
 
 const ROLES = [
   { key:"checkin", ic:"🎫", nm:"Check-in",  ds:"Đón thí sinh" },
-  { key:"judge",   ic:"⚖️", nm:"Giám khảo", ds:"Chấm điểm" },
+  { key:"judge",   ic:"📋", nm:"Điểm danh", ds:"Điểm danh thí sinh" },
   { key:"result",  ic:"🏆", nm:"Kết quả",   ds:"Xem xếp giải" },
   { key:"print",   ic:"🖨️", nm:"In bằng",   ds:"In bằng khen" }
 ];
@@ -388,7 +388,7 @@ function showRole(){
   ["loginView","checkinView","judgeView","scoreView","resultView"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.remove("hidden");
   if(ROLE==="checkin"){ $("checkinView").classList.remove("hidden"); $("barInfo").textContent="🎫 Check-in"; renderCheckin(); }
-  else if(ROLE==="judge"){ $("judgeView").classList.remove("hidden"); $("barInfo").textContent="⚖️ "+JUDGE; renderJudge(); }
+  else if(ROLE==="judge"){ $("judgeView").classList.remove("hidden"); $("barInfo").textContent="📋 "+JUDGE; renderJudge(); }
   else { $("resultView").classList.remove("hidden"); $("barInfo").textContent = ROLE==="print"?"🖨️ In bằng khen":"🏆 Kết quả"; renderResults(); }
 }
 $("btnLogout").addEventListener("click", ()=>{
