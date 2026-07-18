@@ -56,8 +56,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 @media(max-width:520px){.roles{grid-template-columns:1fr 1fr}}
 .role{border:2px solid var(--line);background:#fff;border-radius:12px;padding:14px 8px;cursor:pointer;text-align:center;font-family:inherit;transition:.15s}
 .role .ic{font-size:26px;display:block;margin-bottom:5px}
-.role .nm{font-size:13px;font-weight:800;color:var(--navy)}
-.role .ds{font-size:10px;color:var(--muted);margin-top:2px}
+.role .nm{font-size:13px;font-weight:800;color:var(--navy);display:block}
+.role .ds{font-size:10px;color:var(--muted);margin-top:2px;display:block}
 .role.active{border-color:var(--gold);background:#FFFBEF;box-shadow:0 3px 12px rgba(212,175,55,.25)}
 
 /* TOOLBAR */
@@ -110,29 +110,56 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:9px 12px;z-index:40;box-shadow:0 -4px 18px rgba(16,24,40,.08)}
 .bar-in{max-width:900px;margin:0 auto;display:flex;gap:9px;align-items:center}
 
-/* ===== BẰNG KHEN (in) ===== */
+/* ===== BẰNG KHEN (in) — A4 NGANG ===== */
 #printArea{display:none}
 .cert{
-  width:297mm;height:210mm;position:relative;background:#fff;
-  padding:14mm;page-break-after:always;overflow:hidden;
+  width:297mm;height:210mm;position:relative;overflow:hidden;
+  background:#FDFAF0;
+  page-break-after:always;
   font-family:'Playfair Display',Georgia,serif;color:#1A1A2E;
 }
-.cert-in{border:3px double var(--gold);height:100%;padding:10mm 14mm;text-align:center;
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;position:relative}
-.cert-logo{width:26mm;height:26mm;object-fit:contain;margin-bottom:2mm}
-.cert-org{font-size:11pt;letter-spacing:2px;color:var(--gold-dark);font-weight:700;text-transform:uppercase}
-.cert-title{font-size:30pt;font-weight:800;margin:3mm 0 1mm;letter-spacing:2px}
-.cert-fest{font-size:13pt;color:#444;margin-bottom:5mm}
-.cert-line{width:40mm;height:2px;background:var(--gold);margin-bottom:5mm}
-.cert-lbl{font-size:11pt;color:#555;font-family:'Segoe UI',Arial,sans-serif}
-.cert-name{font-size:26pt;font-weight:800;color:var(--blue);margin:2mm 0 3mm}
-.cert-prize{font-size:20pt;font-weight:800;color:var(--gold-dark);margin:1mm 0}
-.cert-meta{font-size:11pt;color:#444;font-family:'Segoe UI',Arial,sans-serif;margin-top:2mm}
-.cert-sign{position:absolute;bottom:6mm;right:10mm;text-align:center;font-family:'Segoe UI',Arial,sans-serif}
+/* khung viền kép */
+.cert-f1{position:absolute;left:7mm;top:7mm;right:7mm;bottom:7mm;border:2.6px solid #C9A227}
+.cert-f2{position:absolute;left:10mm;top:10mm;right:10mm;bottom:10mm;border:.8px solid #DCC375}
+/* hoa văn 4 góc */
+.cnr{position:absolute;width:26mm;height:26mm;opacity:.9}
+.cnr.tl{left:9mm;top:9mm}
+.cnr.tr{right:9mm;top:9mm;transform:scaleX(-1)}
+.cnr.bl{left:9mm;bottom:9mm;transform:scaleY(-1)}
+.cnr.br{right:9mm;bottom:9mm;transform:scale(-1,-1)}
+/* logo chìm */
+.cert-wm{position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);
+  width:112mm;opacity:.07;pointer-events:none}
+/* nội dung */
+.cert-body{position:relative;z-index:2;height:100%;padding:13mm 26mm 9mm;
+  display:flex;flex-direction:column;align-items:center;text-align:center}
+.cert-logo{width:19mm;height:19mm;object-fit:contain}
+.cert-org{font-size:10pt;letter-spacing:2.5px;color:#8A6D1E;font-weight:700;text-transform:uppercase;margin-top:1mm;
+  font-family:'Segoe UI',Arial,sans-serif}
+.divider{width:78mm;height:5mm;margin:2.5mm 0 1mm}
+.cert-title{font-size:31pt;font-weight:800;letter-spacing:3px;color:#C0202A;line-height:1;margin:1mm 0}
+.cert-sub{font-size:14pt;font-weight:700;letter-spacing:.5px;margin-top:1.5mm}
+.cert-intro{font-size:10.5pt;font-style:italic;color:#4A4A4A;margin-top:2.5mm;
+  font-family:'Segoe UI',Arial,sans-serif}
+.cert-ts{font-size:10.5pt;font-weight:800;letter-spacing:2px;color:#333;margin-top:2mm;
+  font-family:'Segoe UI',Arial,sans-serif}
+/* khung tên */
+.name-box{position:relative;margin:1.5mm 0 0;padding:4mm 16mm 3mm;border:1.4px solid #C9A227;min-width:150mm}
+.name-box::before,.name-box::after{content:"";position:absolute;width:5mm;height:5mm;border:1.4px solid #C9A227}
+.name-box::before{left:-2mm;top:-2mm;border-right:0;border-bottom:0}
+.name-box::after{right:-2mm;bottom:-2mm;border-left:0;border-top:0}
+.cert-name{font-size:27pt;font-weight:800;color:#1A1A2E;letter-spacing:1px;line-height:1.1}
+.cert-idrow{font-size:11.5pt;margin-top:2mm;color:#333;font-family:'Segoe UI',Arial,sans-serif}
+.cert-idrow b{color:#8A6D1E}
+/* giải */
+.cert-lbl{font-size:11pt;color:#444;margin-top:4mm;font-family:'Segoe UI',Arial,sans-serif}
+.cert-prize{font-size:22pt;font-weight:800;color:#C0202A;margin-top:1mm}
+.cert-meta{font-size:10.5pt;color:#444;margin-top:1.5mm;font-family:'Segoe UI',Arial,sans-serif}
+/* chữ ký */
+.cert-sign{position:absolute;right:26mm;bottom:12mm;text-align:center;font-family:'Segoe UI',Arial,sans-serif}
 .cert-sign .d{font-size:9.5pt;color:#555;font-style:italic}
-.cert-sign .r{font-size:10.5pt;font-weight:700;margin-top:1mm}
-.cert-sign .s{font-size:9pt;color:#888;margin-top:12mm}
-.cert-sbd{position:absolute;bottom:6mm;left:10mm;font-size:9pt;color:#999;font-family:'Segoe UI',Arial,sans-serif}
+.cert-sign .r{font-size:10.5pt;font-weight:700;margin-top:1mm;letter-spacing:.5px}
+.cert-sign .s{font-size:10.5pt;font-weight:700;margin-top:14mm;font-family:'Playfair Display',serif}
 @media print{
   body{background:#fff}
   body *{visibility:hidden}
@@ -468,23 +495,45 @@ function renderJudge(){
     .sort((a,b)=>(Number(a.sbd)||999)-(Number(b.sbd)||999));
 
   const done = list.filter(c=>myScore(c.row)).length;
-  $("jvCount").textContent = done + "/" + list.length + " đã chấm";
+  const finished = list.filter(c=>c.done).length;
+  $("jvCount").textContent = done + "/" + list.length + " đã chấm · " + finished + " xong";
 
   $("jvList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào check-in</div>` :
     list.map(c=>{
       const s = myScore(c.row);
-      return `<div class="item" data-sc="${c.row}" style="cursor:pointer">
-        <div class="sbd">${c.sbd||"—"}</div>
-        <div class="info">
-          <div class="nm">${esc(c.name)}</div>
+      const done = !!c.done;
+      return `<div class="item" style="${done?"background:#F6FBF7":""}">
+        <div class="sbd" data-sc="${c.row}" style="cursor:pointer">${c.sbd||"—"}</div>
+        <div class="info" data-sc="${c.row}" style="cursor:pointer">
+          <div class="nm">${esc(c.name)} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
           <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
         </div>
-        ${s?`<span class="badge b-gold" style="font-size:14px;padding:6px 11px">${s.total}</span>`
-           :`<span class="badge b-gray">Chưa chấm</span>`}
+        <div style="display:flex;align-items:center;gap:7px">
+          ${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
+             :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
+          <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
+            style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
+            background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
+            ${done?"✓ Xong":"Xong"}
+          </button>
+        </div>
       </div>`;
     }).join("");
 
   $("jvList").querySelectorAll("[data-sc]").forEach(el=>el.addEventListener("click",()=>openScore(Number(el.dataset.sc))));
+  $("jvList").querySelectorAll("[data-done]").forEach(b=>b.addEventListener("click", async e=>{
+    e.stopPropagation();
+    const row=Number(b.dataset.done), val=b.dataset.val==="1";
+    b.disabled=true; b.textContent="…";
+    try{
+      const d=await post({action:"setdone", row, done:val});
+      if(d.ok){
+        const c=DATA.contestants.find(x=>x.row===row);
+        if(c) c.done = val ? (d.done||"Xong") : "";
+        renderJudge();
+      } else { alert("Lỗi: "+(d.error||"")); renderJudge(); }
+    }catch(err){ alert("Lỗi kết nối, thử lại"); renderJudge(); }
+  }));
 }
 
 function openScore(row){
@@ -639,8 +688,29 @@ $("btnCsv").addEventListener("click", ()=>{
 });
 
 /* ================= IN BẰNG KHEN ================= */
+/* hoa văn góc (SVG) */
+const CNR = `<svg class="cnr CLS" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M4 72 C4 33 33 4 72 4" stroke="#C9A227" stroke-width="1.5"/>
+  <path d="M4 56 C4 27 27 4 56 4" stroke="#DCC375" stroke-width=".8"/>
+  <path d="M14 50 C14 30 30 14 50 14 C62 14 68 21 68 29 C68 37 61 42 54 42 C47 42 43 37 43 32"
+        stroke="#C9A227" stroke-width="1.1"/>
+  <path d="M43 32 C43 27 47 24 51 26" stroke="#C9A227" stroke-width="1.1"/>
+  <path d="M22 66 C30 58 30 46 24 40" stroke="#DCC375" stroke-width=".8"/>
+  <path d="M66 22 C58 30 46 30 40 24" stroke="#DCC375" stroke-width=".8"/>
+  <circle cx="8" cy="8" r="2.4" fill="#C9A227"/>
+  <circle cx="52" cy="30" r="1.6" fill="#C9A227"/>
+</svg>`;
+/* hoa văn phân cách */
+const DIV = `<svg class="divider" viewBox="0 0 240 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 10 H86" stroke="#C9A227" stroke-width="1"/>
+  <path d="M154 10 H234" stroke="#C9A227" stroke-width="1"/>
+  <path d="M86 10 C94 2 102 2 108 10 C102 18 94 18 86 10Z" fill="#DCC375"/>
+  <path d="M154 10 C146 2 138 2 132 10 C138 18 146 18 154 10Z" fill="#DCC375"/>
+  <path d="M120 3 L127 10 L120 17 L113 10Z" fill="#C9A227"/>
+  <circle cx="112" cy="10" r="1.6" fill="#C9A227"/><circle cx="128" cy="10" r="1.6" fill="#C9A227"/>
+</svg>`;
+
 function certText(r){
-  // Ưu tiên ghi cả 2: Giải Nhất/Nhì/Ba (nếu có) + Huy chương
   if(r.prize && r.medal && r.medal!=="Khuyến khích") return r.prize + " · Huy chương " + r.medal;
   if(r.prize) return r.prize;
   if(r.medal==="Khuyến khích") return "Giải Khuyến khích";
@@ -651,19 +721,24 @@ function printCerts(list){
   const dateStr = `${CONFIG.CERT.place}, ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
   $("printArea").innerHTML = list.map(r=>`
     <div class="cert">
-      <div class="cert-in">
+      <div class="cert-f1"></div><div class="cert-f2"></div>
+      ${CNR.replace("CLS","tl")}${CNR.replace("CLS","tr")}${CNR.replace("CLS","bl")}${CNR.replace("CLS","br")}
+      <img class="cert-wm" src="${LOGO_URI}" alt=""/>
+      <div class="cert-body">
         <img class="cert-logo" src="${LOGO_URI}" alt=""/>
         <div class="cert-org">Học viện Âm nhạc Thiên Ân</div>
+        ${DIV}
         <div class="cert-title">GIẤY CHỨNG NHẬN</div>
-        <div class="cert-fest">${esc(CONFIG.FESTIVAL_NAME)}</div>
-        <div class="cert-line"></div>
-        <div class="cert-lbl">Chứng nhận thí sinh</div>
-        <div class="cert-name">${esc(r.name)}</div>
-        <div class="cert-lbl">đã đạt</div>
+        <div class="cert-sub">${esc(CONFIG.FESTIVAL_NAME)}</div>
+        <div class="cert-intro">Ban tổ chức ${esc(CONFIG.FESTIVAL_NAME)} trân trọng chứng nhận:</div>
+        <div class="cert-ts">THÍ SINH</div>
+        <div class="name-box">
+          <div class="cert-name">${esc(String(r.name).toUpperCase())}</div>
+          <div class="cert-idrow"><b>SBD:</b> ${r.sbd||"—"} &nbsp;|&nbsp; <b>BẢNG:</b> ${esc(r.category)}</div>
+        </div>
+        <div class="cert-lbl">Đã đạt</div>
         <div class="cert-prize">${esc(certText(r))}</div>
-        <div class="cert-meta">${esc(r.category)}${r.piece?" · Tác phẩm: "+esc(r.piece):""}</div>
-        <div class="cert-meta">Điểm trung bình: <b>${r.avg.toFixed(1)}</b> / 100</div>
-        <div class="cert-sbd">SBD: ${r.sbd||"—"}</div>
+        <div class="cert-meta">Điểm trung bình: <b>${r.avg.toFixed(1)}</b> / 100${r.piece?" &nbsp;·&nbsp; Tác phẩm: "+esc(r.piece):""}</div>
         <div class="cert-sign">
           <div class="d">${esc(dateStr)}</div>
           <div class="r">${esc(CONFIG.CERT.signerRole)}</div>
@@ -671,7 +746,7 @@ function printCerts(list){
         </div>
       </div>
     </div>`).join("");
-  setTimeout(()=>window.print(), 300);
+  setTimeout(()=>window.print(), 400);
 }
 
 /* ================= INIT ================= */
