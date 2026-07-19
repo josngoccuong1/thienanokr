@@ -192,8 +192,8 @@ textarea{resize:vertical;min-height:44px}
           </div>
         </div>
         <div class="billbox">
-          <label class="billlbl">Ảnh bill chuyển khoản <span class="req">*</span></label>
-          <div class="note" style="margin:2px 0 10px">Chuyển khoản xong, chụp/lưu biên lai rồi tải lên đây. Bắt buộc có bill mới gửi được đăng ký.</div>
+          <label class="billlbl">Ảnh bill chuyển khoản <span style="color:var(--muted);font-weight:600;font-size:12px">(không bắt buộc)</span></label>
+          <div class="note" style="margin:2px 0 10px">Nếu đã chuyển khoản: chụp/lưu biên lai rồi tải lên đây. <b>Chưa chuyển khoản cũng gửi được</b> — Ban tổ chức sẽ xác nhận phí sau.</div>
           <input type="file" id="billFile" accept="image/*" style="display:none"/>
           <button type="button" class="add-row" id="btnBill">📎 Tải ảnh bill lên</button>
           <div id="billPreview" class="hidden" style="margin-top:12px">
@@ -355,7 +355,7 @@ function renderStudents(){
           <input data-f="name" value="${esc(s.name)}" placeholder="Nguyễn Văn A"/>
         </div>
         <div class="field">
-          <label>Ngày sinh <span class="req">*</span></label>
+          <label>Ngày sinh</label>
           <input data-f="dob" type="date" value="${esc(s.dob)}"/>
         </div>
         <div class="field">
@@ -366,7 +366,7 @@ function renderStudents(){
           </select>
         </div>
         <div class="field full">
-          <label>Bảng dự thi (theo độ tuổi) <span class="req">*</span></label>
+          <label>Bảng dự thi (theo độ tuổi)</label>
           <select data-f="category">
             <option value="">— Chọn bảng —</option>
             ${catOptions(s.category)}
@@ -410,7 +410,7 @@ function updateTotals(){
   $("barTotal").textContent = money(total);
   $("stCount").textContent = n + " thí sinh";
   refreshPayment();
-  $("btnSubmit").disabled = (n===0 || !billData);
+  $("btnSubmit").disabled = (n===0);
 }
 
 /* event delegation cho danh sách thí sinh */
@@ -479,13 +479,13 @@ function validate(){
     if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
   });
   document.querySelectorAll("#studentList .student").forEach(st=>{
-    ["name","dob","category"].forEach(f=>{
+    // Chỉ bắt buộc HỌ TÊN. Ngày sinh, bảng dự thi để trống cũng nộp được (điền bổ sung sau).
+    ["name"].forEach(f=>{
       const el = st.querySelector(`[data-f="${f}"]`); el.classList.remove("err");
       if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
     });
   });
-  if(!billData){ ok=false; firstBad=firstBad||$("btnBill"); }
-  if(!ok && !billData){ setTimeout(()=>{ if(!billData) $("btnBill").scrollIntoView({behavior:"smooth",block:"center"}); },50); }
+  // Bill KHÔNG bắt buộc: giáo viên gom danh sách trước, phụ huynh chuyển khoản & nộp bill sau.
   if(!ok && firstBad){ firstBad.scrollIntoView({behavior:"smooth",block:"center"}); firstBad.focus?.(); }
   return ok;
 }
