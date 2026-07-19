@@ -628,8 +628,10 @@ function drawAdminTable(){
   const fee = rows.reduce((s,r)=>s+Number(r["Phí (VNĐ)"]||0),0);
   $("sFee").textContent = new Intl.NumberFormat('vi-VN').format(fee);
   const cols = ["Mã ĐK","Đơn vị","Họ tên thí sinh","Ngày sinh","Bảng dự thi","SĐT","Phí (VNĐ)","Trạng thái phí","Ảnh bill"];
-  let h = "<tr>" + cols.map(c=>`<th>${c}</th>`).join("") + "</tr>";
-  h += rows.map(r=>"<tr>"+cols.map(c=>{
+  let h = "<tr><th>STT</th>" + cols.map(c=>`<th>${c}</th>`).join("") + "</tr>";
+  h += rows.map(r=>{
+    const stt = ADMIN_ROWS.indexOf(r) + 1;  // số thứ tự theo đúng thứ tự sheet đăng ký
+    return "<tr><td style='font-weight:700;color:var(--navy)'>"+stt+"</td>"+cols.map(c=>{
     let v=r[c];
     if(c==="Ngày sinh"&&v){ try{ v=new Date(v).toLocaleDateString('vi-VN'); }catch(_){}}
     if(c==="Phí (VNĐ)"&&v!==""&&v!=null){ v=new Intl.NumberFormat('vi-VN').format(Number(v)); }
@@ -641,16 +643,17 @@ function drawAdminTable(){
       return `<td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${paid?"#E8F8F0":"#FFF3CD"};color:${paid?"#27AE60":"#8A6D00"}">${esc(v||"Chờ duyệt")}</span></td>`;
     }
     return `<td>${esc(v)}</td>`;
-  }).join("")+"</tr>").join("");
-  if(rows.length===0) h += `<tr><td colspan="${cols.length}" class="center" style="padding:26px;color:#aaa">Chưa có đăng ký nào</td></tr>`;
+  }).join("")+"</tr>";
+  }).join("");
+  if(rows.length===0) h += `<tr><td colspan="${cols.length+1}" class="center" style="padding:26px;color:#aaa">Chưa có đăng ký nào</td></tr>`;
   $("admTable").innerHTML = h;
 }
 function exportCSV(){
   const rows = filteredRows();
   if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
   const cols = Object.keys(rows[0]);
-  const csv = [cols.join(",")].concat(
-    rows.map(r=>cols.map(c=>{ let v=String(r[c]==null?"":r[c]).replace(/"/g,'""'); return `"${v}"`; }).join(","))
+  const csv = [["STT"].concat(cols).join(",")].concat(
+    rows.map(r=>[(ADMIN_ROWS.indexOf(r)+1)].concat(cols.map(c=>{ let v=String(r[c]==null?"":r[c]).replace(/"/g,'""'); return `"${v}"`; })).join(","))
   ).join("\r\n");
   const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
   const a = document.createElement("a");
