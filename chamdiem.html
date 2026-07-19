@@ -199,6 +199,14 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
     <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v2 · Điểm danh theo thứ tự danh sách</span></div>
   </div>
 
+  <!-- ============ THANH CHỌN BUỔI ============ -->
+  <div id="sessionBar" class="hidden" style="position:sticky;top:0;z-index:30;background:#F0F2F5;padding:10px 0 4px">
+    <div style="background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:9px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:800;color:var(--navy)">🗓️ Buổi:</span>
+      <div id="sessionChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
+    </div>
+  </div>
+
   <!-- ============ CHECK-IN ============ -->
   <div id="checkinView" class="hidden">
     <div class="stat-row">
@@ -293,6 +301,7 @@ const CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbw8Idu12ftfEURVZukA2gHAcmnhN2xCXkNNka-1pVLdhzkfCm7caAOwGi8Uq2Kgx4s/exec",
   ADMIN_PASSWORD: "thienan2026",       // phải trùng ADMIN_PASSWORD trong Code.gs
   FESTIVAL_NAME: "Music Festival 2026",
+  SESSIONS: 3,   // số buổi biểu diễn (Buổi 1 / 2 / 3)
 
   // Mã PIN cho từng vai trò (ĐỔI trước khi dùng thật)
   PIN_CHECKIN: "checkin26",
@@ -341,6 +350,8 @@ document.querySelectorAll('.keys').forEach(buildKeys);
 let ROLE = null, JUDGE = null;
 let DATA = { contestants: [], scores: [] };
 let ciCat = "", jvCat = "", scoring = null, scoreVals = {};
+let SESSION = "";  // "" = tất cả buổi; "1"/"2"/"3" = lọc theo buổi
+function inSession(c){ return SESSION==="" || String(c.session||"").trim()===SESSION; }
 
 const ROLES = [
   { key:"checkin", ic:"🎫", nm:"Check-in",  ds:"Đón thí sinh" },
@@ -387,13 +398,32 @@ $("pin").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 function showRole(){
   ["loginView","checkinView","judgeView","scoreView","resultView"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.remove("hidden");
+  $("sessionBar").classList.remove("hidden");
+  renderSessionBar();
   if(ROLE==="checkin"){ $("checkinView").classList.remove("hidden"); $("barInfo").textContent="🎫 Check-in"; renderCheckin(); }
   else if(ROLE==="judge"){ $("judgeView").classList.remove("hidden"); $("barInfo").textContent="📋 "+JUDGE; renderJudge(); }
   else { $("resultView").classList.remove("hidden"); $("barInfo").textContent = ROLE==="print"?"🖨️ In bằng khen":"🏆 Kết quả"; renderResults(); }
 }
+
+// Thanh chọn buổi: Tất cả / Buổi 1 / Buổi 2 / Buổi 3
+function renderSessionBar(){
+  let html = `<button class="btn-out${SESSION===""?" active":""}" data-ss="">Tất cả</button>`;
+  for(let i=1;i<=CONFIG.SESSIONS;i++){
+    const n = DATA.contestants.filter(c=>String(c.session||"").trim()===String(i)).length;
+    html += `<button class="btn-out${SESSION===String(i)?" active":""}" data-ss="${i}">Buổi ${i}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
+  }
+  $("sessionChips").innerHTML = html;
+  $("sessionChips").querySelectorAll("[data-ss]").forEach(b=>b.addEventListener("click",()=>{
+    SESSION = b.dataset.ss;
+    renderSessionBar();
+    if(ROLE==="checkin") renderCheckin();
+    else if(ROLE==="judge") renderJudge();
+    else renderResults();
+  }));
+}
 $("btnLogout").addEventListener("click", ()=>{
-  ROLE=null; JUDGE=null; scoring=null;
-  ["checkinView","judgeView","scoreView","resultView"].forEach(v=>$(v).classList.add("hidden"));
+  ROLE=null; JUDGE=null; scoring=null; SESSION="";
+  ["checkinView","judgeView","scoreView","resultView","sessionBar"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.add("hidden");
   $("loginView").classList.remove("hidden");
   renderRoles();
@@ -430,7 +460,7 @@ function catChips(sel, cur){
 }
 
 function renderCheckin(){
-  const all = DATA.contestants;
+  const all = DATA.contestants.filter(inSession);
   $("ciTotal").textContent = all.length;
   $("ciDone").textContent = all.filter(c=>c.checkin).length;
   $("ciWait").textContent = all.filter(c=>!c.checkin).length;
@@ -492,6 +522,7 @@ function renderJudge(){
   // HIỆN TOÀN BỘ danh sách theo thứ tự sheet cố định (KHÔNG lọc theo check-in).
   // Ai chưa check-in vẫn hiện đúng vị trí nhưng bị mờ + không bấm Xong được.
   const list = DATA.contestants
+    .filter(inSession)
     .filter(c=>!jvCat || c.category===jvCat)
     .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
 
@@ -657,7 +688,7 @@ function renderResults(){
   $("rsSilver").textContent = scored.filter(r=>r.medal==="Bạc").length;
   $("rsBronze").textContent = scored.filter(r=>r.medal==="Đồng").length;
 
-  const rows = all.filter(r=>!cur || r.category===cur)
+  const rows = all.filter(r=>inSession(r)).filter(r=>!cur || r.category===cur)
                   .sort((a,b)=>{
                     if(a.category!==b.category) return String(a.category).localeCompare(String(b.category));
                     return (b.avg==null?-1:b.avg) - (a.avg==null?-1:a.avg);
