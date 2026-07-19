@@ -532,6 +532,10 @@ function renderJudge(){
     .filter(c=>!jvCat || c.category===jvCat)
     .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
 
+  // Số thứ tự cố định theo danh sách (khớp với STT bên Check-in)
+  const sttMap = {};
+  list.forEach((c,i)=>{ sttMap[c.row]=i+1; });
+
   const checkedInCount = list.filter(c=>c.checkin).length;
   const finished = list.filter(c=>c.done).length;
   $("jvCount").textContent = checkedInCount + " đã check-in · " + finished + " xong / " + list.length;
@@ -554,9 +558,9 @@ function renderJudge(){
       })() : "";
       const rowBg = done ? "background:#F6FBF7" : (inned ? "" : "background:#FAFAFA;opacity:.6");
       return groupHead + `<div class="item" style="${rowBg}">
-        <div class="sbd${inned?"":" none"}" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${c.sbd||"—"}</div>
+        <div class="sbd" title="Số thứ tự" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${sttMap[c.row]||"—"}</div>
         <div class="info" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>
-          <div class="nm">${esc(c.name)} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
+          <div class="nm">${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
           <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
         </div>
         <div style="display:flex;align-items:center;gap:7px">
