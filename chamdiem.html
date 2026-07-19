@@ -475,15 +475,21 @@ function renderCheckin(){
     if(!q) return true;
     return norm(c.name).includes(q) || norm(c.unit).includes(q) || norm(c.regCode).includes(q) || String(c.sbd)===q;
   });
+  // Số thứ tự cố định theo danh sách sheet (ổn định dù đang tìm/lọc giới tính)
+  const sttMap = {};
+  DATA.contestants.filter(inSession)
+    .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999))
+    .forEach((c,i)=>{ sttMap[c.row]=i+1; });
+
   $("ciCount").textContent = list.length + " thí sinh";
   $("ciList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Không tìm thấy thí sinh</div>` :
     list.map(c=>{
       const done = !!c.checkin;
       const feeOk = String(c.fee).indexOf("Đã")===0;
       return `<div class="item">
-        <div class="sbd ${c.sbd?"":"none"}">${c.sbd||"—"}</div>
+        <div class="sbd" title="Số thứ tự">${sttMap[c.row]||"—"}</div>
         <div class="info">
-          <div class="nm">${esc(c.name)}</div>
+          <div class="nm">${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
           <div class="sub">${esc(c.category)} · ${esc(c.unit)}</div>
           <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
             ${done?`<span class="badge b-green">✓ ${esc(c.checkin)}</span>`:`<span class="badge b-gray">Chưa đến</span>`}
