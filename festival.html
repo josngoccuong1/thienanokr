@@ -192,8 +192,8 @@ textarea{resize:vertical;min-height:44px}
           </div>
         </div>
         <div class="billbox">
-          <label class="billlbl">Ảnh bill chuyển khoản <span style="color:var(--muted);font-weight:600;font-size:12px">(không bắt buộc)</span></label>
-          <div class="note" style="margin:2px 0 10px">Nếu đã chuyển khoản: chụp/lưu biên lai rồi tải lên đây. <b>Chưa chuyển khoản cũng gửi được</b> — Ban tổ chức sẽ xác nhận phí sau.</div>
+          <label class="billlbl">Ảnh bill chuyển khoản <span class="req">*</span></label>
+          <div class="note" style="margin:2px 0 10px">Chuyển khoản xong, chụp/lưu biên lai rồi tải lên đây. Bắt buộc có bill mới gửi được đăng ký.</div>
           <input type="file" id="billFile" accept="image/*" style="display:none"/>
           <button type="button" class="add-row" id="btnBill">📎 Tải ảnh bill lên</button>
           <div id="billPreview" class="hidden" style="margin-top:12px">
@@ -381,8 +381,8 @@ function renderStudents(){
           <input data-f="teacher" value="${esc(s.teacher)}" placeholder="Họ tên giáo viên"/>
         </div>
         <div class="field full">
-          <label>Ghi chú</label>
-          <textarea data-f="note" placeholder="Yêu cầu đặc biệt, thời lượng bài thi…">${esc(s.note)}</textarea>
+          <label>Số phút</label>
+          <input data-f="note" value="${esc(s.note)}" placeholder="VD: 3 phút"/>
         </div>
       </div>
     </div>
@@ -410,7 +410,7 @@ function updateTotals(){
   $("barTotal").textContent = money(total);
   $("stCount").textContent = n + " thí sinh";
   refreshPayment();
-  $("btnSubmit").disabled = (n===0);
+  $("btnSubmit").disabled = (n===0 || !billData);
 }
 
 /* event delegation cho danh sách thí sinh */
@@ -479,13 +479,15 @@ function validate(){
     if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
   });
   document.querySelectorAll("#studentList .student").forEach(st=>{
-    // Chỉ bắt buộc HỌ TÊN. Ngày sinh, bảng dự thi để trống cũng nộp được (điền bổ sung sau).
+    // Chỉ bắt buộc HỌ TÊN. Ngày sinh, bảng dự thi để trống cũng được (điền bổ sung sau).
     ["name"].forEach(f=>{
       const el = st.querySelector(`[data-f="${f}"]`); el.classList.remove("err");
       if(!el.value.trim()){ markErr(el); ok=false; firstBad=firstBad||el; }
     });
   });
-  // Bill KHÔNG bắt buộc: giáo viên gom danh sách trước, phụ huynh chuyển khoản & nộp bill sau.
+  // Bill BẮT BUỘC: phải có ảnh chuyển khoản mới gửi được đăng ký.
+  if(!billData){ ok=false; firstBad=firstBad||$("btnBill"); }
+  if(!ok && !billData){ setTimeout(()=>{ if(!billData) $("btnBill").scrollIntoView({behavior:"smooth",block:"center"}); },50); }
   if(!ok && firstBad){ firstBad.scrollIntoView({behavior:"smooth",block:"center"}); firstBad.focus?.(); }
   return ok;
 }
@@ -518,7 +520,7 @@ async function submitReg(){
       "Đơn vị":payload.unit.name, "Người phụ trách":payload.unit.contact, "SĐT":payload.unit.phone,
       "Email":payload.unit.email, "Địa chỉ":payload.unit.address,
       "Họ tên thí sinh":s.name, "Ngày sinh":s.dob, "Giới tính":s.gender, "Bảng dự thi":s.category,
-      "Tác phẩm dự thi":s.piece, "Giáo viên HD":s.teacher, "Ghi chú":s.note, "Phí (VNĐ)":payload.feePerStudent,
+      "Tác phẩm dự thi":s.piece, "Giáo viên HD":s.teacher, "Số phút":s.note, "Phí (VNĐ)":payload.feePerStudent,
       "Ảnh bill":"(bill - chế độ thử)", "Trạng thái phí":"Chờ duyệt"
     }));
     localStorage.setItem(DEMO_KEY, JSON.stringify(store));
@@ -683,7 +685,7 @@ function init(){
         "Email":"", "Địa chỉ":"Thanh Hóa",
         "Họ tên thí sinh":"Đỗ Ngọc Cương", "Ngày sinh":"", "Giới tính":"Nam",
         "Bảng dự thi":"Bảng F — Tự do (18 tuổi trở lên)", "Tác phẩm dự thi":"(bản demo)",
-        "Giáo viên HD":"", "Ghi chú":"Đăng ký thử", "Phí (VNĐ)":CONFIG.FEE_PER_STUDENT,
+        "Giáo viên HD":"", "Số phút":"3 phút", "Phí (VNĐ)":CONFIG.FEE_PER_STUDENT,
         "Ảnh bill":"(bill - chế độ thử)", "Trạng thái phí":"Chờ duyệt"
       }]));
     }
