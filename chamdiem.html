@@ -483,10 +483,22 @@ function renderCheckin(){
 
   $("ciCount").textContent = list.length + " thí sinh";
   $("ciList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Không tìm thấy thí sinh</div>` :
-    list.map(c=>{
+    list.map((c,idx)=>{
       const done = !!c.checkin;
       const feeOk = String(c.fee).indexOf("Đã")===0;
-      return `<div class="item">
+      // Tiêu đề gom nhóm khi đổi sang đơn vị khác
+      const curUnit = c.unit || "Cá nhân";
+      const prevUnit = idx>0 ? (list[idx-1].unit || "Cá nhân") : null;
+      const groupHead = (curUnit !== prevUnit) ? (()=>{
+        const g = list.filter(x=>(x.unit||"Cá nhân")===curUnit);
+        const dn = g.filter(x=>x.checkin).length;
+        return `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
+          <span style="font-size:14px">🏫</span>
+          <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(curUnit)}</span>
+          <span style="color:#D4AF37;font-weight:700;font-size:11px">${dn}/${g.length} check-in</span>
+        </div>`;
+      })() : "";
+      return groupHead + `<div class="item">
         <div class="sbd" title="Số thứ tự">${sttMap[c.row]||"—"}</div>
         <div class="info">
           <div class="nm">${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
