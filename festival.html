@@ -407,10 +407,14 @@ function renderStudents(){
   updateTotals();
 }
 
-/* Lưu ảnh QR vào máy: thử tải trực tiếp, nếu bị chặn thì mở ảnh lớn để phụ huynh tự lưu */
+/* Lưu ảnh QR: điện thoại -> hiện ảnh to để NHẤN GIỮ lưu (đáng tin cậy nhất);
+   máy tính -> tải file trực tiếp. */
 async function saveQR(){
   const src = $("vietqr").src;
   if(!src){ return; }
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  if(isTouch){ openQRFull(src); return; }   // điện thoại: nhấn giữ để lưu ảnh
+  // máy tính: tải trực tiếp
   try{
     const res = await fetch(src, {mode:"cors"});
     const blob = await res.blob();
@@ -419,11 +423,8 @@ async function saveQR(){
     a.href = url; a.download = "QR_ThienAn_Festival.png";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    showQRHint("✅ Đã lưu ảnh QR! Mở app ngân hàng → Quét mã → chọn ảnh vừa lưu trong thư viện.");
-  }catch(e){
-    // Không tải được (trình duyệt chặn) -> mở ảnh QR lớn, phụ huynh nhấn giữ để lưu
-    openQRFull(src);
-  }
+    showQRHint("✅ Đã tải ảnh QR về máy.");
+  }catch(e){ openQRFull(src); }
 }
 function showQRHint(msg){
   let el = document.getElementById("qrSaved");
@@ -434,11 +435,16 @@ function showQRHint(msg){
 }
 function openQRFull(src){
   const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px";
   ov.innerHTML = `
-    <div style="color:#fff;font-weight:700;text-align:center;font-size:15px">Nhấn GIỮ vào mã QR → chọn <b>"Lưu ảnh"</b><br><span style="font-size:13px;opacity:.85">Sau đó mở app ngân hàng → Quét mã → chọn ảnh vừa lưu</span></div>
-    <img src="${src}" style="width:min(78vw,340px);border-radius:14px;background:#fff;padding:10px"/>
-    <button style="background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:800">Đóng</button>`;
+    <div style="color:#D4AF37;font-weight:800;font-size:16px;text-align:center">📥 CÁCH LƯU MÃ QR</div>
+    <div style="color:#fff;text-align:center;font-size:14px;line-height:1.6">
+      Bước 1: <b>Nhấn GIỮ</b> vào mã QR bên dưới<br>
+      Bước 2: Chọn <b>"Lưu ảnh"</b> / <b>"Thêm vào Ảnh"</b><br>
+      Bước 3: Mở app ngân hàng → <b>Quét mã</b> → chọn ảnh vừa lưu
+    </div>
+    <img src="${src}" style="width:min(72vw,320px);border-radius:14px;background:#fff;padding:12px"/>
+    <button style="background:#D4AF37;color:#1A1A2E;border:none;border-radius:12px;padding:13px 34px;font-size:16px;font-weight:800">Đóng</button>`;
   ov.querySelector("button").onclick = ()=>ov.remove();
   document.body.appendChild(ov);
 }
