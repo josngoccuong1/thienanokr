@@ -119,6 +119,22 @@ textarea{resize:vertical;min-height:44px}
 </head>
 <body>
 
+<div id="loadingToast" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(26,26,46,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:22px 28px;box-shadow:0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:200px">
+    <div id="loadSpin" style="width:44px;height:44px;border:4px solid #EEE;border-top-color:#D4AF37;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div id="loadMsg" style="font-weight:800;color:#1A1A2E;font-size:14px;text-align:center">Đang tải…</div>
+  </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}
+#loadingToast.ok #loadSpin{border:4px solid #E8F8F0;border-top-color:#27AE60;animation:none;position:relative}
+#loadingToast.ok #loadSpin::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#27AE60;font-size:24px;font-weight:900}
+</style>
+<script>
+function showLoading(m){const t=document.getElementById("loadingToast");t.classList.remove("ok");document.getElementById("loadMsg").textContent=m||"Đang tải…";t.style.display="flex";}
+function doneLoading(m){const t=document.getElementById("loadingToast");t.classList.add("ok");document.getElementById("loadMsg").textContent=m||"Xong!";setTimeout(()=>{t.style.display="none";t.classList.remove("ok");},700);}
+function hideLoading(){document.getElementById("loadingToast").style.display="none";}
+</script>
+
 <!-- ============ PUBLIC REGISTRATION ============ -->
 <div id="publicView">
   <div class="hero">
@@ -135,8 +151,8 @@ textarea{resize:vertical;min-height:44px}
       <div class="card-h"><span id="unitIcon">🏫</span><span class="t" id="unitTitle">Thông tin đơn vị</span></div>
       <div class="card-b">
         <div class="segbar">
-          <button type="button" class="seg active" data-rtype="unit">🏫 Đăng ký theo đơn vị</button>
-          <button type="button" class="seg" data-rtype="personal">👤 Cá nhân tự đăng ký</button>
+          <button type="button" class="seg active" data-rtype="personal">👤 Cá nhân tự đăng ký</button>
+          <button type="button" class="seg" data-rtype="unit">🏫 Đăng ký theo đơn vị</button>
         </div>
         <div class="grid">
           <div class="field full" id="f_uname">
@@ -315,7 +331,7 @@ document.querySelectorAll('.keys').forEach(buildKeys);
 /* ================= PUBLIC: REGISTRATION ================= */
 let students = [];
 let submitting = false;
-let regType = "unit"; // "unit" | "personal"
+let regType = "personal"; // "personal" | "unit"
 let billData = null;          // ảnh bill (dataURL) — bắt buộc trước khi gửi
 let sessionRegCode = genCode(); // mã đăng ký của phiên (dùng cho nội dung CK + khi gửi)
 
@@ -390,18 +406,19 @@ function renderStudents(){
   updateTotals();
 }
 
-function transferNote(){ return (CONFIG.BANK.note||"Festival") + " " + sessionRegCode; }
 function refreshPayment(){
   const total = students.length * CONFIG.FEE_PER_STUDENT;
-  const b = CONFIG.BANK, note = transferNote();
+  const b = CONFIG.BANK;
   $("payTotalTag").textContent = money(total);
   $("bkBank").textContent = b.bank;
   $("bkAcc").textContent = b.account;
   $("bkHolder").textContent = b.holder;
   $("bkAmount").textContent = money(total);
-  $("bkNote").textContent = note;
+  // Nội dung CK: phụ huynh tự ghi (gợi ý ghi họ tên thí sinh cho dễ đối chiếu)
+  $("bkNote").textContent = "Tự ghi (nên ghi họ tên thí sinh)";
+  // QR KHÔNG điền sẵn nội dung -> app ngân hàng để phụ huynh tự nhập
   $("vietqr").src = `https://img.vietqr.io/image/${encodeURIComponent(b.bank)}-${encodeURIComponent(b.account)}-compact2.png`
-    + `?amount=${total}&addInfo=${encodeURIComponent(note)}&accountName=${encodeURIComponent(b.holder)}`;
+    + `?amount=${total}&accountName=${encodeURIComponent(b.holder)}`;
 }
 function updateTotals(){
   const n = students.length;
@@ -499,6 +516,7 @@ async function submitReg(){
   if(!validate()){ return; }
   submitting = true;
   const btn = $("btnSubmit"); const old = btn.textContent; btn.textContent = "Đang gửi…"; btn.disabled = true;
+  showLoading("Đang gửi đăng ký…");
 
   const regCode = sessionRegCode;
   const payload = {
@@ -525,6 +543,7 @@ async function submitReg(){
     }));
     localStorage.setItem(DEMO_KEY, JSON.stringify(store));
     submitting=false; btn.textContent=old; btn.disabled=false;
+    doneLoading("Đã gửi ✓");
     showSuccess(regCode, payload.students.length);
     return;
   }
@@ -541,8 +560,8 @@ async function submitReg(){
   }catch(err){ sent = false; serverErr = String(err && err.message || err); }
 
   submitting = false; btn.textContent = old; btn.disabled = false;
-  if(sent){ showSuccess(regCode, payload.students.length); }
-  else{ showError(serverErr); }
+  if(sent){ doneLoading("Đã gửi ✓"); showSuccess(regCode, payload.students.length); }
+  else{ hideLoading(); showError(serverErr); }
 }
 $("btnSubmit").addEventListener("click", submitReg);
 
@@ -573,7 +592,7 @@ function showError(detail){
 }
 function resetForm(){
   ["u_name","u_contact","u_phone","u_email","u_address"].forEach(id=>$(id).value="");
-  setRegType("unit");
+  setRegType("personal");
   billData=null; $("billFile").value=""; $("billPreview").classList.add("hidden"); $("btnBill").textContent="📎 Tải ảnh bill lên";
   sessionRegCode = genCode();
   students = [newStudent()]; renderStudents();
@@ -595,15 +614,18 @@ async function admLogin(){
     return;
   }
   try{
+    showLoading("Đang tải danh sách…");
     const url = CONFIG.SCRIPT_URL + "?action=getAll&password=" + encodeURIComponent(pass);
     const res = await fetch(url);
     const d = await res.json();
-    if(!d.ok){ $("admMsg").textContent = "❌ " + (d.error||"Sai mật khẩu"); return; }
+    if(!d.ok){ hideLoading(); $("admMsg").textContent = "❌ " + (d.error||"Sai mật khẩu"); return; }
     $("admMsg").textContent = "";
     $("adminLogin").classList.add("hidden");
     $("adminDash").classList.remove("hidden");
     renderAdmin(d.rows||[]);
+    doneLoading("Đã tải ✓");
   }catch(err){
+    hideLoading();
     $("admMsg").textContent = "❌ Không kết nối được máy chủ. Kiểm tra URL Apps Script.";
   }
 }
@@ -672,6 +694,7 @@ $("btnExport").addEventListener("click", exportCSV);
 function init(){
   $("heroTitle").textContent = CONFIG.FESTIVAL_NAME;
   $("feePill").textContent = "Phí đăng ký: " + money(CONFIG.FEE_PER_STUDENT) + " / thí sinh";
+  setRegType("personal");   // mặc định: Cá nhân tự đăng ký
   students = [newStudent()];
   renderStudents();
 
