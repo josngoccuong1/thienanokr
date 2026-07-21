@@ -196,8 +196,9 @@ function hideLoading(){document.getElementById("loadingToast").style.display="no
       <div class="card-b">
         <div class="paygrid">
           <div class="qrbox">
-            <img id="vietqr" alt="QR chuyển khoản" />
-            <div class="qrhint">Quét bằng app ngân hàng<br>(đã điền sẵn số tiền)</div>
+            <img id="vietqr" alt="QR chuyển khoản" style="cursor:pointer" />
+            <div class="qrhint">👆 Bấm vào mã QR để <b>lưu ảnh</b><br>rồi mở app ngân hàng → quét từ thư viện</div>
+            <button type="button" id="btnSaveQR" class="add-row" style="width:100%;margin-top:8px;background:var(--gold);color:var(--navy);font-weight:800;border:none">💾 Lưu ảnh QR để chuyển khoản</button>
           </div>
           <div class="bankinfo">
             <div class="bkrow"><span>Ngân hàng</span><b id="bkBank">—</b></div>
@@ -405,6 +406,44 @@ function renderStudents(){
   `).join("");
   updateTotals();
 }
+
+/* Lưu ảnh QR vào máy: thử tải trực tiếp, nếu bị chặn thì mở ảnh lớn để phụ huynh tự lưu */
+async function saveQR(){
+  const src = $("vietqr").src;
+  if(!src){ return; }
+  try{
+    const res = await fetch(src, {mode:"cors"});
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "QR_ThienAn_Festival.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    showQRHint("✅ Đã lưu ảnh QR! Mở app ngân hàng → Quét mã → chọn ảnh vừa lưu trong thư viện.");
+  }catch(e){
+    // Không tải được (trình duyệt chặn) -> mở ảnh QR lớn, phụ huynh nhấn giữ để lưu
+    openQRFull(src);
+  }
+}
+function showQRHint(msg){
+  let el = document.getElementById("qrSaved");
+  if(!el){ el=document.createElement("div"); el.id="qrSaved";
+    el.style.cssText="margin-top:8px;font-size:12px;color:#27AE60;font-weight:700;text-align:center";
+    $("btnSaveQR").after(el); }
+  el.textContent = msg;
+}
+function openQRFull(src){
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px";
+  ov.innerHTML = `
+    <div style="color:#fff;font-weight:700;text-align:center;font-size:15px">Nhấn GIỮ vào mã QR → chọn <b>"Lưu ảnh"</b><br><span style="font-size:13px;opacity:.85">Sau đó mở app ngân hàng → Quét mã → chọn ảnh vừa lưu</span></div>
+    <img src="${src}" style="width:min(78vw,340px);border-radius:14px;background:#fff;padding:10px"/>
+    <button style="background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:800">Đóng</button>`;
+  ov.querySelector("button").onclick = ()=>ov.remove();
+  document.body.appendChild(ov);
+}
+$("btnSaveQR").addEventListener("click", saveQR);
+$("vietqr").addEventListener("click", saveQR);
 
 function refreshPayment(){
   const total = students.length * CONFIG.FEE_PER_STUDENT;
