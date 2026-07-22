@@ -1936,12 +1936,15 @@ function attachEvents(){
 
   // TABS
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+    // Chuyển tab: hiển thị NGAY từ dữ liệu đã tải lúc đăng nhập (không xoay, không chờ).
     setState({tab:b.dataset.tab});
+    // Làm mới NGẦM trong nền (không hiện overlay) để dữ liệu vẫn cập nhật giữa các máy.
+    // Các hàm load này tự setState -> tự render lại khi có dữ liệu mới.
     if(b.dataset.tab==="okr") loadActuals();
     if(b.dataset.tab==="attendance"){ state.students=loadStudents(); state.att_data=loadAttData(); render(); }
-    if(b.dataset.tab==="thuchi"){ showLoading("Đang tải Thu chi…"); loadThuChiFromSheets("").then(()=>doneLoading("Đã tải ✓")).catch(()=>hideLoading()); }
-    if(b.dataset.tab==="luong"){ showLoading("Đang tải Lương…"); loadLuongFromSheets(state.month).then(()=>doneLoading("Đã tải ✓")).catch(()=>hideLoading()); }
-    if(b.dataset.tab==="plan"){ showLoading("Đang tải Kế hoạch…"); loadPlansFromSheets().then(()=>doneLoading("Đã tải ✓")).catch(()=>hideLoading()); }
+    if(b.dataset.tab==="thuchi"){ loadThuChiFromSheets(""); }
+    if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
+    if(b.dataset.tab==="plan"){ loadPlansFromSheets(); }
   }));
 
   // OKR
