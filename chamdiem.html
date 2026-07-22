@@ -228,7 +228,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
       <div class="stat"><div class="num" id="ciFee" style="color:var(--red)">0</div><div class="lbl">Chưa duyệt phí</div></div>
     </div>
     <div class="card">
-      <div class="card-h"><span>🎫</span><span class="t">Check-in thí sinh</span><span class="n" id="ciCount"></span></div>
+      <div class="card-h"><span>🎫</span><span class="t">Check-in thí sinh</span><span class="n" id="ciCount"></span>
+        <button class="btn-out" id="ciExport" style="padding:5px 10px;font-size:11px;margin-left:8px">⬇️ Xuất file</button></div>
       <div class="card-b">
         <input id="ciSearch" placeholder="🔎 Tìm theo tên / SBD / đơn vị / mã ĐK…"/>
         <div class="toolbar" style="margin-top:10px" id="ciCats"></div>
@@ -240,7 +241,8 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
   <!-- ============ GIÁM KHẢO ============ -->
   <div id="judgeView" class="hidden">
     <div class="card">
-      <div class="card-h"><span>⚖️</span><span class="t" id="jvTitle">Chấm điểm</span><span class="n" id="jvCount"></span></div>
+      <div class="card-h"><span>⚖️</span><span class="t" id="jvTitle">Chấm điểm</span><span class="n" id="jvCount"></span>
+        <button class="btn-out" id="jvExport" style="padding:5px 10px;font-size:11px;margin-left:8px">⬇️ Xuất file</button></div>
       <div class="card-b">
         <div class="toolbar" id="jvCats"></div>
         <div class="note" style="margin-bottom:10px">Chỉ hiện thí sinh <b>đã check-in</b>. Bấm vào tên để chấm điểm.</div>
@@ -348,6 +350,7 @@ const CONFIG = {
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d");
+
 
 function buildKeys(el){
   if(!el) return;
@@ -488,6 +491,46 @@ async function post(payload){
 
 /* ================= CHECK-IN ================= */
 function allCats(){ return [...new Set(DATA.contestants.map(c=>c.category).filter(Boolean))].sort(); }
+
+/* Gom TẤT CẢ thí sinh cùng đơn vị về 1 nhóm (chuẩn hóa: "Cá nhân"="Cá Nhân") */
+function unitKeyOf(c){ return norm((c.unit||"Cá nhân").trim()); }
+function unitLabelOf(c){ const u=(c.unit||"").trim(); return u || "Cá nhân"; }
+function groupByUnit(list){
+  const map={};
+  list.forEach(c=>{
+    const k=unitKeyOf(c);   // "Cá nhân" và "Cá Nhân" gộp làm 1
+    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow:Number(c.row)||999999}; }
+    map[k].items.push(c);
+    map[k].minRow=Math.min(map[k].minRow, Number(c.row)||999999);
+  });
+  const groups=Object.values(map);
+  // Đơn vị xếp theo lần xuất hiện đầu trong sheet; nhóm "Cá nhân" luôn xuống CUỐI
+  groups.sort((a,b)=>{
+    const ca=a.key==="ca nhan", cb=b.key==="ca nhan";
+    if(ca!==cb) return ca?1:-1;
+    return a.minRow-b.minRow;
+  });
+  // Trong mỗi nhóm giữ đúng thứ tự sheet
+  groups.forEach(g=>g.items.sort((x,y)=>(Number(x.row)||999999)-(Number(y.row)||999999)));
+  return groups;
+}
+/* Xuất danh sách ra CSV (mở bằng Excel) */
+function exportGroupItems(items, groupName){
+  const safe = String(groupName||"nhom").replace(/[^\p{L}\p{N}]+/gu,"_").slice(0,40);
+  exportCSV(items, "DS_"+safe+".csv");
+}
+function exportCSV(rows, filename){
+  if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
+  const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Giới tính","Check-in","Trạng thái phí","Buổi"];
+  const line = a => a.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",");
+  const body = rows.map((c,i)=>line([ i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
+    c.piece||"", c.gender||"", c.checkin?"Đã check-in":"Chưa", c.fee||"", c.session||"" ]));
+  const csv = "\uFEFF" + [line(cols)].concat(body).join("\r\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=filename||"DanhSach.csv"; document.body.appendChild(a); a.click(); a.remove();
+}
+
 function catChips(sel, cur){
   return `<button class="btn-out${cur===""?" active":""}" data-cat="">Tất cả</button>` +
     allCats().map(c=>`<button class="btn-out${cur===c?" active":""}" data-cat="${esc(c)}">${esc(c.split("—")[0].trim())}</button>`).join("");
@@ -509,45 +552,47 @@ function renderCheckin(){
     if(!q) return true;
     return norm(c.name).includes(q) || norm(c.unit).includes(q) || norm(c.regCode).includes(q) || String(c.sbd)===q;
   });
-  // Số thứ tự cố định theo danh sách sheet (ổn định dù đang tìm/lọc giới tính)
-  const sttMap = {};
-  DATA.contestants.filter(inSession)
-    .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999))
-    .forEach((c,i)=>{ sttMap[c.row]=i+1; });
-
   $("ciCount").textContent = list.length + " thí sinh";
-  $("ciList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Không tìm thấy thí sinh</div>` :
-    list.map((c,idx)=>{
-      const done = !!c.checkin;
-      const feeOk = String(c.fee).indexOf("Đã")===0;
-      // Tiêu đề gom nhóm khi đổi sang đơn vị khác
-      const curUnit = c.unit || "Cá nhân";
-      const prevUnit = idx>0 ? (list[idx-1].unit || "Cá nhân") : null;
-      const groupHead = (curUnit !== prevUnit) ? (()=>{
-        const g = list.filter(x=>(x.unit||"Cá nhân")===curUnit);
-        const dn = g.filter(x=>x.checkin).length;
-        return `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
-          <span style="font-size:14px">🏫</span>
-          <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(curUnit)}</span>
-          <span style="color:#D4AF37;font-weight:700;font-size:11px">${dn}/${g.length} check-in</span>
-        </div>`;
-      })() : "";
-      return groupHead + `<div class="item">
-        <div class="sbd" title="Số thứ tự">${sttMap[c.row]||"—"}</div>
-        <div class="info">
-          <div class="nm">${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
-          <div class="sub">${esc(c.category)} · ${esc(c.unit)}</div>
-          <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
-            ${done?`<span class="badge b-green">✓ ${esc(c.checkin)}</span>`:`<span class="badge b-gray">Chưa đến</span>`}
-            ${feeOk?`<span class="badge b-green">✓ Đã đóng phí</span>`:`<span class="badge b-amber">Phí: chờ duyệt</span>`}
-          </div>
-        </div>
-        <button class="btn ${done?"btn-out":"btn-gold"}" style="padding:9px 12px;font-size:12px" data-ci="${c.row}" data-un="${done?1:0}">
-          ${done?"Hủy":"Check-in"}
-        </button>
+  if(list.length===0){ $("ciList").innerHTML = `<div class="center" style="padding:26px;color:#aaa">Không tìm thấy thí sinh</div>`; }
+  else {
+    let stt = 0, html = "", grpIdx = 0;
+    const groups = groupByUnit(list);
+    window.__ciGroups = groups;
+    groups.forEach((g,gi)=>{
+      const dn = g.items.filter(x=>x.checkin).length;
+      html += `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
+        <span style="font-size:14px">🏫</span>
+        <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(g.label)}</span>
+        <span style="color:#D4AF37;font-weight:700;font-size:11px">${dn}/${g.items.length} check-in</span>
+        <button data-grpx="${gi}" style="background:#D4AF37;color:#1A1A2E;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">⬇ Xuất</button>
       </div>`;
-    }).join("");
+      g.items.forEach(c=>{
+        stt++;
+        const done = !!c.checkin;
+        const feeOk = String(c.fee).indexOf("Đã")===0;
+        html += `<div class="item">
+          <div class="sbd" title="Số thứ tự">${stt}</div>
+          <div class="info">
+            <div class="nm">${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
+            <div class="sub">${esc(c.category)} · ${esc(c.unit)}</div>
+            <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
+              ${done?`<span class="badge b-green">✓ ${esc(c.checkin)}</span>`:`<span class="badge b-gray">Chưa đến</span>`}
+              ${feeOk?`<span class="badge b-green">✓ Đã đóng phí</span>`:`<span class="badge b-amber">Phí: chờ duyệt</span>`}
+            </div>
+          </div>
+          <button class="btn ${done?"btn-out":"btn-gold"}" style="padding:9px 12px;font-size:12px" data-ci="${c.row}" data-un="${done?1:0}">
+            ${done?"Hủy":"Check-in"}
+          </button>
+        </div>`;
+      });
+    });
+    $("ciList").innerHTML = html;
+  }
 
+  $("ciList").querySelectorAll("[data-grpx]").forEach(b=>b.addEventListener("click",()=>{
+    const g = (window.__ciGroups||[])[Number(b.dataset.grpx)];
+    if(g) exportGroupItems(g.items, g.label);
+  }));
   $("ciList").querySelectorAll("[data-ci]").forEach(b=>b.addEventListener("click", async ()=>{
     const row = Number(b.dataset.ci), undo = b.dataset.un==="1";
     b.disabled=true; b.textContent="…";
@@ -562,6 +607,14 @@ function renderCheckin(){
   }));
 }
 $("ciSearch").addEventListener("input", ()=>renderCheckin());
+$("ciExport").addEventListener("click", ()=>{
+  // Xuất theo đúng thứ tự đang hiển thị (đã gom nhóm đơn vị)
+  const all = DATA.contestants.filter(inSession);
+  const list = all.filter(c=>!ciCat || c.category===ciCat);
+  const rows = []; groupByUnit(list).forEach(g=>g.items.forEach(c=>rows.push(c)));
+  const ten = SESSION ? ("_Buoi"+SESSION) : "";
+  exportCSV(rows, "Checkin"+ten+".csv");
+});
 
 /* ================= GIÁM KHẢO ================= */
 function myScore(row){ return DATA.scores.find(s=>s.row===row && s.judge===JUDGE); }
@@ -572,59 +625,62 @@ function renderJudge(){
   $("jvCats").querySelectorAll("[data-cat]").forEach(b=>b.addEventListener("click",()=>{ jvCat=b.dataset.cat; renderJudge(); }));
 
   // HIỆN TOÀN BỘ danh sách theo thứ tự sheet cố định (KHÔNG lọc theo check-in).
-  // Ai chưa check-in vẫn hiện đúng vị trí nhưng bị mờ + không bấm Xong được.
   const list = DATA.contestants
     .filter(inSession)
     .filter(c=>!jvCat || c.category===jvCat)
     .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
 
-  // Số thứ tự cố định theo danh sách (khớp với STT bên Check-in)
-  const sttMap = {};
-  list.forEach((c,i)=>{ sttMap[c.row]=i+1; });
-
   const checkedInCount = list.filter(c=>c.checkin).length;
   const finished = list.filter(c=>c.done).length;
   $("jvCount").textContent = checkedInCount + " đã check-in · " + finished + " xong / " + list.length;
 
-  $("jvList").innerHTML = list.length===0 ? `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>` :
-    list.map((c,idx)=>{
-      const s = myScore(c.row);
-      const done = !!c.done;
-      const inned = !!c.checkin;   // đã check-in chưa
-      // Tiêu đề ngăn cách khi đổi sang trung tâm khác (gom cụm cùng đơn vị diễn liền nhau)
-      const curUnit = c.unit || "Cá nhân";
-      const prevUnit = idx>0 ? (list[idx-1].unit || "Cá nhân") : null;
-      const groupHead = (curUnit !== prevUnit) ? (()=>{
-        const g = list.filter(x=>(x.unit||"Cá nhân")===curUnit);
-        return `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
-          <span style="font-size:14px">🏫</span>
-          <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(curUnit)}</span>
-          <span style="color:#D4AF37;font-weight:700;font-size:11px">${g.filter(x=>x.checkin).length}/${g.length} đã đến</span>
-        </div>`;
-      })() : "";
-      const rowBg = done ? "background:#F6FBF7" : (inned ? "" : "background:#FAFAFA;opacity:.6");
-      return groupHead + `<div class="item" style="${rowBg}">
-        <div class="sbd" title="Số thứ tự" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${sttMap[c.row]||"—"}</div>
-        <div class="info" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>
-          <div class="nm">${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
-          <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:7px">
-          ${!inned
-            ? `<span class="badge b-gray">Chưa check-in</span>
-               <button disabled title="Thí sinh chưa check-in"
-                 style="border:2px solid #E5E7EB;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap;background:#F3F4F6;color:#BCC2CC;cursor:not-allowed">Xong</button>`
-            : `${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
-                 :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
-               <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
-                 style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
-                 background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
-                 ${done?"✓ Xong":"Xong"}
-               </button>`}
-        </div>
+  if(list.length===0){ $("jvList").innerHTML = `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>`; }
+  else {
+    let stt=0, html="";
+    const jvGroups = groupByUnit(list);
+    window.__jvGroups = jvGroups;
+    jvGroups.forEach((g,gi)=>{
+      html += `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
+        <span style="font-size:14px">🏫</span>
+        <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(g.label)}</span>
+        <span style="color:#D4AF37;font-weight:700;font-size:11px">${g.items.filter(x=>x.checkin).length}/${g.items.length} đã đến</span>
+        <button data-grpx="${gi}" style="background:#D4AF37;color:#1A1A2E;border:none;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">⬇ Xuất</button>
       </div>`;
-    }).join("");
+      g.items.forEach(c=>{
+        stt++;
+        const s = myScore(c.row);
+        const done = !!c.done;
+        const inned = !!c.checkin;
+        const rowBg = done ? "background:#F6FBF7" : (inned ? "" : "background:#FAFAFA;opacity:.6");
+        html += `<div class="item" style="${rowBg}">
+          <div class="sbd" title="Số thứ tự" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${stt}</div>
+          <div class="info" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>
+            <div class="nm">${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
+            <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px">
+            ${!inned
+              ? `<span class="badge b-gray">Chưa check-in</span>
+                 <button disabled title="Thí sinh chưa check-in"
+                   style="border:2px solid #E5E7EB;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap;background:#F3F4F6;color:#BCC2CC;cursor:not-allowed">Xong</button>`
+              : `${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
+                   :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
+                 <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
+                   style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
+                   background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
+                   ${done?"✓ Xong":"Xong"}
+                 </button>`}
+          </div>
+        </div>`;
+      });
+    });
+    $("jvList").innerHTML = html;
+  }
 
+  $("jvList").querySelectorAll("[data-grpx]").forEach(b=>b.addEventListener("click",()=>{
+    const g = (window.__jvGroups||[])[Number(b.dataset.grpx)];
+    if(g) exportGroupItems(g.items, g.label);
+  }));
   $("jvList").querySelectorAll("[data-sc]").forEach(el=>el.addEventListener("click",()=>openScore(Number(el.dataset.sc))));
   $("jvList").querySelectorAll("[data-done]").forEach(b=>b.addEventListener("click", async e=>{
     e.stopPropagation();
@@ -640,6 +696,12 @@ function renderJudge(){
     }catch(err){ alert("Lỗi kết nối, thử lại"); renderJudge(); }
   }));
 }
+$("jvExport").addEventListener("click", ()=>{
+  const list = DATA.contestants.filter(inSession).filter(c=>!jvCat || c.category===jvCat);
+  const rows = []; groupByUnit(list).forEach(g=>g.items.forEach(c=>rows.push(c)));
+  const ten = SESSION ? ("_Buoi"+SESSION) : "";
+  exportCSV(rows, "DiemDanh"+ten+".csv");
+});
 
 function openScore(row){
   const c = DATA.contestants.find(x=>x.row===row); if(!c) return;
