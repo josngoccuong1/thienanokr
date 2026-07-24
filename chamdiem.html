@@ -208,7 +208,17 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v2 · Điểm danh theo thứ tự danh sách</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v3 · Xem chéo các bộ phận</span></div>
+  </div>
+
+  <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
+  <div id="viewBar" class="hidden" style="position:sticky;top:0;z-index:31;background:#F0F2F5;padding:10px 0 0">
+    <div style="background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:8px 10px">
+      <div id="viewChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div id="viewNote" class="hidden" style="margin-top:7px;padding:6px 10px;background:#FFF7E0;border:1px solid #F0DFA8;border-radius:8px;font-size:11px;color:#8A6D00;font-weight:700">
+        👁️ Đang XEM mục của bộ phận khác — chỉ xem, không thao tác được.
+      </div>
+    </div>
   </div>
 
   <!-- ============ THANH CHỌN BUỔI ============ -->
@@ -363,6 +373,13 @@ document.querySelectorAll('.keys').forEach(buildKeys);
 
 /* ---------- state ---------- */
 let ROLE = null, JUDGE = null;
+let VIEW = null;   // mục ĐANG XEM (có thể khác ROLE khi xem chéo để kiểm soát)
+// Chỉ được thao tác khi đang ở đúng mục của mình. Kết quả & In bằng dùng chung 1 màn hình.
+function canEdit(){
+  if(VIEW === ROLE) return true;
+  const g = ["result","print"];
+  return g.includes(VIEW) && g.includes(ROLE);
+}
 let DATA = { contestants: [], scores: [] };
 let ciCat = "", jvCat = "", scoring = null, scoreVals = {};
 let SESSION = "";  // "" = tất cả buổi; "1"/"2"/"3" = lọc theo buổi
@@ -415,13 +432,36 @@ $("btnLogin").addEventListener("click", login);
 $("pin").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 
 function showRole(){
+  if(!VIEW) VIEW = ROLE;
   ["loginView","checkinView","judgeView","scoreView","resultView"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.remove("hidden");
+  $("viewBar").classList.remove("hidden");
   $("sessionBar").classList.remove("hidden");
+  renderViewBar();
   renderSessionBar();
-  if(ROLE==="checkin"){ $("checkinView").classList.remove("hidden"); $("barInfo").textContent="🎫 Check-in"; renderCheckin(); }
-  else if(ROLE==="judge"){ $("judgeView").classList.remove("hidden"); $("barInfo").textContent="📋 "+JUDGE; renderJudge(); }
-  else { $("resultView").classList.remove("hidden"); $("barInfo").textContent = ROLE==="print"?"🖨️ In bằng khen":"🏆 Kết quả"; renderResults(); }
+  const me = ROLES.find(r=>r.key===ROLE);
+  $("barInfo").textContent = (me? me.ic+" "+(ROLE==="judge"?JUDGE:me.nm) : "") + (canEdit()? "" : " · đang xem");
+  if(VIEW==="checkin"){ $("checkinView").classList.remove("hidden"); renderCheckin(); }
+  else if(VIEW==="judge"){ $("judgeView").classList.remove("hidden"); renderJudge(); }
+  else { $("resultView").classList.remove("hidden"); renderResults(); }
+}
+
+// Thanh chuyển mục: ai cũng xem được mọi mục, nhưng chỉ thao tác ở mục của mình
+function renderViewBar(){
+  $("viewChips").innerHTML = ROLES.map(r=>{
+    const active = VIEW===r.key;
+    const mine = (r.key===ROLE) || (["result","print"].includes(r.key) && ["result","print"].includes(ROLE));
+    return `<button class="btn-out${active?" active":""}" data-vw="${r.key}" style="font-size:12px">
+      ${r.ic} ${r.nm}${mine?' <b style="color:'+(active?"#D4AF37":"#27AE60")+'">•</b>':""}
+    </button>`;
+  }).join("");
+  $("viewChips").querySelectorAll("[data-vw]").forEach(b=>b.addEventListener("click",()=>{
+    VIEW = b.dataset.vw;
+    if(!$("scoreView").classList.contains("hidden")) $("scoreView").classList.add("hidden");
+    showRole();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }));
+  $("viewNote").classList.toggle("hidden", canEdit());
 }
 
 // Thanh chọn buổi: Tất cả / Buổi 1 / Buổi 2 / Buổi 3
@@ -435,14 +475,14 @@ function renderSessionBar(){
   $("sessionChips").querySelectorAll("[data-ss]").forEach(b=>b.addEventListener("click",()=>{
     SESSION = b.dataset.ss;
     renderSessionBar();
-    if(ROLE==="checkin") renderCheckin();
-    else if(ROLE==="judge") renderJudge();
+    if(VIEW==="checkin") renderCheckin();
+    else if(VIEW==="judge") renderJudge();
     else renderResults();
   }));
 }
 $("btnLogout").addEventListener("click", ()=>{
-  ROLE=null; JUDGE=null; scoring=null; SESSION="";
-  ["checkinView","judgeView","scoreView","resultView","sessionBar"].forEach(v=>$(v).classList.add("hidden"));
+  ROLE=null; JUDGE=null; VIEW=null; scoring=null; SESSION="";
+  ["checkinView","judgeView","scoreView","resultView","sessionBar","viewBar"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.add("hidden");
   $("loginView").classList.remove("hidden");
   renderRoles();
@@ -580,9 +620,10 @@ function renderCheckin(){
               ${feeOk?`<span class="badge b-green">✓ Đã đóng phí</span>`:`<span class="badge b-amber">Phí: chờ duyệt</span>`}
             </div>
           </div>
-          <button class="btn ${done?"btn-out":"btn-gold"}" style="padding:9px 12px;font-size:12px" data-ci="${c.row}" data-un="${done?1:0}">
+          ${!canEdit()? `<span class="badge ${done?"b-green":"b-gray"}" style="padding:8px 12px">${done?"✓ Đã check-in":"Chưa đến"}</span>` :
+          `<button class="btn ${done?"btn-out":"btn-gold"}" style="padding:9px 12px;font-size:12px" data-ci="${c.row}" data-un="${done?1:0}">
             ${done?"Hủy":"Check-in"}
-          </button>
+          </button>`}
         </div>`;
       });
     });
@@ -652,24 +693,28 @@ function renderJudge(){
         const done = !!c.done;
         const inned = !!c.checkin;
         const rowBg = done ? "background:#F6FBF7" : (inned ? "" : "background:#FAFAFA;opacity:.6");
+        const ed = canEdit();
+        const tap = (ed && inned) ? `data-sc="${c.row}" style="cursor:pointer"` : "";
         html += `<div class="item" style="${rowBg}">
-          <div class="sbd" title="Số thứ tự" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>${stt}</div>
-          <div class="info" ${inned?`data-sc="${c.row}" style="cursor:pointer"`:""}>
+          <div class="sbd" title="Số thứ tự" ${tap}>${stt}</div>
+          <div class="info" ${tap}>
             <div class="nm">${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
             <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
           </div>
           <div style="display:flex;align-items:center;gap:7px">
             ${!inned
               ? `<span class="badge b-gray">Chưa check-in</span>
-                 <button disabled title="Thí sinh chưa check-in"
-                   style="border:2px solid #E5E7EB;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap;background:#F3F4F6;color:#BCC2CC;cursor:not-allowed">Xong</button>`
-              : `${s?`<span class="badge b-gold" data-sc="${c.row}" style="font-size:14px;padding:6px 11px;cursor:pointer">${s.total}</span>`
-                   :`<span class="badge b-gray" data-sc="${c.row}" style="cursor:pointer">Chưa chấm</span>`}
-                 <button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
-                   style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
-                   background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
-                   ${done?"✓ Xong":"Xong"}
-                 </button>`}
+                 ${ed?`<button disabled title="Thí sinh chưa check-in"
+                   style="border:2px solid #E5E7EB;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;white-space:nowrap;background:#F3F4F6;color:#BCC2CC;cursor:not-allowed">Xong</button>`:""}`
+              : `${s?`<span class="badge b-gold" ${tap} style="font-size:14px;padding:6px 11px">${s.total}</span>`
+                   :`<span class="badge b-gray" ${tap}>Chưa chấm</span>`}
+                 ${ed
+                   ? `<button class="done-btn" data-done="${c.row}" data-val="${done?0:1}"
+                       style="border:none;border-radius:9px;padding:9px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;
+                       background:${done?"#E8F8F0":"#1A1A2E"};color:${done?"#27AE60":"#fff"};border:2px solid ${done?"#27AE60":"#1A1A2E"}">
+                       ${done?"✓ Xong":"Xong"}
+                     </button>`
+                   : `<span class="badge ${done?"b-green":"b-gray"}" style="padding:8px 12px">${done?"✓ Xong":"Chưa xong"}</span>`}`}
           </div>
         </div>`;
       });
@@ -704,6 +749,7 @@ $("jvExport").addEventListener("click", ()=>{
 });
 
 function openScore(row){
+  if(!canEdit()) return;   // xem chéo: không mở form chấm điểm
   const c = DATA.contestants.find(x=>x.row===row); if(!c) return;
   scoring = c;
   const old = myScore(row);
@@ -795,6 +841,10 @@ function medalClass(m){ return m==="Vàng"?"medal-v": m==="Bạc"?"medal-b": m==
 function medalIcon(m){ return m==="Vàng"?"🥇": m==="Bạc"?"🥈": m==="Đồng"?"🥉": m?"🎖️":""; }
 
 function renderResults(){
+  // Xem chéo: ẩn nút xuất Excel & in bằng khen (chỉ bộ phận Kết quả/In bằng mới dùng)
+  const ed = canEdit();
+  $("btnCsv").style.display = ed ? "" : "none";
+  $("btnPrintAll").style.display = ed ? "" : "none";
   const all = computeResults();
   const cats = allCats();
   const cur = $("rsCat").value;
@@ -823,7 +873,7 @@ function renderResults(){
     <td>${r.avg!=null?`<b style="font-size:14px;color:var(--gold-dark)">${r.avg.toFixed(1)}</b>`:'<span style="color:#bbb">chưa chấm</span>'}</td>
     <td class="${medalClass(r.medal)}">${r.medal?medalIcon(r.medal)+" "+r.medal:"—"}</td>
     <td><b>${esc(r.prize||"")}</b></td>
-    <td>${r.avg!=null?`<button class="btn-out" style="padding:4px 9px;font-size:11px" data-print="${r.row}">🖨️</button>`:""}</td>
+    <td>${(canEdit() && r.avg!=null)?`<button class="btn-out" style="padding:4px 9px;font-size:11px" data-print="${r.row}">🖨️</button>`:""}</td>
   </tr>`).join("");
   if(rows.length===0) h += `<tr><td colspan="9" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
   $("rsTable").innerHTML = h;
