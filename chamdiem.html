@@ -615,6 +615,7 @@ function renderCheckin(){
           <div class="info">
             <div class="nm">${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
             <div class="sub">${esc(c.category)} · ${esc(c.unit)}</div>
+            ${c.piece?`<div class="sub" style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</div>`:""}
             <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
               ${done?`<span class="badge b-green">✓ ${esc(c.checkin)}</span>`:`<span class="badge b-gray">Chưa đến</span>`}
               ${feeOk?`<span class="badge b-green">✓ Đã đóng phí</span>`:`<span class="badge b-amber">Phí: chờ duyệt</span>`}
@@ -699,7 +700,8 @@ function renderJudge(){
           <div class="sbd" title="Số thứ tự" ${tap}>${stt}</div>
           <div class="info" ${tap}>
             <div class="nm">${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
-            <div class="sub">${esc(c.category)}${c.piece?" · "+esc(c.piece):""}</div>
+            <div class="sub">${esc(c.category)}</div>
+            ${c.piece?`<div class="sub" style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</div>`:""}
           </div>
           <div style="display:flex;align-items:center;gap:7px">
             ${!inned
@@ -863,19 +865,20 @@ function renderResults(){
                   });
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
-  let h = `<tr><th>Hạng</th><th>SBD</th><th>Họ tên</th><th>Bảng</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
+  let h = `<tr><th>Hạng</th><th>SBD</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
   h += rows.map(r=>`<tr>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
     <td>${r.sbd||"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
     <td style="font-size:11px">${esc(String(r.category).split("—")[0].trim())}</td>
+    <td style="font-size:11px;color:var(--gold-dark)">${esc(r.piece||"—")}</td>
     <td>${r.judgeCount||0}</td>
     <td>${r.avg!=null?`<b style="font-size:14px;color:var(--gold-dark)">${r.avg.toFixed(1)}</b>`:'<span style="color:#bbb">chưa chấm</span>'}</td>
     <td class="${medalClass(r.medal)}">${r.medal?medalIcon(r.medal)+" "+r.medal:"—"}</td>
     <td><b>${esc(r.prize||"")}</b></td>
     <td>${(canEdit() && r.avg!=null)?`<button class="btn-out" style="padding:4px 9px;font-size:11px" data-print="${r.row}">🖨️</button>`:""}</td>
   </tr>`).join("");
-  if(rows.length===0) h += `<tr><td colspan="9" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
+  if(rows.length===0) h += `<tr><td colspan="10" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
   $("rsTable").innerHTML = h;
 
   $("rsTable").querySelectorAll("[data-print]").forEach(b=>b.addEventListener("click",()=>{
