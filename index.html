@@ -189,7 +189,8 @@ const DEFAULT_OBJECTIVES=[
   ]},
 ];
 function loadObjectives(){return ls_get("ta_objectives")||DEFAULT_OBJECTIVES;}
-function saveObjectives(o){ls_set("ta_objectives",o);}
+function saveObjectives(o){ls_set("ta_objectives",o);pushObjectivesToSheets(o);}
+function pushObjectivesToSheets(o){ try{ fetch(API_URL,{method:"POST",body:JSON.stringify({action:"saveObjectives",data:o||OBJECTIVES})}).catch(()=>{}); }catch(e){} }
 let OBJECTIVES=loadObjectives();
 
 // STORAGE HELPERS
@@ -377,6 +378,19 @@ async function loadAllFromSheets(){
       if(data.lotrinh){
         ls_set("ta_lotrinh", data.lotrinh);
         state.lotrinh = data.lotrinh;
+      }
+      // OKR (Objective/KR) — Sheets là nguồn sự thật, đồng bộ đa thiết bị
+      if(data.objectives && Array.isArray(data.objectives) && data.objectives.length){
+        // Sheets có dữ liệu -> áp dụng (KHÔNG gọi saveObjectives để tránh đẩy ngược)
+        OBJECTIVES = data.objectives;
+        ls_set("ta_objectives", data.objectives);
+      } else {
+        // Sheets trống -> chỉ máy nào có chỉnh sửa (khác mặc định) mới seed lên, tránh ghi đè bằng bản mặc định
+        try{
+          if(JSON.stringify(OBJECTIVES)!==JSON.stringify(DEFAULT_OBJECTIVES)){
+            pushObjectivesToSheets(OBJECTIVES);
+          }
+        }catch(e){}
       }
     }
   }catch(e){ console.log("Load all error:", e); }
@@ -2084,6 +2098,9 @@ function saveLoTrinhData(){
 async function loadLoTrinhFromSheets(){
   try{ const d=await apiGet({action:"getLoTrinh"}); if(d&&d.lotrinh){ state.lotrinh=d.lotrinh; ls_set("ta_lotrinh",d.lotrinh); if(state.tab==="lotrinh"&&!state.showLoTrinhModal) render(); } }catch(e){}
 }
+async function loadObjectivesFromSheets(){
+  try{ const d=await apiGet({action:"getObjectives"}); if(d&&Array.isArray(d.objectives)&&d.objectives.length){ OBJECTIVES=d.objectives; ls_set("ta_objectives",d.objectives); if(state.tab==="okr"&&!state.showOKREditor&&!state.okr_editKR) render(); } }catch(e){}
+}
 
 // ===== USERS =====
 function renderUsers(){  return`
@@ -2173,7 +2190,7 @@ function attachEvents(){
     setState({tab:b.dataset.tab});
     // Làm mới NGẦM trong nền (không hiện overlay) để dữ liệu vẫn cập nhật giữa các máy.
     // Các hàm load này tự setState -> tự render lại khi có dữ liệu mới.
-    if(b.dataset.tab==="okr") loadActuals();
+    if(b.dataset.tab==="okr"){ loadActuals(); loadObjectivesFromSheets(); }
     if(b.dataset.tab==="attendance"){ state.students=loadStudents(); state.att_data=loadAttData(); render(); }
     if(b.dataset.tab==="thuchi"){ loadThuChiFromSheets(""); }
     if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
