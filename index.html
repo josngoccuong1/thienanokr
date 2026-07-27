@@ -373,6 +373,11 @@ async function loadAllFromSheets(){
         ls_set("ta_plans", merged);
         state.plans = merged;
       }
+      // Lộ trình đào tạo — Sheets là nguồn sự thật (null = chưa có -> dùng mặc định)
+      if(data.lotrinh){
+        ls_set("ta_lotrinh", data.lotrinh);
+        state.lotrinh = data.lotrinh;
+      }
     }
   }catch(e){ console.log("Load all error:", e); }
 }
@@ -1028,6 +1033,7 @@ function enterApp(u){
   state.plans        = Array.isArray(safe("ta_plans",[])) ? safe("ta_plans",[]) : [];
   state.transactions = Array.isArray(safe("ta_tx",[]))    ? safe("ta_tx",[])    : [];
   state.luongData    = safe("ta_luong",{}) || {};
+  state.lotrinh      = ls_get("ta_lotrinh") || null;
   saveSession(u);
   render();
   loadActuals();
@@ -1310,6 +1316,7 @@ function renderApp(){
   ${state.showTxForm?renderTxModal():""}
   ${state.showPlanForm?renderPlanModal():""}
   ${state.showLuongModal?renderLuongModal():""}
+  ${state.showLoTrinhModal?renderLoTrinhModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
@@ -1870,31 +1877,42 @@ function renderBaoCao(){
 }
 
 // ===== LỘ TRÌNH ĐÀO TẠO =====
-function renderLoTrinh(){
-  const levels=[
-    {icon:"📖",ten:"1. Sơ cấp nhập môn",ht:"Piano cơ bản (Nhóm)",hsgv:"4–5 HS/GV",tg:"0–12 tháng",
+const DEFAULT_LOTRINH={
+  banner:{title:"🎹 LỘ TRÌNH ĐÀO TẠO & HỌC PHÍ PIANO 2026",sub:"CHƯƠNG TRÌNH ĐÀO TẠO CHUYÊN NGHIỆP – LỘ TRÌNH BÀI BẢN"},
+  levels:[
+    {icon:"📖",ten:"1. Sơ cấp nhập môn",badge:"",ht:"Piano cơ bản (Nhóm)",hsgv:"4–5 HS/GV",tg:"0–12 tháng",
      nd:["Làm quen phím đàn, tư thế ngồi đúng","Nhận biết nốt nhạc, tiết tấu cơ bản","Đọc nhạc tay phải – tay trái","Rèn luyện kỹ năng nghe & cảm âm"],phi:"2.000.000đ"},
-    {icon:"🎹",ten:"2. Sơ cấp hoàn chỉnh",ht:"Piano nâng cao (Nhóm)",hsgv:"4–5 HS/GV",tg:"6–12 tháng",
+    {icon:"🎹",ten:"2. Sơ cấp hoàn chỉnh",badge:"",ht:"Piano nâng cao (Nhóm)",hsgv:"4–5 HS/GV",tg:"6–12 tháng",
      nd:["Đọc và chơi thành thạo 2 tay","Kỹ thuật cơ bản (ngón, gam, hợp âm)","Nhạc lý cơ bản","Biểu diễn các tác phẩm đơn giản"],phi:"2.500.000đ"},
-    {icon:"🎓",ten:"3. Trung cấp",ht:"Piano nâng cao (Nhóm)",hsgv:"4 HS/GV",tg:"12–18 tháng",
+    {icon:"🎓",ten:"3. Trung cấp",badge:"",ht:"Piano nâng cao (Nhóm)",hsgv:"4 HS/GV",tg:"12–18 tháng",
      nd:["Kỹ thuật nâng cao (scale, arpeggio…)","Hòa âm – cảm âm nâng cao","Biểu diễn tác phẩm trung cấp","Rèn luyện phong cách và cảm xúc"],phi:"3.000.000đ"},
-    {icon:"🏆",ten:"4. Nâng cao / Chuyên nghiệp",ht:"Piano Thầy Cường (Kèm chuyên sâu)",hsgv:"Kèm 1–1",tg:"18–36 tháng",
+    {icon:"🏆",ten:"4. Nâng cao / Chuyên nghiệp",badge:"",ht:"Piano Thầy Cường (Kèm chuyên sâu)",hsgv:"Kèm 1–1",tg:"18–36 tháng",
      nd:["Kỹ thuật chuyên sâu, xử lý tác phẩm khó","Repertoire đa dạng các thời kỳ","Luyện thi chứng chỉ quốc tế (ABRSM, AMEB…)","Biểu diễn chuyên nghiệp & sân khấu"],phi:"3.000.000đ – 5.000.000đ"},
     {icon:"⭐",ten:"Kèm 1–1 Thầy Cường",badge:"MỚI",ht:"Kèm 1–1",hsgv:"Kèm 1–1",tg:"60 phút/buổi",
      nd:["Học cá nhân hóa theo năng lực","Tăng tốc kỹ thuật và cảm nhạc","Luyện thi, biểu diễn chuyên sâu"],phi:"5.000.000đ"},
-  ];
-  const nam=[
+  ],
+  nam:[
     {cap:"Sơ cấp nhập môn",khoa:"2.000.000",sk:"4",goc:"8.000.000",uu:"800.000",ca:"7.200.000"},
     {cap:"Sơ cấp hoàn chỉnh",khoa:"2.500.000",sk:"4",goc:"10.000.000",uu:"1.000.000",ca:"9.000.000"},
     {cap:"Trung cấp",khoa:"3.000.000",sk:"4",goc:"12.000.000",uu:"1.200.000",ca:"10.800.000"},
     {cap:"Nâng cao / Chuyên nghiệp",khoa:"3.000.000 – 5.000.000",sk:"4",goc:"12.000.000 – 20.000.000",uu:"1.200.000 – 2.000.000",ca:"10.800.000 – 18.000.000"},
-  ];
-  const loiich=["Giáo trình chuẩn quốc tế","Giáo viên giàu kinh nghiệm","Lộ trình cá nhân hóa","Cam kết tiến bộ rõ ràng","Hỗ trợ thi chứng chỉ quốc tế AMEB"];
+  ],
+  loiich:["Giáo trình chuẩn quốc tế","Giáo viên giàu kinh nghiệm","Lộ trình cá nhân hóa","Cam kết tiến bộ rõ ràng","Hỗ trợ thi chứng chỉ quốc tế AMEB"],
+  lienhe:{hotline:"0911 903 436 – 0819 069 888",diachi:"424 Bà Triệu – P. Hạc Thành – Tỉnh Thanh Hóa",note:"* Đóng học phí cả năm được ưu đãi ~10% so với đóng theo từng khóa."}
+};
+function ltData(){ const d=state.lotrinh||DEFAULT_LOTRINH; return {
+  banner:d.banner||DEFAULT_LOTRINH.banner, levels:d.levels||[], nam:d.nam||[],
+  loiich:d.loiich||[], lienhe:d.lienhe||DEFAULT_LOTRINH.lienhe }; }
+function renderLoTrinh(){
+  const D=ltData();
+  const levels=D.levels, nam=D.nam, loiich=D.loiich;
+  const isAdmin=state.user&&state.user.isAdmin;
 
   return`
-  <div class="card" style="background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);color:#fff;text-align:center;padding:16px">
-    <div style="font-size:16px;font-weight:800;letter-spacing:.5px">🎹 LỘ TRÌNH ĐÀO TẠO & HỌC PHÍ PIANO 2026</div>
-    <div style="font-size:11px;color:#D4AF37;font-weight:700;margin-top:4px">CHƯƠNG TRÌNH ĐÀO TẠO CHUYÊN NGHIỆP – LỘ TRÌNH BÀI BẢN</div>
+  <div class="card" style="background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);color:#fff;text-align:center;padding:16px;position:relative">
+    ${isAdmin?`<button class="btn-sm btn-gold" id="btnEditLoTrinh" style="position:absolute;top:12px;right:12px">✏️ Chỉnh sửa</button>`:""}
+    <div style="font-size:16px;font-weight:800;letter-spacing:.5px">${D.banner.title}</div>
+    <div style="font-size:11px;color:#D4AF37;font-weight:700;margin-top:4px">${D.banner.sub}</div>
   </div>
 
   <div class="card">
@@ -1933,7 +1951,7 @@ function renderLoTrinh(){
       </tr>`).join("")}
     </table>
     </div>
-    <div style="font-size:11px;color:#6B7280;margin-top:8px">* Đóng học phí cả năm được ưu đãi ~10% so với đóng theo từng khóa.</div>
+    <div style="font-size:11px;color:#6B7280;margin-top:8px">${D.lienhe.note||""}</div>
   </div>
 
   <div class="card">
@@ -1946,15 +1964,129 @@ function renderLoTrinh(){
   <div class="card" style="background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff">
     <div style="font-weight:800;color:#D4AF37;margin-bottom:6px">📞 ĐĂNG KÝ NGAY – GIỮ CHỖ SỚM</div>
     <div style="font-size:13px;line-height:1.7">
-      Hotline: <b>0911 903 436</b> – <b>0819 069 888</b><br>
-      📍 424 Bà Triệu – P. Hạc Thành – Tỉnh Thanh Hóa
+      Hotline: <b>${D.lienhe.hotline}</b><br>
+      📍 ${D.lienhe.diachi}
     </div>
   </div>`;
 }
 
+function ltEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function ltAttr(s){return ltEsc(s).replace(/"/g,"&quot;");}
+function renderLoTrinhModal(){
+  const E=state.lt_edit||ltData();
+  const inp=(id,val,ph)=>`<input class="form-input" id="${id}" value="${ltAttr(val)}" placeholder="${ph||""}"/>`;
+  return`<div class="modal-overlay" id="ltOverlay">
+    <div class="modal">
+      <div class="modal-head">
+        <span style="font-size:15px;font-weight:800">✏️ Chỉnh sửa Lộ trình</span>
+        <button class="btn-sm" id="btnCloseLoTrinh" style="background:#eee;color:#333">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div style="font-size:12px;font-weight:800;color:#0F3460;margin:2px 0 8px">🏷 Tiêu đề</div>
+        <div class="form-group" style="margin-bottom:8px"><div class="form-label">Tiêu đề</div>${inp("lt_b_title",E.banner.title)}</div>
+        <div class="form-group" style="margin-bottom:14px"><div class="form-label">Dòng phụ</div>${inp("lt_b_sub",E.banner.sub)}</div>
+
+        <div style="font-size:12px;font-weight:800;color:#0F3460;margin:2px 0 8px">📚 Các cấp độ đào tạo</div>
+        <div id="lt_levels">
+        ${E.levels.map((l,i)=>`
+          <div class="card" style="padding:10px;margin-bottom:10px;border:1px solid #E5E7EB">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <b style="font-size:12px">Cấp độ ${i+1}</b>
+              <button class="btn-sm lt-del-lv" data-i="${i}" style="background:#FDEDEC;color:#E74C3C">🗑 Xóa</button>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="max-width:80px"><div class="form-label">Icon</div>${inp("lt_lv_"+i+"_icon",l.icon)}</div>
+              <div class="form-group"><div class="form-label">Tên cấp độ</div>${inp("lt_lv_"+i+"_ten",l.ten)}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-label">Hình thức</div>${inp("lt_lv_"+i+"_ht",l.ht)}</div>
+              <div class="form-group" style="max-width:110px"><div class="form-label">Nhãn (MỚI…)</div>${inp("lt_lv_"+i+"_badge",l.badge)}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-label">Số HS/GV</div>${inp("lt_lv_"+i+"_hsgv",l.hsgv)}</div>
+              <div class="form-group"><div class="form-label">Thời gian</div>${inp("lt_lv_"+i+"_tg",l.tg)}</div>
+            </div>
+            <div class="form-group" style="margin-bottom:8px"><div class="form-label">Nội dung (mỗi ý một dòng)</div>
+              <textarea class="form-input" id="lt_lv_${i}_nd" rows="4" style="resize:vertical">${ltEsc((l.nd||[]).join("\n"))}</textarea></div>
+            <div class="form-group"><div class="form-label">Học phí / khóa</div>${inp("lt_lv_"+i+"_phi",l.phi)}</div>
+          </div>`).join("")}
+        </div>
+        <button class="btn-sm" id="lt_add_lv" style="background:#E8F8F0;color:#27AE60;margin-bottom:16px">➕ Thêm cấp độ</button>
+
+        <div style="font-size:12px;font-weight:800;color:#0F3460;margin:2px 0 8px">💰 Học phí theo năm</div>
+        <div id="lt_nams">
+        ${E.nam.map((n,i)=>`
+          <div class="card" style="padding:10px;margin-bottom:10px;border:1px solid #E5E7EB">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <b style="font-size:12px">Dòng ${i+1}</b>
+              <button class="btn-sm lt-del-nm" data-i="${i}" style="background:#FDEDEC;color:#E74C3C">🗑 Xóa</button>
+            </div>
+            <div class="form-group" style="margin-bottom:8px"><div class="form-label">Cấp độ</div>${inp("lt_nm_"+i+"_cap",n.cap)}</div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-label">Học phí/khóa</div>${inp("lt_nm_"+i+"_khoa",n.khoa)}</div>
+              <div class="form-group" style="max-width:90px"><div class="form-label">Số khóa</div>${inp("lt_nm_"+i+"_sk",n.sk)}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-label">Tổng gốc</div>${inp("lt_nm_"+i+"_goc",n.goc)}</div>
+              <div class="form-group"><div class="form-label">Ưu đãi</div>${inp("lt_nm_"+i+"_uu",n.uu)}</div>
+            </div>
+            <div class="form-group"><div class="form-label">Đóng cả năm</div>${inp("lt_nm_"+i+"_ca",n.ca)}</div>
+          </div>`).join("")}
+        </div>
+        <button class="btn-sm" id="lt_add_nm" style="background:#E8F8F0;color:#27AE60;margin-bottom:16px">➕ Thêm dòng học phí năm</button>
+
+        <div style="font-size:12px;font-weight:800;color:#0F3460;margin:2px 0 8px">✨ Lợi ích (mỗi ý một dòng)</div>
+        <div class="form-group" style="margin-bottom:14px">
+          <textarea class="form-input" id="lt_loiich" rows="5" style="resize:vertical">${ltEsc((E.loiich||[]).join("\n"))}</textarea></div>
+
+        <div style="font-size:12px;font-weight:800;color:#0F3460;margin:2px 0 8px">📞 Liên hệ & ghi chú</div>
+        <div class="form-group" style="margin-bottom:8px"><div class="form-label">Hotline</div>${inp("lt_lh_hotline",E.lienhe.hotline)}</div>
+        <div class="form-group" style="margin-bottom:8px"><div class="form-label">Địa chỉ</div>${inp("lt_lh_diachi",E.lienhe.diachi)}</div>
+        <div class="form-group" style="margin-bottom:14px"><div class="form-label">Ghi chú (dưới bảng học phí năm)</div>${inp("lt_lh_note",E.lienhe.note)}</div>
+
+        <button class="btn-primary" id="btnSaveLoTrinh" style="width:100%">💾 Lưu lộ trình</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== LỘ TRÌNH: logic chỉnh sửa =====
+function openLoTrinhEdit(){ state.lt_edit=JSON.parse(JSON.stringify(ltData())); setState({showLoTrinhModal:true}); }
+function ltReadDOM(){
+  const E=state.lt_edit; if(!E) return;
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  E.banner.title=g("lt_b_title"); E.banner.sub=g("lt_b_sub");
+  E.levels.forEach((l,i)=>{
+    l.icon=g("lt_lv_"+i+"_icon"); l.ten=g("lt_lv_"+i+"_ten"); l.ht=g("lt_lv_"+i+"_ht");
+    l.badge=g("lt_lv_"+i+"_badge"); l.hsgv=g("lt_lv_"+i+"_hsgv"); l.tg=g("lt_lv_"+i+"_tg");
+    l.nd=g("lt_lv_"+i+"_nd").split("\n").map(s=>s.trim()).filter(Boolean); l.phi=g("lt_lv_"+i+"_phi");
+  });
+  E.nam.forEach((n,i)=>{
+    n.cap=g("lt_nm_"+i+"_cap"); n.khoa=g("lt_nm_"+i+"_khoa"); n.sk=g("lt_nm_"+i+"_sk");
+    n.goc=g("lt_nm_"+i+"_goc"); n.uu=g("lt_nm_"+i+"_uu"); n.ca=g("lt_nm_"+i+"_ca");
+  });
+  E.loiich=g("lt_loiich").split("\n").map(s=>s.trim()).filter(Boolean);
+  E.lienhe.hotline=g("lt_lh_hotline"); E.lienhe.diachi=g("lt_lh_diachi"); E.lienhe.note=g("lt_lh_note");
+}
+function ltAddLevel(){ ltReadDOM(); state.lt_edit.levels.push({icon:"🎵",ten:"Cấp độ mới",badge:"",ht:"",hsgv:"",tg:"",nd:[],phi:""}); render(); }
+function ltDelLevel(i){ ltReadDOM(); state.lt_edit.levels.splice(i,1); render(); }
+function ltAddNam(){ ltReadDOM(); state.lt_edit.nam.push({cap:"",khoa:"",sk:"",goc:"",uu:"",ca:""}); render(); }
+function ltDelNam(i){ ltReadDOM(); state.lt_edit.nam.splice(i,1); render(); }
+function saveLoTrinhData(){
+  ltReadDOM();
+  const obj=state.lt_edit;
+  state.lotrinh=obj; ls_set("ta_lotrinh",obj);
+  // Lưu lên Google Sheets qua POST (body dạng text: không giới hạn độ dài, không dính CORS preflight)
+  fetch(API_URL,{method:"POST",body:JSON.stringify({action:"saveLoTrinh",data:obj})}).catch(()=>{});
+  setState({showLoTrinhModal:false});
+}
+async function loadLoTrinhFromSheets(){
+  try{ const d=await apiGet({action:"getLoTrinh"}); if(d&&d.lotrinh){ state.lotrinh=d.lotrinh; ls_set("ta_lotrinh",d.lotrinh); if(state.tab==="lotrinh"&&!state.showLoTrinhModal) render(); } }catch(e){}
+}
+
 // ===== USERS =====
-function renderUsers(){
-  return`
+function renderUsers(){  return`
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span style="font-size:13px;font-weight:700;color:#555">${USERS.length} tài khoản</span>
     <button class="btn-success" id="btnAddUser" style="font-size:12px;padding:6px 14px">➕ Thêm GV</button>
@@ -2025,6 +2157,15 @@ function attachEvents(){
   document.getElementById("inp-p")?.addEventListener("keydown",e=>e.key==="Enter"&&doLogin());
   document.getElementById("btn-login")?.addEventListener("click",doLogin);
   document.getElementById("btnLogout")?.addEventListener("click",logout);
+  // Lộ trình — chỉnh sửa
+  document.getElementById("btnEditLoTrinh")?.addEventListener("click",openLoTrinhEdit);
+  document.getElementById("btnCloseLoTrinh")?.addEventListener("click",()=>setState({showLoTrinhModal:false}));
+  document.getElementById("ltOverlay")?.addEventListener("click",e=>{if(e.target.id==="ltOverlay")setState({showLoTrinhModal:false})});
+  document.getElementById("btnSaveLoTrinh")?.addEventListener("click",saveLoTrinhData);
+  document.getElementById("lt_add_lv")?.addEventListener("click",ltAddLevel);
+  document.getElementById("lt_add_nm")?.addEventListener("click",ltAddNam);
+  document.querySelectorAll(".lt-del-lv").forEach(b=>b.addEventListener("click",()=>ltDelLevel(Number(b.dataset.i))));
+  document.querySelectorAll(".lt-del-nm").forEach(b=>b.addEventListener("click",()=>ltDelNam(Number(b.dataset.i))));
 
   // TABS
   document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
@@ -2037,6 +2178,7 @@ function attachEvents(){
     if(b.dataset.tab==="thuchi"){ loadThuChiFromSheets(""); }
     if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
     if(b.dataset.tab==="plan"){ loadPlansFromSheets(); }
+    if(b.dataset.tab==="lotrinh"){ loadLoTrinhFromSheets(); }
   }));
 
   // OKR
