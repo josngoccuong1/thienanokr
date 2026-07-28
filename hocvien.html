@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quản lý học viên · Thiên Ân</title>
+<style>
+:root{
+  --navy:#12294d; --navy-2:#1d3f70; --gold:#c9a227; --gold-2:#e0be4a;
+  --nen:#f4f6f9; --the:#ffffff; --vien:#dfe4ec;
+  --chu:#1f2937; --chu-mo:#6b7280;
+  --xanh:#0f7a4d; --do:#b42318; --cam:#b45309;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--nen);color:var(--chu);font-size:15px;line-height:1.5}
+button{font-family:inherit;font-size:14px;cursor:pointer;border:none;border-radius:6px}
+input,select,textarea{font-family:inherit;font-size:14px;width:100%;padding:9px 11px;
+  border:1px solid var(--vien);border-radius:6px;background:#fff;color:var(--chu)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--navy-2);outline-offset:-1px;border-color:var(--navy-2)}
+.an{display:none !important}
+
+/* Đăng nhập */
+#manDangNhap{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,var(--navy) 0%,var(--navy-2) 100%);padding:20px}
+.hopDangNhap{background:#fff;border-radius:12px;padding:34px 28px;width:100%;max-width:380px;
+  border-top:4px solid var(--gold);box-shadow:0 12px 40px rgba(0,0,0,.28)}
+.hopDangNhap h1{font-size:20px;color:var(--navy);margin-bottom:4px}
+.hopDangNhap p{font-size:13px;color:var(--chu-mo);margin-bottom:22px}
+.hopDangNhap label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+
+/* Khung chính */
+#manChinh{min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--navy);border-bottom:3px solid var(--gold);
+  padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header .ten{color:#fff;font-size:16px;font-weight:600}
+header .ten span{display:block;font-size:11px;color:var(--gold-2);font-weight:400;letter-spacing:.4px}
+header .phai{margin-left:auto;display:flex;align-items:center;gap:12px}
+header .nguoi{color:#cbd5e1;font-size:13px}
+.nutThoat{background:transparent;color:#cbd5e1;border:1px solid #3d5680;padding:6px 12px}
+.nutThoat:hover{background:#1d3f70;color:#fff}
+
+nav{background:#fff;border-bottom:1px solid var(--vien);display:flex;overflow-x:auto}
+nav button{background:none;border-radius:0;padding:13px 20px;color:var(--chu-mo);
+  font-weight:600;white-space:nowrap;border-bottom:3px solid transparent}
+nav button.chon{color:var(--navy);border-bottom-color:var(--gold)}
+
+main{flex:1;padding:18px;max-width:1200px;width:100%;margin:0 auto}
+.thanhCong{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.thanhCong input,.thanhCong select{width:auto;min-width:150px;flex:0 1 auto}
+.thanhCong input[type=search]{flex:1 1 240px;min-width:200px}
+.nutChinh{background:var(--navy);color:#fff;padding:9px 18px;font-weight:600}
+.nutChinh:hover{background:var(--navy-2)}
+.nutPhu{background:#fff;color:var(--navy);border:1px solid var(--vien);padding:9px 16px;font-weight:600}
+.nutPhu:hover{border-color:var(--navy)}
+.nutXoa{background:#fff;color:var(--do);border:1px solid #f0c9c4;padding:7px 13px}
+
+.the{background:var(--the);border:1px solid var(--vien);border-radius:10px;overflow:hidden}
+.cuonBang{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#eef1f6;text-align:left;padding:11px 13px;font-weight:600;
+  color:var(--navy);white-space:nowrap;border-bottom:1px solid var(--vien)}
+td{padding:11px 13px;border-bottom:1px solid #eef1f5;vertical-align:middle}
+tbody tr:hover{background:#f8fafc;cursor:pointer}
+tbody tr:last-child td{border-bottom:none}
+.ma{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--chu-mo)}
+
+.nhan{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.nhan.hoc{background:#e6f4ec;color:var(--xanh)}
+.nhan.bao{background:#fdf2e3;color:var(--cam)}
+.nhan.nghi{background:#fbeae8;color:var(--do)}
+
+.phanTrang{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;border-top:1px solid var(--vien);flex-wrap:wrap}
+.phanTrang span{font-size:13px;color:var(--chu-mo)}
+.phanTrang button{background:#fff;border:1px solid var(--vien);padding:7px 14px;color:var(--navy)}
+.phanTrang button:disabled{opacity:.4;cursor:default}
+
+.trong{padding:44px 20px;text-align:center;color:var(--chu-mo);font-size:14px}
+.dangTai{padding:40px;text-align:center;color:var(--chu-mo);font-size:14px}
+
+/* Modal */
+.lop-phu{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;
+  display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.hopModal{background:#fff;border-radius:12px;width:100%;max-width:640px;margin:auto;
+  border-top:4px solid var(--gold)}
+.dauModal{padding:16px 20px;border-bottom:1px solid var(--vien);display:flex;align-items:center}
+.dauModal h2{font-size:17px;color:var(--navy)}
+.dongModal{margin-left:auto;background:none;font-size:22px;color:var(--chu-mo);padding:0 6px;line-height:1}
+.thanModal{padding:20px}
+.chanModal{padding:14px 20px;border-top:1px solid var(--vien);display:flex;gap:10px;justify-content:flex-end}
+.luoi{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.luoi .rong{grid-column:1/-1}
+.o label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.o label i{color:var(--do);font-style:normal}
+h3.muc{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;
+  letter-spacing:.6px;margin:22px 0 12px;padding-top:16px;border-top:1px solid var(--vien)}
+
+.baoLoi{background:#fbeae8;color:var(--do);padding:10px 13px;border-radius:6px;
+  font-size:13px;margin-bottom:14px}
+#thongBao{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:#fff;padding:12px 22px;border-radius:8px;font-size:14px;
+  z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#thongBao.loi{background:var(--do)}
+
+/* Chi tiết học viên */
+.hopModal.rong{max-width:880px}
+.tomTat{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.oTomTat{background:#f4f6f9;border:1px solid var(--vien);border-radius:8px;padding:12px 14px}
+.oTomTat .nhan-o{font-size:11px;color:var(--chu-mo);text-transform:uppercase;letter-spacing:.5px}
+.oTomTat .so{font-size:19px;font-weight:700;color:var(--navy);margin-top:3px}
+.oTomTat.no{background:#fbeae8;border-color:#f0c9c4}
+.oTomTat.no .so{color:var(--do)}
+.oTomTat.du{background:#e6f4ec;border-color:#bfe0cd}
+.oTomTat.du .so{color:var(--xanh)}
+.hoSo{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:14px;margin-bottom:6px}
+.hoSo div{display:flex;gap:8px}
+.hoSo b{color:var(--chu-mo);font-weight:600;min-width:112px;flex:0 0 112px}
+table.nho{font-size:13px}
+table.nho th,table.nho td{padding:8px 10px}
+table.nho tbody tr:hover{background:transparent;cursor:default}
+.tien{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nutNho{background:var(--navy);color:#fff;padding:5px 11px;font-size:12px;font-weight:600}
+.nutNho.vien{background:#fff;color:var(--navy);border:1px solid var(--vien)}
+
+/* Hóa đơn */
+#vungIn{display:none}
+.hd{max-width:700px;margin:0 auto;padding:26px;color:#000;font-size:13px}
+.hd .dau{text-align:center;border-bottom:2px solid #12294d;padding-bottom:14px;margin-bottom:18px}
+.hd .dau .cty{font-size:12px;font-weight:700;letter-spacing:.4px}
+.hd .dau .dv{font-size:17px;font-weight:700;color:#12294d;margin-top:3px}
+.hd .dau .dc{font-size:11px;color:#444;margin-top:5px;line-height:1.6}
+.hd h1{font-size:19px;text-align:center;letter-spacing:1.5px;margin:14px 0 4px}
+.hd .so-pt{text-align:center;font-size:12px;color:#555;margin-bottom:18px}
+.hd .dong-tt{display:flex;gap:10px;margin-bottom:7px}
+.hd .dong-tt b{min-width:130px;font-weight:600}
+.hd table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.hd th,.hd td{border:1px solid #999;padding:7px 9px}
+.hd th{background:#eef1f6;font-weight:700}
+.hd .tong{font-size:15px;font-weight:700;color:#12294d}
+.hd .chu{font-style:italic;font-size:12px;margin:10px 0 20px}
+.hd .ky{display:flex;justify-content:space-between;margin-top:26px;text-align:center;font-size:12px}
+.hd .ky div{width:46%}
+.hd .ky b{display:block;margin-bottom:56px;font-weight:700}
+.hd .chan{text-align:center;font-size:11px;color:#666;margin-top:22px;
+  border-top:1px solid #ccc;padding-top:10px}
+
+@media print{
+  body>*{display:none !important}
+  #vungIn{display:block !important}
+  @page{size:A5 landscape;margin:8mm}
+}
+@media(max-width:640px){
+  main{padding:12px}
+  .luoi{grid-template-columns:1fr}
+  .tomTat{grid-template-columns:1fr 1fr}
+  .hoSo{grid-template-columns:1fr}
+  th,td{padding:9px 10px}
+  .an-mobile{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ĐĂNG NHẬP -->
+<div id="manDangNhap">
+  <div class="hopDangNhap">
+    <h1>Quản lý học viên</h1>
+    <p>Học viện Âm nhạc Thiên Ân</p>
+    <div id="loiDangNhap" class="baoLoi an"></div>
+    <label for="oTen">Tên đăng nhập</label>
+    <input id="oTen" autocomplete="username">
+    <label for="oMk">Mật khẩu</label>
+    <input id="oMk" type="password" autocomplete="current-password">
+    <button class="nutChinh" style="width:100%;margin-top:20px;padding:11px" onclick="dangNhap()">Đăng nhập</button>
+  </div>
+</div>
+
+<!-- CHÍNH -->
+<div id="manChinh" class="an">
+  <header>
+    <div class="ten">THIÊN ÂN<span>QUẢN LÝ HỌC VIÊN</span></div>
+    <div class="phai">
+      <span class="nguoi an-mobile" id="tenNguoi"></span>
+      <button class="nutThoat" onclick="thoat()">Thoát</button>
+    </div>
+  </header>
+
+  <nav>
+    <button id="tab-hocvien" class="chon" onclick="doiTab('hocvien')">Học viên</button>
+    <button id="tab-lop" onclick="doiTab('lop')">Lớp học</button>
+  </nav>
+
+  <main>
+    <!-- TAB HỌC VIÊN -->
+    <section id="vung-hocvien">
+      <div class="thanhCong">
+        <input type="search" id="oTim" placeholder="Tìm theo tên, mã, số điện thoại..." oninput="timTre()">
+        <select id="locCoSo" onchange="taiHocVien(1)"><option value="">Tất cả cơ sở</option></select>
+        <select id="locTrangThai" onchange="taiHocVien(1)">
+          <option value="">Tất cả trạng thái</option>
+          <option>Đang học</option><option>Bảo lưu</option><option>Đã nghỉ</option>
+        </select>
+        <button class="nutChinh" onclick="moHocVien()">Thêm học viên</button>
+      </div>
+      <div class="the">
+        <div class="cuonBang"><table>
+          <thead><tr>
+            <th>Mã</th><th>Họ tên</th><th class="an-mobile">Ngày sinh</th>
+            <th>Phụ huynh</th><th class="an-mobile">Cơ sở</th><th>Trạng thái</th>
+          </tr></thead>
+          <tbody id="bangHV"><tr><td colspan="6" class="dangTai">Đang tải...</td></tr></tbody>
+        </table></div>
+        <div class="phanTrang">
+          <span id="tomTatHV"></span>
+          <div style="display:flex;gap:8px">
+            <button id="nutTruoc" onclick="doiTrang(-1)">Trước</button>
+            <button id="nutSau" onclick="doiTrang(1)">Sau</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB LỚP -->
+    <section id="vung-lop" class="an">
+      <div class="thanhCong">
+        <button class="nutChinh" onclick="moLop()">Thêm lớp</button>
+      </div>
+      <div class="the">
+        <div class="cuonBang"><table>
+          <thead><tr>
+            <th>Mã</th><th>Tên lớp</th><th>Môn</th><th class="an-mobile">Giáo viên</th>
+            <th class="an-mobile">Lịch</th><th>Trạng thái</th>
+          </tr></thead>
+          <tbody id="bangLop"><tr><td colspan="6" class="dangTai">Đang tải...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="khungModal"></div>
+<div id="vungIn"></div>
+
+<script>
+var NguoiDung = null, DanhMuc = {coSo:[],monHoc:[],giaoVien:[]};
+var TrangHV = 1, TongTrangHV = 1, DsLop = [], hetGio = null;
+
+/* ---------- Cấu hình kết nối ---------- */
+// Dán URL Web App (kết thúc bằng /exec) sau khi Deploy Apps Script:
+var API_URL = 'https://script.google.com/macros/s/AKfycbw96JLMWf48Ps_eqas5gdEOvLHgO12uDHs-ylvprRkqk-zPXagLFAPJ8WE1C95DVDapOQ/exec';
+// Phải TRÙNG với TOKEN_API trong Code.gs:
+var MA_UNG_DUNG = 'thienan-2026-doi-chuoi-nay-thanh-bi-mat';
+
+/* ---------- Gọi backend ---------- */
+function goi(hanhDong, duLieu){
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ hanhDong: hanhDong, duLieu: duLieu || {}, token: MA_UNG_DUNG })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if (r.thanhCong) return r.duLieu;
+    throw new Error(r.loi || 'Có lỗi xảy ra.');
+  })
+  .catch(function(e){
+    if (e instanceof TypeError) throw new Error('Không kết nối được máy chủ. Kiểm tra mạng hoặc URL API.');
+    throw e;
+  });
+}
+function bao(text, laLoi){
+  var cu = document.getElementById('thongBao'); if(cu) cu.remove();
+  var d = document.createElement('div');
+  d.id='thongBao'; d.textContent=text; if(laLoi) d.className='loi';
+  document.body.appendChild(d);
+  setTimeout(function(){ if(d.parentNode) d.remove(); }, 3200);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- Đăng nhập ---------- */
+function dangNhap(){
+  var ten = document.getElementById('oTen').value.trim();
+  var mk  = document.getElementById('oMk').value.trim();
+  var loi = document.getElementById('loiDangNhap');
+  loi.classList.add('an');
+  if(!ten || !mk){ loi.textContent='Nhập đủ tên đăng nhập và mật khẩu.'; loi.classList.remove('an'); return; }
+
+  goi('dangNhap', {tenDangNhap:ten, matKhau:mk}).then(function(nd){
+    NguoiDung = nd;
+    document.getElementById('tenNguoi').textContent = nd.hoTen;
+    document.getElementById('manDangNhap').classList.add('an');
+    document.getElementById('manChinh').classList.remove('an');
+    return goi('layDanhMuc');
+  }).then(function(dm){
+    DanhMuc = dm;
+    var sel = document.getElementById('locCoSo');
+    dm.coSo.forEach(function(c){
+      sel.insertAdjacentHTML('beforeend','<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>');
+    });
+    taiHocVien(1);
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an');
+  });
+}
+document.getElementById('oMk').addEventListener('keydown', function(e){ if(e.key==='Enter') dangNhap(); });
+
+function thoat(){ location.reload(); }
+
+/* ---------- Tab ---------- */
+function doiTab(ten){
+  ['hocvien','lop'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
+    document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
+  });
+  if(ten==='lop' && !DsLop.length) taiLop();
+}
+
+/* ---------- Học viên ---------- */
+function timTre(){ clearTimeout(hetGio); hetGio = setTimeout(function(){ taiHocVien(1); }, 350); }
+
+function taiHocVien(trang){
+  var tbody = document.getElementById('bangHV');
+  tbody.innerHTML = '<tr><td colspan="6" class="dangTai">Đang tải...</td></tr>';
+  goi('layHocVien', {
+    tuKhoa: document.getElementById('oTim').value,
+    trang: trang,
+    loc: { coSo: document.getElementById('locCoSo').value,
+           trangThai: document.getElementById('locTrangThai').value }
+  }).then(function(kq){
+    TrangHV = kq.trang; TongTrangHV = kq.soTrang;
+    if(!kq.danhSach.length){
+      tbody.innerHTML = '<tr><td colspan="6" class="trong">Chưa có học viên nào khớp. Bấm “Thêm học viên” để bắt đầu.</td></tr>';
+    } else {
+      tbody.innerHTML = kq.danhSach.map(function(h){
+        var lop = h.TrangThai==='Đã nghỉ' ? 'nghi' : (h.TrangThai==='Bảo lưu' ? 'bao' : 'hoc');
+        return '<tr onclick="moChiTiet(\''+esc(h.MaHV)+'\')">'
+          + '<td class="ma">'+esc(h.MaHV)+'</td>'
+          + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+          + '<td class="an-mobile">'+esc(h.NgaySinh)+'</td>'
+          + '<td>'+esc(h.TenPhuHuynh)+'<br><span class="ma">'+esc(h.SDT_PhuHuynh)+'</span></td>'
+          + '<td class="an-mobile">'+esc(h.CoSo)+'</td>'
+          + '<td><span class="nhan '+lop+'">'+esc(h.TrangThai||'Đang học')+'</span></td></tr>';
+      }).join('');
+    }
+    document.getElementById('tomTatHV').textContent =
+      kq.tong + ' học viên · trang ' + kq.trang + '/' + kq.soTrang;
+    document.getElementById('nutTruoc').disabled = kq.trang <= 1;
+    document.getElementById('nutSau').disabled  = kq.trang >= kq.soTrang;
+  }).catch(function(e){
+    tbody.innerHTML = '<tr><td colspan="6" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
+  });
+}
+function doiTrang(b){
+  var t = TrangHV + b;
+  if(t >= 1 && t <= TongTrangHV) taiHocVien(t);
+}
+
+function moHocVien(hv){
+  hv = hv || {};
+  var moi = !hv.MaHV;
+  var optCoSo = DanhMuc.coSo.map(function(c){
+    return '<option value="'+esc(c.ma)+'"'+(hv.CoSo===c.ma?' selected':'')+'>'+esc(c.ten)+'</option>'; }).join('');
+  var optTT = ['Đang học','Bảo lưu','Đã nghỉ'].map(function(t){
+    return '<option'+(hv.TrangThai===t?' selected':'')+'>'+t+'</option>'; }).join('');
+
+  moModal((moi?'Thêm học viên':'Sửa hồ sơ · '+esc(hv.MaHV)),
+    '<div class="baoLoi an" id="loiForm"></div>'
+  + '<div class="luoi">'
+  + o('Họ tên học viên','<input id="f_HoTen" value="'+esc(hv.HoTen)+'">',true,'rong')
+  + o('Ngày sinh','<input id="f_NgaySinh" placeholder="dd/mm/yyyy" value="'+esc(hv.NgaySinh)+'">')
+  + o('Giới tính','<select id="f_GioiTinh"><option></option>'
+      +['Nam','Nữ'].map(function(g){return '<option'+(hv.GioiTinh===g?' selected':'')+'>'+g+'</option>';}).join('')+'</select>')
+  + o('Tên phụ huynh','<input id="f_TenPhuHuynh" value="'+esc(hv.TenPhuHuynh)+'">')
+  + o('SĐT phụ huynh','<input id="f_SDT_PhuHuynh" inputmode="tel" value="'+esc(hv.SDT_PhuHuynh)+'">',true)
+  + o('Địa chỉ','<input id="f_DiaChi" value="'+esc(hv.DiaChi)+'">',false,'rong')
+  + o('Cơ sở','<select id="f_CoSo"><option value=""></option>'+optCoSo+'</select>')
+  + o('Ngày nhập học','<input id="f_NgayNhapHoc" placeholder="dd/mm/yyyy" value="'+esc(hv.NgayNhapHoc)+'">')
+  + o('Trạng thái','<select id="f_TrangThai">'+optTT+'</select>')
+  + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
+  + '</div>',
+    'luuHocVien(' + (hv._dong||0) + ',"' + esc(hv.MaHV||'') + '")');
+}
+
+function luuHocVien(dong, ma){
+  var hv = {_dong:dong, MaHV:ma};
+  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi',
+   'CoSo','NgayNhapHoc','TrangThai','GhiChu'].forEach(function(k){
+    hv[k] = document.getElementById('f_'+k).value.trim();
+  });
+  var loi = document.getElementById('loiForm');
+  loi.classList.add('an');
+  khoaLuu(true);
+  goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(kq){
+    dongModal(); bao('Đã lưu ' + kq.MaHV); taiHocVien(TrangHV);
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
+  });
+}
+
+/* ---------- Lớp ---------- */
+function taiLop(){
+  var tbody = document.getElementById('bangLop');
+  goi('layLop').then(function(ds){
+    DsLop = ds;
+    if(!ds.length){
+      tbody.innerHTML = '<tr><td colspan="6" class="trong">Chưa có lớp nào. Bấm “Thêm lớp” để tạo lớp đầu tiên.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = ds.map(function(l){
+      var lop = l.TrangThai==='Đã đóng' ? 'nghi' : 'hoc';
+      return '<tr onclick=\'moLop('+JSON.stringify(l).replace(/'/g,"&#39;")+')\'>'
+        + '<td class="ma">'+esc(l.MaLop)+'</td>'
+        + '<td><strong>'+esc(l.TenLop)+'</strong></td>'
+        + '<td>'+esc(l.MonHoc)+'</td>'
+        + '<td class="an-mobile">'+esc(l.TenGV)+'</td>'
+        + '<td class="an-mobile">'+esc(l.Thu)+' · '+esc(l.GioBatDau)+'-'+esc(l.GioKetThuc)+'</td>'
+        + '<td><span class="nhan '+lop+'">'+esc(l.TrangThai||'Đang mở')+'</span></td></tr>';
+    }).join('');
+  }).catch(function(e){
+    tbody.innerHTML = '<tr><td colspan="6" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
+  });
+}
+
+function moLop(l){
+  l = l || {};
+  var moi = !l.MaLop;
+  var optMon = DanhMuc.monHoc.map(function(m){
+    return '<option value="'+esc(m.ma)+'"'+(l.MonHoc===m.ma?' selected':'')+'>'+esc(m.ten)+'</option>'; }).join('');
+  var optCoSo = DanhMuc.coSo.map(function(c){
+    return '<option value="'+esc(c.ma)+'"'+(l.CoSo===c.ma?' selected':'')+'>'+esc(c.ten)+'</option>'; }).join('');
+  var optGV = DanhMuc.giaoVien.map(function(g){
+    return '<option value="'+esc(g.ma)+'"'+(l.MaGV===g.ma?' selected':'')+'>'+esc(g.ten)+'</option>'; }).join('');
+  var optThu = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'].map(function(t){
+    return '<option'+(l.Thu===t?' selected':'')+'>'+t+'</option>'; }).join('');
+
+  moModal((moi?'Thêm lớp':'Sửa lớp · '+esc(l.MaLop)),
+    '<div class="baoLoi an" id="loiForm"></div>'
+  + '<div class="luoi">'
+  + o('Tên lớp','<input id="f_TenLop" value="'+esc(l.TenLop)+'">',true,'rong')
+  + o('Môn học','<select id="f_MonHoc"><option value=""></option>'+optMon+'</select>')
+  + o('Cấp độ','<input id="f_CapDo" placeholder="VD: Cấp 3" value="'+esc(l.CapDo)+'">')
+  + o('Giáo viên','<select id="f_MaGV"><option value=""></option>'+optGV+'</select>'
+      + (DanhMuc.giaoVien.length?'':'<div style="font-size:12px;color:#b45309;margin-top:5px">Chưa kết nối được file nhân sự — điền ID_FILE_NHANSU trong Code.gs</div>'))
+  + o('Cơ sở','<select id="f_CoSo"><option value=""></option>'+optCoSo+'</select>')
+  + o('Thứ','<select id="f_Thu"><option value=""></option>'+optThu+'</select>')
+  + o('Sĩ số tối đa','<input id="f_SiSoToiDa" type="number" min="1" value="'+esc(l.SiSoToiDa)+'">')
+  + o('Giờ bắt đầu','<input id="f_GioBatDau" placeholder="18:00" value="'+esc(l.GioBatDau)+'">')
+  + o('Giờ kết thúc','<input id="f_GioKetThuc" placeholder="19:30" value="'+esc(l.GioKetThuc)+'">')
+  + o('Trạng thái','<select id="f_TrangThai">'
+      +['Đang mở','Đã đóng'].map(function(t){return '<option'+(l.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
+  + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(l.GhiChu)+'</textarea>',false,'rong')
+  + '</div>',
+    'luuLop(' + (l._dong||0) + ',"' + esc(l.MaLop||'') + '")');
+}
+
+function luuLop(dong, ma){
+  var l = {_dong:dong, MaLop:ma};
+  ['TenLop','MonHoc','CapDo','MaGV','CoSo','Thu','GioBatDau','GioKetThuc',
+   'SiSoToiDa','TrangThai','GhiChu'].forEach(function(k){
+    l[k] = document.getElementById('f_'+k).value.trim();
+  });
+  var gv = DanhMuc.giaoVien.filter(function(g){ return g.ma === l.MaGV; })[0];
+  l.TenGV = gv ? gv.ten : '';
+
+  var loi = document.getElementById('loiForm');
+  loi.classList.add('an');
+  khoaLuu(true);
+  goi('luuLop', {lop:l}).then(function(kq){
+    dongModal(); bao('Đã lưu ' + kq.MaLop); taiLop();
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
+  });
+}
+
+/* ---------- Định dạng ---------- */
+function tien(n){ return (Number(n)||0).toLocaleString('vi-VN'); }
+
+function docSo(n){
+  n = Math.round(Number(n)||0);
+  if(n === 0) return 'Không đồng';
+  var cs = ['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
+  var hang = ['',' nghìn',' triệu',' tỷ'];
+  function doc3(so, dayDu){
+    var tram = Math.floor(so/100), chuc = Math.floor(so%100/10), dv = so%10, s = '';
+    if(tram > 0){ s += cs[tram] + ' trăm'; if(chuc === 0 && dv > 0) s += ' lẻ'; }
+    else if(dayDu){ s += 'không trăm'; if(chuc === 0 && dv > 0) s += ' lẻ'; }
+    if(chuc > 1){
+      s += ' ' + cs[chuc] + ' mươi';
+      if(dv === 1) s += ' mốt'; else if(dv === 5) s += ' lăm'; else if(dv > 0) s += ' ' + cs[dv];
+    } else if(chuc === 1){
+      s += ' mười';
+      if(dv === 5) s += ' lăm'; else if(dv > 0) s += ' ' + cs[dv];
+    } else if(dv > 0 && (tram > 0 || dayDu)){ s += ' ' + cs[dv]; }
+    else if(dv > 0){ s += ' ' + cs[dv]; }
+    return s.trim();
+  }
+  var nhom = [], x = n;
+  while(x > 0){ nhom.push(x % 1000); x = Math.floor(x/1000); }
+  var kq = '';
+  for(var i = nhom.length - 1; i >= 0; i--){
+    if(nhom[i] === 0) continue;
+    kq += (kq ? ' ' : '') + doc3(nhom[i], i < nhom.length - 1) + hang[i];
+  }
+  kq = kq.trim();
+  return kq.charAt(0).toUpperCase() + kq.slice(1) + ' đồng';
+}
+
+/* ---------- Chi tiết học viên ---------- */
+var ChiTiet = null;
+
+function moChiTiet(maHV){
+  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
+          {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
+  goi('xemHocVien', {maHV:maHV}).then(function(d){
+    ChiTiet = d;
+    veChiTiet();
+  }).catch(function(e){
+    document.getElementById('thanModal').innerHTML = '<div class="baoLoi">'+esc(e.message)+'</div>';
+  });
+}
+
+function veChiTiet(){
+  var d = ChiTiet, h = d.hocVien, t = d.tongKet;
+  var noLop = t.conNo > 0 ? 'no' : 'du';
+
+  var html =
+    '<div class="tomTat">'
+    + oTom('Tình trạng học phí', t.conNo > 0 ? 'Nợ ' + tien(t.conNo) + ' đ' : 'Đã đóng đủ', noLop)
+    + oTom('Số buổi đã học', t.tongBuoiDaHoc + '/' + t.tongBuoi, '')
+    + oTom('Số buổi còn lại', t.soBuoiConLai, t.soBuoiConLai <= 2 ? 'no' : '')
+    + oTom('Lớp đang học', d.lopHoc.filter(function(l){return l.TrangThai==='Đang học';}).length, '')
+    + '</div>'
+
+    + '<div class="hoSo">'
+    + ht('Họ tên', '<strong>'+esc(h.HoTen)+'</strong> · <span class="ma">'+esc(h.MaHV)+'</span>')
+    + ht('Ngày sinh', esc(h.NgaySinh) + (h.GioiTinh ? ' · '+esc(h.GioiTinh) : ''))
+    + ht('Phụ huynh', esc(h.TenPhuHuynh))
+    + ht('Điện thoại', '<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>')
+    + ht('Địa chỉ', esc(h.DiaChi))
+    + ht('Ngày nhập học', esc(h.NgayNhapHoc))
+    + '</div>'
+
+    + '<h3 class="muc">Lớp đang theo học</h3>' + bangLopHoc(d.lopHoc)
+    + '<h3 class="muc">Học phí</h3>' + bangHocPhi(d.hocPhi)
+    + '<h3 class="muc">Phiếu thu đã lập</h3>' + bangPhieuThu(d.phieuThu);
+
+  document.getElementById('thanModal').innerHTML = html;
+  document.getElementById('chanModal').innerHTML =
+      '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
+    + '<button class="nutPhu" onclick="moTaoHocPhi()">Thêm kỳ học phí</button>'
+    + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
+}
+
+function oTom(nhan, gt, lop){
+  return '<div class="oTomTat '+lop+'"><div class="nhan-o">'+nhan+'</div><div class="so">'+gt+'</div></div>';
+}
+function ht(nhan, gt){ return '<div><b>'+nhan+'</b><span>'+(gt||'—')+'</span></div>'; }
+
+function bangLopHoc(ds){
+  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
+  return '<div class="the cuonBang"><table class="nho"><thead><tr>'
+    + '<th>Lớp</th><th>Môn</th><th>Giáo viên</th><th>Lịch</th><th>Ngày đăng ký</th><th>Trạng thái</th>'
+    + '</tr></thead><tbody>'
+    + ds.map(function(l){
+        return '<tr><td><strong>'+esc(l.TenLop)+'</strong></td><td>'+esc(l.MonHoc)+'</td>'
+          + '<td>'+esc(l.TenGV || '—')+'</td>'
+          + '<td>'+esc(l.Thu)+(l.Gio?' · '+esc(l.Gio):'')+'</td>'
+          + '<td>'+esc(l.NgayDangKy)+'</td>'
+          + '<td><span class="nhan '+(l.TrangThai==='Đã nghỉ'?'nghi':'hoc')+'">'+esc(l.TrangThai)+'</span></td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+function bangHocPhi(ds){
+  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa có kỳ học phí nào. Bấm “Thêm kỳ học phí” bên dưới.</div>';
+  return '<div class="the cuonBang"><table class="nho"><thead><tr>'
+    + '<th>Kỳ</th><th>Lớp</th><th>Buổi</th><th class="tien">Phải thu</th>'
+    + '<th class="tien">Đã thu</th><th class="tien">Còn nợ</th><th>Trạng thái</th><th></th>'
+    + '</tr></thead><tbody>'
+    + ds.map(function(p){
+        var lop = p.ConNo <= 0 ? 'hoc' : (p.DaThu > 0 ? 'bao' : 'nghi');
+        return '<tr><td><strong>'+esc(p.KyThu)+'</strong><br><span class="ma">'+esc(p.MaHD)+'</span></td>'
+          + '<td>'+esc(p.TenLop || '—')+'</td>'
+          + '<td>'+p.SoBuoiDaHoc+'/'+p.SoBuoi+'</td>'
+          + '<td class="tien">'+tien(p.PhaiThu)+'</td>'
+          + '<td class="tien">'+tien(p.DaThu)+'</td>'
+          + '<td class="tien">'+(p.ConNo>0?'<strong style="color:#b42318">'+tien(p.ConNo)+'</strong>':'0')+'</td>'
+          + '<td><span class="nhan '+lop+'">'+esc(p.TrangThai)+'</span></td>'
+          + '<td>'+(p.ConNo>0
+              ? '<button class="nutNho" onclick="moThuTien(\''+esc(p.MaHD)+'\','+p.ConNo+')">Đóng học phí</button>'
+              : '')+'</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+function bangPhieuThu(ds){
+  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa có phiếu thu nào.</div>';
+  return '<div class="the cuonBang"><table class="nho"><thead><tr>'
+    + '<th>Số phiếu</th><th>Ngày thu</th><th class="tien">Số tiền</th><th>Hình thức</th><th></th>'
+    + '</tr></thead><tbody>'
+    + ds.map(function(p){
+        return '<tr><td class="ma">'+esc(p.MaPT)+'</td><td>'+esc(p.NgayThu)+'</td>'
+          + '<td class="tien"><strong>'+tien(p.SoTien)+'</strong></td>'
+          + '<td>'+esc(p.HinhThuc)+'</td>'
+          + '<td><button class="nutNho vien" onclick="inHoaDon(\''+esc(p.MaPT)+'\')">In hóa đơn</button></td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+
+function suaHoSoTuChiTiet(){
+  var h = ChiTiet.hocVien;
+  moHocVien(h);
+}
+
+/* ---------- Tạo kỳ học phí ---------- */
+function moTaoHocPhi(){
+  var d = ChiTiet, h = d.hocVien;
+  var optLop = d.lopHoc.map(function(l){
+    return '<option value="'+esc(l.MaLop)+'|'+esc(l.TenLop)+'">'+esc(l.TenLop)+'</option>'; }).join('');
+  var nay = new Date();
+  var kyMacDinh = 'T' + (nay.getMonth()+1) + '/' + nay.getFullYear();
+
+  moModal('Thêm kỳ học phí · ' + esc(h.HoTen),
+    '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
+    + o('Kỳ thu','<input id="p_KyThu" value="'+kyMacDinh+'">',true)
+    + o('Lớp','<select id="p_Lop"><option value="|">— Không gắn lớp —</option>'+optLop+'</select>')
+    + o('Số buổi','<input id="p_SoBuoi" type="number" min="1" value="8">',true)
+    + o('Đơn giá / buổi (đ)','<input id="p_DonGia" type="number" min="0" step="1000" value="">',true)
+    + o('Giảm giá (đ)','<input id="p_GiamGia" type="number" min="0" step="1000" value="0">')
+    + o('Hạn đóng','<input id="p_HanDong" placeholder="dd/mm/yyyy">')
+    + o('Số buổi đã học','<input id="p_DaHoc" type="number" min="0" value="0">'
+        + '<div style="font-size:12px;color:#6b7280;margin-top:5px">Chỉ điền khi chuyển dữ liệu từ app cũ. Điểm danh sẽ tự cộng sau.</div>')
+    + o('Ghi chú','<textarea id="p_GhiChu" rows="2"></textarea>',false,'rong')
+    + '</div>', 'luuHocPhi()');
+}
+
+function luuHocPhi(){
+  var d = ChiTiet, h = d.hocVien;
+  var lop = document.getElementById('p_Lop').value.split('|');
+  var hp = {
+    MaHV: h.MaHV, HoTen: h.HoTen,
+    MaLop: lop[0] || '', TenLop: lop[1] || '',
+    KyThu: document.getElementById('p_KyThu').value.trim(),
+    SoBuoi: document.getElementById('p_SoBuoi').value,
+    DonGia: document.getElementById('p_DonGia').value,
+    GiamGia: document.getElementById('p_GiamGia').value,
+    HanDong: document.getElementById('p_HanDong').value.trim(),
+    SoBuoiDaHoc: document.getElementById('p_DaHoc').value,
+    GhiChu: document.getElementById('p_GhiChu').value.trim()
+  };
+  var loi = document.getElementById('loiForm');
+  loi.classList.add('an'); khoaLuu(true);
+  goi('taoHocPhi', {hocPhi:hp}).then(function(kq){
+    bao('Đã tạo kỳ học phí ' + kq.MaHD + ' · phải thu ' + tien(kq.phaiThu) + ' đ');
+    moChiTiet(h.MaHV);
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
+  });
+}
+
+/* ---------- Thu tiền ---------- */
+function moThuTien(maHD, conNo){
+  var h = ChiTiet.hocVien;
+  moModal('Đóng học phí · ' + esc(h.HoTen),
+    '<div class="baoLoi an" id="loiForm"></div>'
+    + '<div style="background:#f4f6f9;border:1px solid #dfe4ec;border-radius:8px;padding:13px 15px;margin-bottom:16px">'
+    + '<div style="font-size:13px;color:#6b7280">Công nợ còn lại của kỳ ' + esc(maHD) + '</div>'
+    + '<div style="font-size:22px;font-weight:700;color:#b42318;margin-top:3px">' + tien(conNo) + ' đ</div></div>'
+    + '<div class="luoi">'
+    + o('Số tiền thu (đ)','<input id="t_SoTien" type="number" min="1" step="1000" value="'+conNo+'">',true)
+    + o('Hình thức','<select id="t_HinhThuc"><option>Tiền mặt</option><option>Chuyển khoản</option><option>Thẻ</option></select>')
+    + o('Ghi chú','<input id="t_GhiChu">',false,'rong')
+    + '</div>', 'luuThuTien(\''+esc(maHD)+'\')');
+  var n = document.getElementById('nutLuu');
+  if(n) n.textContent = 'Xác nhận thu';
+}
+
+function luuThuTien(maHD){
+  var loi = document.getElementById('loiForm');
+  loi.classList.add('an'); khoaLuu(true);
+  goi('thuTien', {
+    maHD: maHD,
+    soTien: document.getElementById('t_SoTien').value,
+    hinhThuc: document.getElementById('t_HinhThuc').value,
+    ghiChu: document.getElementById('t_GhiChu').value.trim(),
+    nguoiThu: NguoiDung.hoTen
+  }).then(function(kq){
+    bao('Đã thu tiền · phiếu ' + kq.MaPT);
+    inHoaDon(kq.MaPT);
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
+  });
+}
+
+/* ---------- Hóa đơn ---------- */
+function inHoaDon(maPT){
+  bao('Đang tạo hóa đơn...');
+  goi('layHoaDon', {maPT:maPT}).then(function(d){
+    document.getElementById('vungIn').innerHTML = veHoaDon(d);
+    var maHV = d.hocVien.MaHV;
+    setTimeout(function(){
+      window.print();
+      if(ChiTiet && ChiTiet.hocVien.MaHV === maHV) moChiTiet(maHV);
+    }, 250);
+  }).catch(function(e){ bao(e.message, true); });
+}
+
+function veHoaDon(d){
+  var c = d.congTy, p = d.phieu, h = d.hocVien, f = d.hocPhi;
+  return '<div class="hd">'
+  + '<div class="dau"><div class="cty">'+esc(c.TenCongTy||'')+'</div>'
+  + '<div class="dv">'+esc(c.TenDonVi||'')+'</div>'
+  + '<div class="dc">'+esc(c.DiaChi||'')
+  + (c.DienThoai?' · ĐT: '+esc(c.DienThoai):'')
+  + (c.Website?' · '+esc(c.Website):'')+'</div></div>'
+
+  + '<h1>PHIẾU THU HỌC PHÍ</h1>'
+  + '<div class="so-pt">Số: '+esc(p.MaPT)+' · Ngày '+esc(p.NgayThu)+'</div>'
+
+  + '<div class="dong-tt"><b>Học viên:</b><span>'+esc(h.HoTen)+' ('+esc(h.MaHV)+')</span></div>'
+  + '<div class="dong-tt"><b>Phụ huynh:</b><span>'+esc(h.TenPhuHuynh||'')+'</span></div>'
+  + '<div class="dong-tt"><b>Điện thoại:</b><span>'+esc(h.SDT||'')+'</span></div>'
+  + '<div class="dong-tt"><b>Địa chỉ:</b><span>'+esc(h.DiaChi||'')+'</span></div>'
+
+  + '<table><thead><tr><th style="width:44%">Nội dung</th><th>Số buổi</th>'
+  + '<th class="tien">Đơn giá</th><th class="tien">Thành tiền</th></tr></thead><tbody>'
+  + '<tr><td>Học phí '+esc(f.KyThu||'')+(f.TenLop?' — lớp '+esc(f.TenLop):'')+'</td>'
+  + '<td style="text-align:center">'+f.SoBuoi+'</td>'
+  + '<td class="tien">'+tien(f.DonGia)+'</td>'
+  + '<td class="tien">'+tien(f.ThanhTien)+'</td></tr>'
+  + (f.GiamGia > 0 ? '<tr><td colspan="3">Giảm giá</td><td class="tien">-'+tien(f.GiamGia)+'</td></tr>' : '')
+  + '<tr><td colspan="3"><strong>Tổng phải thu</strong></td>'
+  + '<td class="tien"><strong>'+tien(f.PhaiThu)+'</strong></td></tr>'
+  + '<tr><td colspan="3" class="tong">SỐ TIỀN ĐÃ THU LẦN NÀY</td>'
+  + '<td class="tien tong">'+tien(p.SoTien)+'</td></tr>'
+  + (f.ConNo > 0 ? '<tr><td colspan="3">Còn nợ</td><td class="tien">'+tien(f.ConNo)+'</td></tr>' : '')
+  + '</tbody></table>'
+
+  + '<div class="chu">Bằng chữ: '+docSo(p.SoTien)+'.</div>'
+  + '<div class="dong-tt"><b>Hình thức:</b><span>'+esc(p.HinhThuc||'')+'</span></div>'
+
+  + '<div class="ky"><div><b>Người nộp tiền</b><span>(Ký, ghi rõ họ tên)</span></div>'
+  + '<div><b>Người thu tiền</b><span>'+esc(p.NguoiThu||'')+'</span></div></div>'
+
+  + '<div class="chan">Phụ huynh vui lòng giữ phiếu để đối chiếu. Xin cảm ơn quý phụ huynh đã đồng hành cùng Thiên Ân.</div>'
+  + '</div>';
+}
+
+/* ---------- Modal ---------- */
+function o(nhan, dieuKhien, batBuoc, themLop){
+  return '<div class="o '+(themLop||'')+'"><label>'+nhan+(batBuoc?' <i>*</i>':'')+'</label>'+dieuKhien+'</div>';
+}
+function moModal(tieuDe, than, hamLuu, tuyChon){
+  tuyChon = tuyChon || {};
+  var chan = tuyChon.chan !== undefined ? tuyChon.chan
+    : '<button class="nutPhu" onclick="dongModal()">Hủy</button>'
+      + '<button class="nutChinh" id="nutLuu" onclick="'+hamLuu+'">Lưu</button>';
+  document.getElementById('khungModal').innerHTML =
+    '<div class="lop-phu" onclick="if(event.target===this)dongModal()">'
+    + '<div class="hopModal'+(tuyChon.rong?' rong':'')+'">'
+    + '<div class="dauModal"><h2>'+tieuDe+'</h2><button class="dongModal" onclick="dongModal()">&times;</button></div>'
+    + '<div class="thanModal" id="thanModal">'+than+'</div>'
+    + '<div class="chanModal" id="chanModal">'+chan+'</div>'
+    + '</div></div>';
+}
+function dongModal(){ document.getElementById('khungModal').innerHTML = ''; }
+function khoaLuu(khoa){
+  var n = document.getElementById('nutLuu');
+  if(n){ n.disabled = khoa; n.textContent = khoa ? 'Đang lưu...' : 'Lưu'; }
+}
+</script>
+</body>
+</html>
