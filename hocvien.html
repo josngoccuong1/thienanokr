@@ -380,7 +380,7 @@ function moHocVien(hv){
   + o('Trạng thái','<select id="f_TrangThai">'+optTT+'</select>')
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
-    'luuHocVien(' + (hv._dong||0) + ',"' + esc(hv.MaHV||'') + '")');
+    'luuHocVien(' + (hv._dong||0) + ',\'' + esc(hv.MaHV||'') + '\')');
 }
 
 function luuHocVien(dong, ma){
@@ -452,7 +452,7 @@ function moLop(l){
       +['Đang mở','Đã đóng'].map(function(t){return '<option'+(l.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(l.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
-    'luuLop(' + (l._dong||0) + ',"' + esc(l.MaLop||'') + '")');
+    'luuLop(' + (l._dong||0) + ',\'' + esc(l.MaLop||'') + '\')');
 }
 
 function luuLop(dong, ma){
