@@ -31,7 +31,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 .tab.active{background:#fff;color:#1A1A2E}
 .tab:not(.active){background:rgba(255,255,255,0.1);color:#ddd}
 /* MAIN */
-.main{padding:14px;max-width:1200px;margin:0 auto}
+.main{padding:14px;max-width:1600px;margin:0 auto}
 /* CARD */
 .card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:14px;overflow:hidden}
 .card-head{background:linear-gradient(135deg,#1A1A2E,#16213E);padding:12px 18px;display:flex;align-items:center;gap:8px}
@@ -78,6 +78,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 .modal-body{padding:18px}
 /* OKR */
 .okr-obj{margin-bottom:12px}
+/* Bảng OKR nhiều cột (kiểu KPI) */
+.okr-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.okr-table th,.okr-table td{border:1px solid #EAEAEA;padding:6px 9px;text-align:center;white-space:nowrap}
+.okr-table thead th{background:#1A1A2E;color:#fff;font-size:11px;font-weight:700}
+.okr-table thead th.okr-qsel{background:#0F3460;color:#FFD86B}
+.okr-table td.okr-qsel{background:#FFF9E6}
+.okr-table td.kr-name{text-align:left;white-space:normal;min-width:220px;font-weight:600;color:#1A1A2E}
+.okr-table tr.okr-sec td{background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;text-align:left;font-weight:800;font-size:13px;border-color:#0F3460}
+.okr-table tbody tr:not(.okr-sec):hover td{background:#FBFBFD}
 /* Bố cục lưới ngang: desktop nhiều cột, mobile tự về 1 cột */
 .okr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:12px;align-items:start}
 .okr-grid .card,.okr-grid .okr-obj{margin-bottom:0}
@@ -1058,6 +1067,7 @@ function enterApp(u){
   saveSession(u);
   render();
   loadActuals();
+  loadAllActuals();
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1113,15 +1123,20 @@ function logout(){clearSession();setState({user:null,screen:"login",uname:"",upa
 
 async function doSaveKR(){
   if(state.saving)return;
+  const krId=state.editKR, q=state.quarter, val=Number(state.editVal);
   setState({saving:true});
   // Dùng GET để tránh CORS
   await syncGet({
     action:"saveActualGet",
-    quarter:state.quarter,
-    krId:state.editKR,
-    actual:Number(state.editVal),
+    quarter:q,
+    krId:krId,
+    actual:val,
     updatedBy:encodeURIComponent(state.user.name)
   });
+  // Cập nhật ngay bảng nhiều quý
+  state.actualsAll=state.actualsAll||{};
+  state.actualsAll[q]=state.actualsAll[q]||{};
+  state.actualsAll[q][krId]={actual:val};
   await loadActuals();
   setState({saving:false,editKR:null});
 }
@@ -1355,8 +1370,33 @@ function getKRTotal(krId){
   }catch(e){ return (state.actuals||{})[krId]?.actual||0; }
 }
 
-function renderOKR(){
-  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
+// ===== Helpers cho bảng OKR nhiều cột =====
+function okrNum(n){ n=Number(n)||0; return n.toLocaleString('vi-VN'); }
+function okrQActual(kr,q){
+  const A=state.actualsAll||{};
+  let v=(A[q]&&A[q][kr.id])?Number(A[q][kr.id].actual)||0:0;
+  let fromPlans=false;
+  // Quý đang chọn: nếu có kế hoạch gắn KR này thì tự cộng từ Kế hoạch
+  if(q===state.quarter){
+    const planTotal=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((s,p)=>s+Number(p.actual||0),0);
+    if(planTotal>0){ v=planTotal; fromPlans=true; }
+    else if(state.actuals[kr.id]) { v=Number(state.actuals[kr.id].actual)||v; }
+  }
+  return {v:v,fromPlans:fromPlans};
+}
+function okrTrend(kr){
+  const vals=QUARTERS.map(q=>okrQActual(kr,q).v);
+  let prev=null,cur=null;
+  vals.forEach(v=>{ if(v!==0){ prev=cur; cur=v; } });
+  if(cur===null||prev===null) return `<span style="color:#bbb">—</span>`;
+  if(cur>prev) return `<span style="color:#27AE60;font-weight:800">↑</span>`;
+  if(cur<prev) return `<span style="color:#E74C3C;font-weight:800">↓</span>`;
+  return `<span style="color:#888;font-weight:800">→</span>`;
+}
+async function loadAllActuals(){
+  try{ const d=await apiGet({action:"getAllActuals"}); if(d&&!d.error){ state.actualsAll=d; if(state.tab==="okr"&&!state.editKR&&!state.showOKREditor) render(); } }catch(e){}
+}
+function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
   const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(getKRTotal(kr.id),kr.target),0)/allKRs.length):0;
   const gst=stInfo(gs);
   const ICONS=["🎯","🎓","🎵","📱","💰","👨‍🏫","🏆","📊","🚀","⭐","🎸","🎹","💡","📋","🔥"];
@@ -1425,60 +1465,79 @@ function renderOKR(){
     </select>
     <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
     ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm Objective</button>`:""}
-    <button class="btn-sm" id="btnToggleAllOkr" style="background:#EEF1F8;color:#0F3460;font-size:11px;padding:5px 10px">⇕ Mở/Thu gọn</button>
     <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
   </div>
-  <div class="okr-grid">
-  ${OBJECTIVES.map(obj=>{
-    const sc=obj.krs.length?Math.round(obj.krs.reduce((s,kr)=>s+pct(state.actuals[kr.id]?.actual||0,kr.target),0)/obj.krs.length):0;
-    const st=stInfo(sc);
-    const open=!!(state.okrOpen&&state.okrOpen[obj.id]);
-    return`<div class="card okr-obj">
-      <div class="okr-obj-head okr-toggle" data-oid="${obj.id}">
-        <span style="font-size:18px">${obj.icon}</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#fff">${obj.title}</div></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:70px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div>
-          <span style="font-size:13px;font-weight:800;color:${st.color};width:34px">${sc}%</span>
-          ${state.user.isAdmin?`<button class="btn-edit okr-edit-obj" data-oid="${obj.id}" data-title="${obj.title}" data-icon="${obj.icon}" style="padding:3px 7px;font-size:11px">✏️</button>
-          <button class="btn-danger okr-del-obj" data-oid="${obj.id}" style="padding:3px 7px;font-size:11px">🗑️</button>`:""}
-          <span style="font-size:12px;color:#D4AF37;width:12px;text-align:center;flex-shrink:0">${open?"▾":"▸"}</span>
-        </div>
-      </div>
-      ${open?`<div class="okr-kr-list">
-        ${state.user.isAdmin?`<div style="padding:6px 0 2px"><button class="btn-success okr-add-kr" data-oid="${obj.id}" style="font-size:11px;padding:4px 10px">➕ Thêm KR</button></div>`:""}
-        ${obj.krs.map((kr,i)=>{
-          const planTotal=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((sum,p)=>sum+Number(p.actual||0),0);
-          const fromPlans=planTotal>0;
-          const actual=fromPlans?planTotal:(state.actuals[kr.id]?.actual||0);
-          const p=pct(actual,kr.target);const s=stInfo(p);
-          // Chỉ Giám đốc/Admin được sửa số ở tab OKR. GV cập nhật qua tab Kế hoạch của mình.
-          const editable=state.user.isAdmin;
-          const isEdit=state.editKR===kr.id;
-          const ri2=roleInfo(kr.ownerRole);
-          return`<div class="okr-kr-row" style="opacity:${editable?1:0.6}">
-            <span style="font-size:10px;background:#F0F2F5;border-radius:4px;padding:1px 5px;color:#888;flex-shrink:0">KR${i+1}</span>
-            <span style="font-size:12px;font-weight:600;flex:1;color:#1A1A2E">${kr.text}</span>
-            <span style="font-size:10px;color:#aaa;white-space:nowrap">${ri2.icon} ${ri2.label}</span>
-            <div class="prog-wrap" style="width:60px;flex:none"><div class="prog-fill" style="width:${p}%;background:${s.color}"></div></div>
-            <span style="font-size:11px;font-weight:700;color:${s.color};width:30px;flex-shrink:0">${p}%</span>
-            ${isEdit?`<div style="display:flex;gap:4px;align-items:center">
-              <input id="krInput" type="number" value="${state.editVal}" style="width:60px;border:2px solid #D4AF37;border-radius:6px;padding:3px 6px;font-size:12px;outline:none" data-krid="${kr.id}"/>
-              <button class="btn-success" style="padding:4px 8px;font-size:12px" id="btnSaveKR">${state.saving?"...":"✓"}</button>
-              <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
-            </div>`:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-              <button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable&&!fromPlans?"":"disabled"}
-                style="opacity:${fromPlans?0.7:1};white-space:nowrap">${actual}<span style="color:#999;font-weight:600">/${kr.target}</span> ${kr.unit}</button>
-              ${fromPlans?`<span style="font-size:9px;color:#D4AF37">📋 từ KH</span>`:""}
-            </div>`}
-            <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
-            ${state.user.isAdmin?`<button class="btn-edit okr-edit-kr" data-oid="${obj.id}" data-kid="${kr.id}" data-text="${kr.text}" data-unit="${kr.unit}" data-target="${kr.target}" data-role="${kr.ownerRole}" style="padding:2px 6px;font-size:10px">✏️</button>
-            <button class="btn-danger okr-del-kr" data-oid="${obj.id}" data-kid="${kr.id}" style="padding:2px 6px;font-size:10px">🗑️</button>`:""}
-          </div>`;
-        }).join("")}
-      </div>`:""}
-    </div>`;
-  }).join("")}
+  <div style="font-size:11px;color:#888;margin:-6px 0 8px">Chọn quý ở trên để nhập số của quý đó · các cột quý còn lại chỉ để xem.</div>
+  <div style="overflow-x:auto">
+  <table class="okr-table">
+    <thead>
+      <tr>
+        <th rowspan="2">STT</th>
+        <th rowspan="2" style="text-align:left">Chỉ số (KR)</th>
+        <th rowspan="2">Đơn vị</th>
+        <th rowspan="2">Kế hoạch</th>
+        ${QUARTERS.map(q=>`<th colspan="2" class="${q===state.quarter?'okr-qsel':''}">${q}</th>`).join("")}
+        <th rowspan="2">Tổng/TB</th>
+        <th rowspan="2">% năm</th>
+        <th rowspan="2">Xu hướng</th>
+        ${state.user.isAdmin?`<th rowspan="2"></th>`:""}
+      </tr>
+      <tr>
+        ${QUARTERS.map(q=>`<th class="${q===state.quarter?'okr-qsel':''}">Thực tế</th><th class="${q===state.quarter?'okr-qsel':''}">% Đạt</th>`).join("")}
+      </tr>
+    </thead>
+    <tbody>
+    ${OBJECTIVES.map(obj=>{
+      const NC=state.user.isAdmin?16:15;
+      const sc=obj.krs.length?Math.round(obj.krs.reduce((s,kr)=>s+pct(okrQActual(kr,state.quarter).v,kr.target),0)/obj.krs.length):0;
+      let rows=`<tr class="okr-sec"><td colspan="${NC}">
+        ${obj.icon} ${obj.title}
+        <span style="float:right;color:#FFD86B;font-weight:800">${sc}%</span>
+        ${state.user.isAdmin?`<button class="btn-sm okr-add-kr" data-oid="${obj.id}" style="background:#D4AF37;color:#1A1A2E;margin-left:8px">➕ KR</button>
+        <button class="btn-sm okr-edit-obj" data-oid="${obj.id}" data-title="${obj.title}" data-icon="${obj.icon}" style="background:rgba(255,255,255,.15);color:#fff">✏️</button>
+        <button class="btn-sm okr-del-obj" data-oid="${obj.id}" style="background:rgba(255,255,255,.15);color:#fff">🗑️</button>`:""}
+      </td></tr>`;
+      if(!obj.krs.length){ rows+=`<tr><td colspan="${NC}" style="color:#aaa">Chưa có KR — bấm ➕ KR để thêm</td></tr>`; }
+      rows+=obj.krs.map((kr,i)=>{
+        const cells=QUARTERS.map(q=>{
+          const qa=okrQActual(kr,q); const p=pct(qa.v,kr.target); const s=stInfo(p);
+          const sel=(q===state.quarter);
+          const isEdit=sel && state.editKR===kr.id;
+          const ttCell = isEdit
+            ? `<td class="okr-qsel"><div style="display:flex;gap:3px;align-items:center;justify-content:center">
+                 <input id="krInput" type="number" value="${state.editVal}" data-krid="${kr.id}" style="width:82px;border:2px solid #D4AF37;border-radius:6px;padding:2px 5px;font-size:12px;outline:none"/>
+                 <button class="btn-success" id="btnSaveKR" style="padding:2px 6px;font-size:11px">${state.saving?"...":"✓"}</button>
+                 <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:2px 6px;cursor:pointer;font-size:11px">✕</button>
+               </div></td>`
+            : `<td class="${sel?'okr-qsel':''}">${
+                (sel && state.user.isAdmin && !qa.fromPlans)
+                  ? `<button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${qa.v}" style="font-weight:700;background:none;border:none;cursor:pointer;color:#1A1A2E;font-size:12px">${okrNum(qa.v)}</button>`
+                  : `<span style="font-weight:600">${okrNum(qa.v)}</span>`
+              }${sel&&qa.fromPlans?` <span style="font-size:9px;color:#D4AF37">📋</span>`:""}</td>`;
+          return ttCell + `<td class="${sel?'okr-qsel':''}" style="color:${s.color};font-weight:700">${p}%</td>`;
+        }).join("");
+        const total=QUARTERS.reduce((s,q)=>s+okrQActual(kr,q).v,0);
+        const pnam=pct(total,kr.target); const snam=stInfo(pnam);
+        const ri2=roleInfo(kr.ownerRole);
+        return `<tr>
+          <td>${i+1}</td>
+          <td class="kr-name">${kr.text}<div style="font-size:10px;color:#aaa;font-weight:500">${ri2.icon} ${ri2.label}</div></td>
+          <td>${kr.unit}</td>
+          <td style="font-weight:700">${okrNum(kr.target)}</td>
+          ${cells}
+          <td style="font-weight:800;background:#FAFAFA">${okrNum(total)}</td>
+          <td style="color:${snam.color};font-weight:800;background:#FAFAFA">${pnam}%</td>
+          <td>${okrTrend(kr)}</td>
+          ${state.user.isAdmin?`<td style="white-space:nowrap">
+            <button class="btn-edit okr-edit-kr" data-oid="${obj.id}" data-kid="${kr.id}" data-text="${kr.text}" data-unit="${kr.unit}" data-target="${kr.target}" data-role="${kr.ownerRole}" style="padding:2px 6px;font-size:10px">✏️</button>
+            <button class="btn-danger okr-del-kr" data-oid="${obj.id}" data-kid="${kr.id}" style="padding:2px 6px;font-size:10px">🗑️</button>
+          </td>`:""}
+        </tr>`;
+      }).join("");
+      return rows;
+    }).join("")}
+    </tbody>
+  </table>
   </div>`;
 }
 
@@ -1542,8 +1601,8 @@ function renderPlan(){
   </div>`:""}
 
   <!-- Danh sách kế hoạch -->
-  ${plans.length===0?`<div class="card"><div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào ${state.month?"cho "+state.month:""}. ${state.user.isAdmin?"Bấm ➕ Thêm kế hoạch.":""}</div></div>`:""}
-  <div class="plan-grid">
+  <div class="card">
+    ${plans.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào ${state.month?"cho "+state.month:""}. ${state.user.isAdmin?"Bấm ➕ Thêm kế hoạch.":""}</div>`:""}
     ${plans.map(p=>{
       // Tìm KR được gắn
       let krInfo = null;
@@ -1555,7 +1614,7 @@ function renderPlan(){
       }
       const pct = p.target>0?Math.min(Math.round((Number(p.actual||0)/Number(p.target))*100),100):0;
       const st = stInfo(pct);
-      return`<div class="plan-item card card-pad" style="padding:12px 18px">
+      return`<div class="plan-item card-pad" style="padding:12px 18px">
         <div class="plan-status" style="background:${statusColor[p.status]||"#aaa"}"></div>
         <div style="flex:1">
           <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:3px">${p.title}</div>
@@ -2123,7 +2182,7 @@ async function loadObjectivesFromSheets(){
 function refreshCurrentTab(){
   const t=state.tab; showLoading("Đang làm mới…");
   const jobs=[];
-  if(t==="okr"){ jobs.push(loadActuals()); jobs.push(loadObjectivesFromSheets()); }
+  if(t==="okr"){ jobs.push(loadActuals()); jobs.push(loadAllActuals()); jobs.push(loadObjectivesFromSheets()); }
   else if(t==="plan"){ jobs.push(loadPlansFromSheets()); jobs.push(loadActuals()); }
   else if(t==="luong"){ jobs.push(loadLuongFromSheets(state.month)); }
   else if(t==="thuchi"){ jobs.push(loadThuChiFromSheets("")); }
@@ -2239,7 +2298,7 @@ function attachEvents(){
     setState({tab:b.dataset.tab});
     // Làm mới NGẦM trong nền (không hiện overlay) để dữ liệu vẫn cập nhật giữa các máy.
     // Các hàm load này tự setState -> tự render lại khi có dữ liệu mới.
-    if(b.dataset.tab==="okr"){ loadActuals(); loadObjectivesFromSheets(); }
+    if(b.dataset.tab==="okr"){ loadActuals(); loadAllActuals(); loadObjectivesFromSheets(); }
     if(b.dataset.tab==="attendance"){ state.students=loadStudents(); state.att_data=loadAttData(); render(); }
     if(b.dataset.tab==="thuchi"){ loadThuChiFromSheets(""); }
     if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
