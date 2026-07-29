@@ -423,6 +423,14 @@ function moHocVien(hv){
     return '<option value="'+esc(c.ma)+'"'+(hv.CoSo===c.ma?' selected':'')+'>'+esc(c.ten)+'</option>'; }).join('');
   var optTT = ['Đang học','Bảo lưu','Đã nghỉ'].map(function(t){
     return '<option'+(hv.TrangThai===t?' selected':'')+'>'+t+'</option>'; }).join('');
+  var lopMo = DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';});
+  var truongXepLop = moi ? o('Xếp vào lớp học ngay (tùy chọn)',
+      (lopMo.length
+        ? '<select id="f_XepLop"><option value="">— Chưa xếp, thêm sau —</option>'
+          + lopMo.map(function(l){ return '<option value="'+esc(l.MaLop)+'">'+esc(l.TenLop)+(l.MonHoc?' · '+esc(l.MonHoc):'')+(l.TenGV?' · '+esc(l.TenGV):'')+'</option>'; }).join('')
+          + '</select>'
+        : '<div style="font-size:13px;color:#b45309">Chưa có lớp nào. Vào tab “Lớp học” bấm “Thêm lớp” trước, rồi mới xếp học sinh vào lớp được.</div>'),
+      false, 'rong') : '';
 
   moModal((moi?'Thêm học viên':'Sửa hồ sơ · '+esc(hv.MaHV)),
     '<div class="baoLoi an" id="loiForm"></div>'
@@ -437,6 +445,7 @@ function moHocVien(hv){
   + o('Cơ sở','<select id="f_CoSo"><option value=""></option>'+optCoSo+'</select>')
   + o('Ngày nhập học','<input id="f_NgayNhapHoc" placeholder="dd/mm/yyyy" value="'+esc(hv.NgayNhapHoc)+'">')
   + o('Trạng thái','<select id="f_TrangThai">'+optTT+'</select>')
+  + truongXepLop
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
     'luuHocVien(' + (hv._dong||0) + ',\'' + esc(hv.MaHV||'') + '\')');
@@ -451,6 +460,9 @@ function luuHocVien(dong, ma){
   var loi = document.getElementById('loiForm');
   loi.classList.add('an');
   khoaLuu(true);
+  var maLopXep = '';
+  var elXep = document.getElementById('f_XepLop');
+  if(elXep) maLopXep = elXep.value;
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(kq){
     // Cập nhật ngay danh sách trong bộ nhớ, khỏi tải lại từ mạng
     var obj = {
@@ -462,6 +474,13 @@ function luuHocVien(dong, ma){
     var idx = -1;
     for(var i=0;i<TatCaHV.length;i++){ if(TatCaHV[i].MaHV===kq.MaHV){ idx=i; break; } }
     if(idx>=0) TatCaHV[idx]=obj; else TatCaHV.push(obj);
+    if(maLopXep){
+      return goi('themVaoLop', {maLop:maLopXep, maHV:kq.MaHV}).then(function(){
+        dongModal(); bao('Đã lưu ' + kq.MaHV + ' và xếp vào lớp'); taiHocVien(TrangHV);
+      }).catch(function(e2){
+        dongModal(); bao('Đã lưu học sinh, nhưng xếp lớp lỗi: ' + e2.message, true); taiHocVien(TrangHV);
+      });
+    }
     dongModal(); bao('Đã lưu ' + kq.MaHV); taiHocVien(TrangHV);
   }).catch(function(e){
     loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
