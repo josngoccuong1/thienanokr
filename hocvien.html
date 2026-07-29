@@ -746,9 +746,74 @@ function veChiTiet(){
 
   document.getElementById('thanModal').innerHTML = html;
   document.getElementById('chanModal').innerHTML =
-      '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
+      '<button class="nutPhu" onclick="moThemVaoLopTuChiTiet()">Thêm vào lớp</button>'
+    + '<button class="nutPhu" onclick="ganKhoaTuChiTiet()">Gán khóa học</button>'
+    + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
     + '<button class="nutPhu" onclick="moTaoHocPhi()">Thêm kỳ học phí</button>'
     + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
+}
+
+/* ---------- Thêm HS có sẵn vào lớp / gán khóa (từ màn chi tiết) ---------- */
+function chenPickerChiTiet(tieuDe, dieuKhien){
+  var body = document.getElementById('thanModal');
+  var cu = document.getElementById('pickerChiTiet'); if(cu) cu.remove();
+  var box = document.createElement('div');
+  box.id = 'pickerChiTiet';
+  box.style.cssText = 'border:1px solid #c9a227;border-radius:8px;padding:13px;margin-bottom:14px;background:#fdf9ec';
+  box.innerHTML = '<div style="font-weight:600;color:#12294d;margin-bottom:8px">'+tieuDe+'</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+dieuKhien
+    + '<button class="nutPhu" onclick="var e=document.getElementById(\'pickerChiTiet\');if(e)e.remove()">Hủy</button></div>';
+  body.insertBefore(box, body.firstChild);
+  body.scrollTop = 0;
+}
+
+function moThemVaoLopTuChiTiet(){
+  var h = ChiTiet.hocVien;
+  var lopMo = DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';});
+  if(!lopMo.length){ bao('Chưa có lớp nào. Tạo lớp ở tab Lớp học trước.', true); return; }
+  var opt = lopMo.map(function(l){ return '<option value="'+esc(l.MaLop)+'">'+esc(l.TenLop)+(l.TenGV?' · '+esc(l.TenGV):'')+'</option>'; }).join('');
+  chenPickerChiTiet('Thêm ' + esc(h.HoTen) + ' vào lớp:',
+    '<select id="chonLopThem" style="flex:1;min-width:200px">'+opt+'</select>'
+    + '<button class="nutChinh" onclick="xacNhanThemVaoLop()">Thêm vào lớp</button>');
+}
+
+function xacNhanThemVaoLop(){
+  var maLop = document.getElementById('chonLopThem').value;
+  var h = ChiTiet.hocVien;
+  if(!maLop) return;
+  goi('themVaoLop', {maLop:maLop, maHV:h.MaHV}).then(function(){
+    bao('Đã thêm vào lớp'); moChiTiet(h.MaHV);
+  }).catch(function(e){ bao(e.message, true); });
+}
+
+function ganKhoaTuChiTiet(){
+  var h = ChiTiet.hocVien;
+  var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
+  if(!khoaMo.length){ bao('Chưa có khóa học nào. Tạo khóa ở tab Khóa học trước.', true); return; }
+  var opt = khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
+  chenPickerChiTiet('Gán khóa học cho ' + esc(h.HoTen) + ':',
+    '<select id="chonKhoaGan" style="flex:1;min-width:200px">'+opt+'</select>'
+    + '<button class="nutChinh" onclick="xacNhanGanKhoa()">Gán khóa</button>');
+}
+
+function xacNhanGanKhoa(){
+  var maKhoa = document.getElementById('chonKhoaGan').value;
+  var h = ChiTiet.hocVien;
+  var k = DsKhoa.filter(function(x){return x.MaKhoa===maKhoa;})[0];
+  if(!k) return;
+  // Gửi đầy đủ thông tin hiện có để không xóa mất dữ liệu khi ghi đè
+  var hv = {
+    _dong: h._dong, MaHV: h.MaHV,
+    HoTen: h.HoTen, NgaySinh: h.NgaySinh, GioiTinh: h.GioiTinh,
+    TenPhuHuynh: h.TenPhuHuynh, SDT_PhuHuynh: h.SDT_PhuHuynh,
+    DiaChi: h.DiaChi, CoSo: h.CoSo, NgayNhapHoc: h.NgayNhapHoc,
+    TrangThai: h.TrangThai, GhiChu: h.GhiChu, NgayHoc: h.NgayHoc,
+    MaKhoa: k.MaKhoa, TenKhoa: k.TenKhoa, SoBuoiKhoa: k.SoBuoi, DaHocKhoa: 0,
+    NgayBatDauKhoa: new Date().toLocaleDateString('vi-VN')
+  };
+  goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
+    bao('Đã gán khóa ' + k.TenKhoa); moChiTiet(h.MaHV);
+  }).catch(function(e){ bao(e.message, true); });
 }
 
 function oTom(nhan, gt, lop){
