@@ -764,7 +764,7 @@ function chenPickerChiTiet(tieuDe, dieuKhien){
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+dieuKhien
     + '<button class="nutPhu" onclick="var e=document.getElementById(\'pickerChiTiet\');if(e)e.remove()">Hủy</button></div>';
   body.insertBefore(box, body.firstChild);
-  body.scrollTop = 0;
+  setTimeout(function(){ box.scrollIntoView({block:'center'}); }, 30);
 }
 
 function moThemVaoLopTuChiTiet(){
@@ -1199,7 +1199,7 @@ function diemDanhMotHS(maHV, maLop, tt){
   if(!ngay){ bao('Chưa chọn ngày', true); return; }
   goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen,
     danhSach:[{maHV:maHV, hoTen:hv.HoTen, trangThai:tt, ghiChu:''}]})
-  .then(function(kq){ bao('✓ '+hv.HoTen+' · '+tt+' · '+kq.ngay); napDsDiemDanh(); })
+  .then(function(kq){ bao('✓ '+hv.HoTen+' · '+tt+' · '+kq.ngay); })
   .catch(function(e){ bao(e.message, true); });
 }
 
