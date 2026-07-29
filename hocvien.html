@@ -198,7 +198,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   <nav>
     <button id="tab-hocvien" class="chon" onclick="doiTab('hocvien')">Học viên</button>
     <button id="tab-lop" onclick="doiTab('lop')">Lớp học</button>
+    <button id="tab-khoahoc" onclick="doiTab('khoahoc')">Khóa học</button>
     <button id="tab-diemdanh" onclick="doiTab('diemdanh')">Điểm danh</button>
+    <button id="tab-baocao" onclick="doiTab('baocao')">Báo cáo</button>
   </nav>
 
   <main>
@@ -270,6 +272,45 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
 
       <div id="khungDiemDanh" style="margin-top:16px"></div>
     </section>
+
+    <!-- TAB KHÓA HỌC -->
+    <section id="vung-khoahoc" class="an">
+      <div class="thanhCong">
+        <button class="nutChinh" onclick="moKhoaHoc()">Thêm khóa học</button>
+      </div>
+      <div class="the">
+        <div class="cuonBang"><table>
+          <thead><tr>
+            <th>Mã</th><th>Tên khóa</th><th>Môn</th><th>Số buổi</th>
+            <th class="tien">Giá tiền</th><th>Trạng thái</th>
+          </tr></thead>
+          <tbody id="bangKhoa"><tr><td colspan="6" class="dangTai">Đang tải...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- TAB BÁO CÁO -->
+    <section id="vung-baocao" class="an">
+      <div class="the" style="padding:16px;margin-bottom:16px">
+        <div style="font-weight:600;color:#12294d;margin-bottom:10px">⏳ Học sinh sắp hết khóa</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <span style="font-size:13px;color:#6b7280">Còn tối đa</span>
+          <input type="number" id="bcNguong" value="3" min="0" style="width:70px">
+          <span style="font-size:13px;color:#6b7280">buổi</span>
+          <button class="nutPhu" onclick="baoCaoSapHet()">Xem</button>
+        </div>
+        <div id="kqSapHet"></div>
+      </div>
+
+      <div class="the" style="padding:16px">
+        <div style="font-weight:600;color:#12294d;margin-bottom:10px">📅 Báo cáo điểm danh theo tháng</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <input type="month" id="bcThang" style="width:auto">
+          <button class="nutPhu" onclick="baoCaoDiemDanh()">Xem</button>
+        </div>
+        <div id="kqDiemDanh"></div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -280,6 +321,7 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
 var NguoiDung = null, DanhMuc = {coSo:[],monHoc:[],giaoVien:[]};
 var TrangHV = 1, TongTrangHV = 1, DsLop = [], hetGio = null;
 var TatCaHV = [];  // toàn bộ học viên, giữ trong trình duyệt để tìm kiếm tức thì
+var DsKhoa = [];   // danh mục khóa học
 
 function boDauJS(s){
   return String(s||'').toLowerCase().normalize('NFD')
@@ -328,6 +370,7 @@ function apDungDuLieu(bd, renderDanhSach){
   if(bd.danhMuc) DanhMuc = bd.danhMuc;
   TatCaHV = bd.hocVien || [];
   DsLop = bd.lop || [];
+  DsKhoa = bd.khoaHoc || [];
   var sel = document.getElementById('locCoSo');
   if(sel){
     sel.innerHTML = '<option value="">Tất cả cơ sở</option>'
@@ -378,12 +421,14 @@ function thoat(){ location.reload(); }
 
 /* ---------- Tab ---------- */
 function doiTab(ten){
-  ['hocvien','lop','diemdanh'].forEach(function(t){
+  ['hocvien','lop','khoahoc','diemdanh','baocao'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
   if(ten==='lop' && !DsLop.length) taiLop();
+  if(ten==='khoahoc') taiKhoaHoc();
   if(ten==='diemdanh') napLopChoDiemDanh();
+  if(ten==='baocao') napThangBaoCao();
 }
 
 /* ---------- Học viên ---------- */
@@ -456,6 +501,16 @@ function moHocVien(hv){
         : '<div style="font-size:13px;color:#b45309">Chưa có lớp nào. Vào tab “Lớp học” bấm “Thêm lớp” trước, rồi mới xếp học sinh vào lớp được.</div>'),
       false, 'rong') : '';
 
+  var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
+  var truongKhoa = moi ? o('Khóa học đăng ký (tùy chọn)',
+      (khoaMo.length
+        ? '<select id="f_Khoa" onchange="capNhatKhoaChon()"><option value="">— Chưa đăng ký khóa —</option>'
+          + khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+Number(k.GiaTien).toLocaleString('vi-VN')+'đ':'')+'</option>'; }).join('')
+          + '</select>'
+        : '<div style="font-size:13px;color:#b45309">Chưa có khóa học nào. Vào tab “Khóa học” tạo khóa (VD: Piano cơ bản 2tr) trước.</div>'),
+      false, 'rong') : '';
+  var truongNgayHoc = moi ? o('Ngày học trong tuần','<input id="f_NgayHoc" placeholder="VD: Thứ 2 - Thứ 4" value="'+esc(hv.NgayHoc)+'">') : '';
+
   moModal((moi?'Thêm học viên':'Sửa hồ sơ · '+esc(hv.MaHV)),
     '<div class="baoLoi an" id="loiForm"></div>'
   + '<div class="luoi">'
@@ -469,6 +524,8 @@ function moHocVien(hv){
   + o('Cơ sở','<select id="f_CoSo"><option value=""></option>'+optCoSo+'</select>')
   + o('Ngày nhập học','<input id="f_NgayNhapHoc" placeholder="dd/mm/yyyy" value="'+esc(hv.NgayNhapHoc)+'">')
   + o('Trạng thái','<select id="f_TrangThai">'+optTT+'</select>')
+  + truongKhoa
+  + truongNgayHoc
   + truongXepLop
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
@@ -481,6 +538,19 @@ function luuHocVien(dong, ma){
    'CoSo','NgayNhapHoc','TrangThai','GhiChu'].forEach(function(k){
     hv[k] = document.getElementById('f_'+k).value.trim();
   });
+  // Khóa học + ngày học (chỉ có khi thêm mới)
+  var elKhoa = document.getElementById('f_Khoa');
+  var elNgayHoc = document.getElementById('f_NgayHoc');
+  if(elKhoa && elKhoa.value){
+    var k = DsKhoa.filter(function(x){return x.MaKhoa===elKhoa.value;})[0];
+    if(k){
+      hv.MaKhoa = k.MaKhoa; hv.TenKhoa = k.TenKhoa;
+      hv.SoBuoiKhoa = k.SoBuoi; hv.DaHocKhoa = 0;
+      hv.NgayBatDauKhoa = new Date().toLocaleDateString('vi-VN');
+    }
+  }
+  if(elNgayHoc) hv.NgayHoc = elNgayHoc.value.trim();
+
   var loi = document.getElementById('loiForm');
   loi.classList.add('an');
   khoaLuu(true);
@@ -488,12 +558,14 @@ function luuHocVien(dong, ma){
   var elXep = document.getElementById('f_XepLop');
   if(elXep) maLopXep = elXep.value;
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(kq){
-    // Cập nhật ngay danh sách trong bộ nhớ, khỏi tải lại từ mạng
     var obj = {
       _dong: hv._dong||null, MaHV: kq.MaHV, HoTen: hv.HoTen, NgaySinh: hv.NgaySinh,
       GioiTinh: hv.GioiTinh, TenPhuHuynh: hv.TenPhuHuynh, SDT_PhuHuynh: hv.SDT_PhuHuynh,
       DiaChi: hv.DiaChi, CoSo: hv.CoSo, NgayNhapHoc: hv.NgayNhapHoc,
-      TrangThai: hv.TrangThai||'Đang học', GhiChu: hv.GhiChu
+      TrangThai: hv.TrangThai||'Đang học', GhiChu: hv.GhiChu,
+      MaKhoa: hv.MaKhoa||'', TenKhoa: hv.TenKhoa||'',
+      SoBuoiKhoa: hv.SoBuoiKhoa||'', DaHocKhoa: hv.DaHocKhoa!==undefined?hv.DaHocKhoa:'',
+      NgayHoc: hv.NgayHoc||''
     };
     var idx = -1;
     for(var i=0;i<TatCaHV.length;i++){ if(TatCaHV[i].MaHV===kq.MaHV){ idx=i; break; } }
@@ -510,6 +582,7 @@ function luuHocVien(dong, ma){
     loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
   });
 }
+function capNhatKhoaChon(){}
 
 /* ---------- Lớp ---------- */
 function taiLop(){
@@ -651,6 +724,8 @@ function veChiTiet(){
     + ht('Ngày sinh', esc(h.NgaySinh) + (h.GioiTinh ? ' · '+esc(h.GioiTinh) : ''))
     + ht('Phụ huynh', esc(h.TenPhuHuynh))
     + ht('Điện thoại', '<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>')
+    + ht('Khóa học', h.TenKhoa ? esc(h.TenKhoa)+' <span class="ma">(còn '+h.SoBuoiConLaiKhoa+'/'+h.SoBuoiKhoa+' buổi)</span>' : '—')
+    + ht('Ngày học', esc(h.NgayHoc))
     + ht('Địa chỉ', esc(h.DiaChi))
     + ht('Ngày nhập học', esc(h.NgayNhapHoc))
     + '</div>'
@@ -1078,6 +1153,122 @@ function luuDiemDanh(){
     bao(e.message, true);
     if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; }
   });
+}
+
+/* ---------- KHÓA HỌC (danh mục) ---------- */
+function taiKhoaHoc(){
+  var tbody = document.getElementById('bangKhoa');
+  goi('layKhoaHoc').then(function(ds){
+    DsKhoa = ds;
+    if(!ds.length){
+      tbody.innerHTML = '<tr><td colspan="6" class="trong">Chưa có khóa học nào. Bấm “Thêm khóa học” để tạo (VD: Piano cơ bản - 2.000.000đ).</td></tr>';
+      return;
+    }
+    tbody.innerHTML = ds.map(function(k){
+      var lop = k.TrangThai==='Đóng' ? 'nghi' : 'hoc';
+      return '<tr onclick=\'moKhoaHoc('+JSON.stringify(k).replace(/'/g,"&#39;")+')\'>'
+        + '<td class="ma">'+esc(k.MaKhoa)+'</td>'
+        + '<td><strong>'+esc(k.TenKhoa)+'</strong></td>'
+        + '<td>'+esc(k.MonHoc)+'</td>'
+        + '<td>'+(k.SoBuoi||'')+'</td>'
+        + '<td class="tien">'+tien(k.GiaTien)+' đ</td>'
+        + '<td><span class="nhan '+lop+'">'+esc(k.TrangThai||'Đang mở')+'</span></td></tr>';
+    }).join('');
+  }).catch(function(e){
+    tbody.innerHTML = '<tr><td colspan="6" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
+  });
+}
+
+function moKhoaHoc(k){
+  k = k || {};
+  var moi = !k.MaKhoa;
+  var optMon = DanhMuc.monHoc.map(function(m){
+    return '<option value="'+esc(m.ma)+'"'+(k.MonHoc===m.ma?' selected':'')+'>'+esc(m.ten)+'</option>'; }).join('');
+  moModal((moi?'Thêm khóa học':'Sửa khóa · '+esc(k.MaKhoa)),
+    '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
+    + o('Tên khóa học','<input id="k_TenKhoa" placeholder="VD: Piano cơ bản" value="'+esc(k.TenKhoa)+'">',true,'rong')
+    + o('Môn học','<select id="k_MonHoc"><option value=""></option>'+optMon+'</select>')
+    + o('Số buổi','<input id="k_SoBuoi" type="number" min="0" value="'+esc(k.SoBuoi)+'">')
+    + o('Giá tiền (đ)','<input id="k_GiaTien" type="number" min="0" step="1000" value="'+esc(k.GiaTien)+'">',true)
+    + o('Trạng thái','<select id="k_TrangThai">'
+        +['Đang mở','Đóng'].map(function(t){return '<option'+(k.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
+    + o('Ghi chú','<textarea id="k_GhiChu" rows="2">'+esc(k.GhiChu)+'</textarea>',false,'rong')
+    + '</div>', 'luuKhoaHoc('+(k._dong||0)+',\''+esc(k.MaKhoa||'')+'\')');
+}
+
+function luuKhoaHoc(dong, ma){
+  var k = {_dong:dong, MaKhoa:ma};
+  ['TenKhoa','MonHoc','SoBuoi','GiaTien','TrangThai','GhiChu'].forEach(function(f){
+    k[f] = document.getElementById('k_'+f).value.trim();
+  });
+  var loi = document.getElementById('loiForm');
+  loi.classList.add('an'); khoaLuu(true);
+  goi('luuKhoaHoc', {khoaHoc:k}).then(function(kq){
+    dongModal(); bao('Đã lưu khóa ' + kq.MaKhoa); taiKhoaHoc();
+  }).catch(function(e){
+    loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
+  });
+}
+
+/* ---------- BÁO CÁO ---------- */
+function napThangBaoCao(){
+  var el = document.getElementById('bcThang');
+  if(el && !el.value){
+    var n = new Date();
+    el.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
+  }
+}
+
+function baoCaoSapHet(){
+  var nguong = document.getElementById('bcNguong').value || 0;
+  var box = document.getElementById('kqSapHet');
+  box.innerHTML = '<div class="dangTai">Đang tính...</div>';
+  goi('baoCaoSapHetKhoa', {nguong:nguong}).then(function(d){
+    if(!d.danhSach.length){
+      box.innerHTML = '<div class="trong" style="padding:16px">Không có học sinh nào còn ≤ '+d.nguong+' buổi. 👍</div>';
+      return;
+    }
+    box.innerHTML = '<div style="font-size:13px;color:#6b7280;margin-bottom:8px">'+d.danhSach.length+' học sinh sắp hết khóa — nên mời gia hạn:</div>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr>'
+      + '<th>Học sinh</th><th>SĐT</th><th>Khóa</th><th>Còn lại</th><th>Ngày học</th></tr></thead><tbody>'
+      + d.danhSach.map(function(r){
+          var mau = r.ConLai<=0 ? 'nghi' : 'bao';
+          return '<tr><td><strong>'+esc(r.HoTen)+'</strong></td>'
+            + '<td class="ma">'+esc(r.SDT)+'</td>'
+            + '<td>'+esc(r.TenKhoa)+'</td>'
+            + '<td><span class="nhan '+mau+'">còn '+r.ConLai+'/'+r.SoBuoi+'</span></td>'
+            + '<td>'+esc(r.NgayHoc)+'</td></tr>';
+        }).join('')
+      + '</tbody></table></div>';
+  }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
+}
+
+function baoCaoDiemDanh(){
+  var thang = document.getElementById('bcThang').value;
+  var box = document.getElementById('kqDiemDanh');
+  if(!thang){ bao('Chưa chọn tháng', true); return; }
+  box.innerHTML = '<div class="dangTai">Đang tính...</div>';
+  goi('baoCaoDiemDanh', {thang:thang}).then(function(d){
+    if(!d.soBanGhi){
+      box.innerHTML = '<div class="trong" style="padding:16px">Tháng này chưa có dữ liệu điểm danh.</div>';
+      return;
+    }
+    var html = '<div class="tomTat" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'
+      + '<div class="oTomTat du"><div class="nhan-o">Có mặt</div><div class="so">'+d.tong.coMat+'</div></div>'
+      + '<div class="oTomTat no"><div class="nhan-o">Vắng</div><div class="so">'+d.tong.vang+'</div></div>'
+      + '<div class="oTomTat"><div class="nhan-o">Có phép</div><div class="so">'+d.tong.coPhep+'</div></div>'
+      + '</div>';
+    html += '<div class="cuonBang"><table class="nho"><thead><tr>'
+      + '<th>Lớp</th><th>Có mặt</th><th>Vắng</th><th>Có phép</th></tr></thead><tbody>'
+      + d.theoLop.map(function(l){
+          return '<tr><td><strong>'+esc(l.TenLop)+'</strong></td>'
+            + '<td style="color:#0f7a4d">'+l.coMat+'</td>'
+            + '<td style="color:#b42318">'+l.vang+'</td>'
+            + '<td style="color:#b45309">'+l.coPhep+'</td></tr>';
+        }).join('')
+      + '</tbody></table></div>';
+    box.innerHTML = html;
+  }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
 }
 
 /* ---------- Modal ---------- */
