@@ -319,6 +319,23 @@ function bao(text, laLoi){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
+/* ---------- Lưu dữ liệu vào máy để đăng nhập lần sau hiện tức thì ---------- */
+var CACHE_KEY = 'thienan_hv_cache_v1';
+function luuCache(bd){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(bd)); }catch(e){} }
+function docCache(){ try{ var s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+function apDungDuLieu(bd, renderDanhSach){
+  if(bd.danhMuc) DanhMuc = bd.danhMuc;
+  TatCaHV = bd.hocVien || [];
+  DsLop = bd.lop || [];
+  var sel = document.getElementById('locCoSo');
+  if(sel){
+    sel.innerHTML = '<option value="">Tất cả cơ sở</option>'
+      + (DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>';}).join('');
+  }
+  if(renderDanhSach) taiHocVien(TrangHV||1);
+}
+
 /* ---------- Đăng nhập ---------- */
 function dangNhap(){
   var ten = document.getElementById('oTen').value.trim();
@@ -332,18 +349,25 @@ function dangNhap(){
     document.getElementById('tenNguoi').textContent = nd.hoTen;
     document.getElementById('manDangNhap').classList.add('an');
     document.getElementById('manChinh').classList.remove('an');
-    document.getElementById('bangHV').innerHTML =
-      '<tr><td colspan="6" class="dangTai">Đang tải dữ liệu lần đầu...</td></tr>';
-    return goi('taiBanDau');
-  }).then(function(bd){
-    DanhMuc = bd.danhMuc;
-    TatCaHV = bd.hocVien || [];
-    DsLop = bd.lop || [];
-    var sel = document.getElementById('locCoSo');
-    DanhMuc.coSo.forEach(function(c){
-      sel.insertAdjacentHTML('beforeend','<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>');
+
+    var cache = docCache();
+    if(cache){
+      apDungDuLieu(cache, true);   // hiện ngay từ bộ nhớ máy — tức thì
+    } else {
+      document.getElementById('bangHV').innerHTML =
+        '<tr><td colspan="6" class="dangTai">Đang tải dữ liệu lần đầu...</td></tr>';
+    }
+
+    // Luôn tải bản mới nhất ở nền rồi cập nhật lại + lưu cache
+    goi('taiBanDau').then(function(bd){
+      apDungDuLieu(bd, true);
+      luuCache(bd);
+    }).catch(function(e){
+      if(!cache){
+        document.getElementById('bangHV').innerHTML =
+          '<tr><td colspan="6" class="trong">Lỗi tải dữ liệu: '+esc(e.message)+'</td></tr>';
+      }
     });
-    taiHocVien(1);
   }).catch(function(e){
     loi.textContent = e.message; loi.classList.remove('an');
   });
