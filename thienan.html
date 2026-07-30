@@ -66,6 +66,8 @@ tbody tr:last-child td{border-bottom:none}
 .ma{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--chu-mo)}
 
 .nhan{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.chipThu{padding:7px 13px;border:1px solid var(--vien);border-radius:20px;background:#fff;cursor:pointer;font-size:13px;color:#374151;transition:all .12s}
+.chipThu.chon{background:#12294d;color:#fff;border-color:#12294d}
 .nhan.hoc{background:#e6f4ec;color:var(--xanh)}
 .nhan.bao{background:#fdf2e3;color:var(--cam)}
 .nhan.nghi{background:#fbeae8;color:var(--do)}
@@ -552,9 +554,15 @@ async function fbLuuDiemDanh(dl){
   if(!dl.danhSach||!dl.danhSach.length) throw new Error('Không có học viên để lưu.');
   var ngay=ngayISO.split('-').reverse().join('/'), thang=ngayISO.slice(0,7);
   var lop=DsLop.filter(function(l){return l.MaLop===maLop;})[0]||{};
+  // Đọc điểm danh cũ của ngày/lớp này để tính chênh lệch buổi Có mặt
+  var chamCu=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',ngayISO)));
+  var ttCu={}; chamCu.docs.forEach(function(d){ var o=d.data(); if(String(o.MaLop)===maLop) ttCu[String(o.MaHV)]=o.TrangThai; });
   var batch=FB.writeBatch(FB.db); var tg=new Date().toLocaleString('vi-VN');
   dl.danhSach.forEach(function(hs){ var maHV=String(hs.maHV||'').trim(); if(!maHV) return;
-    batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg}); });
+    batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg});
+    var cu=(ttCu[maHV]==='Có mặt')?1:0, moi=((hs.trangThai||'Có mặt')==='Có mặt')?1:0, delta=moi-cu;
+    if(delta!==0) batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(delta)});
+  });
   await batch.commit();
   return { soLuong:dl.danhSach.length, ngay:ngay };
 }
@@ -632,7 +640,6 @@ async function fbBaoCaoSapHetKhoa(dl){
 async function fbSapHetKhoa(dl){
   var nguong = (dl.nguong!==undefined && dl.nguong!=='') ? soTienJS(dl.nguong) : 999999;
   var maKhoaLoc = String(dl.maKhoa||'').trim();
-  var daHoc = await tallyBuoiDaHoc();
   var dkAll = await docsCol('dangky');
   var lopMap = {}; dkAll.forEach(function(r){ if(r.TrangThai!=='Đã nghỉ' && !lopMap[r.MaHV]) lopMap[r.MaHV]=r.TenLop||''; });
   var hpAll = await docsCol('hocphi');
@@ -648,7 +655,7 @@ async function fbSapHetKhoa(dl){
       return soTienJS(h.SoBuoiKhoa)>0;
     })
     .map(function(h){
-      var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=(daHoc[h.MaHV]||0); var conLai=soBuoi-dh;
+      var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=soTienJS(h.DaHocKhoa); var conLai=soBuoi-dh;
       var kh=khMap[h.MaKhoa]||{}; var hp=hpMap[h.MaHV];
       var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '—';
       return {MaHV:h.MaHV,HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),Lop:lopMap[h.MaHV]||'',TenKhoa:h.TenKhoa||'',NgayHoc:h.NgayHoc||'',SoBuoi:soBuoi,DaHoc:dh,ConLai:conLai,HocPhi:kh.GiaTien||0,NgayDong:payDate[h.MaHV]||'',TTHocPhi:ttHP,TrangThai:conLai>0?'Chưa hoàn thành':'Hoàn thành'};
@@ -660,7 +667,6 @@ async function fbSapHetKhoa(dl){
 
 /* Thông tin bổ sung cho TOÀN BỘ học viên (lớp, đã học, còn lại, học phí, ngày đóng, TT học phí) */
 async function fbBoSungHocVien(){
-  var daHoc = await tallyBuoiDaHoc();
   var dkAll = await docsCol('dangky');
   var lopMap={}; dkAll.forEach(function(r){ if(r.TrangThai!=='Đã nghỉ' && !lopMap[r.MaHV]) lopMap[r.MaHV]=r.TenLop||''; });
   var hpAll = await docsCol('hocphi');
@@ -670,7 +676,7 @@ async function fbBoSungHocVien(){
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
   var m={};
   TatCaHV.forEach(function(h){
-    var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=(daHoc[h.MaHV]||0); var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
+    var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=soTienJS(h.DaHocKhoa); var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
     var hp=hpMap[h.MaHV];
     var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '';
     m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?(soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
@@ -858,7 +864,12 @@ function moHocVien(hv){
           + '</select>'
         : '<div style="font-size:13px;color:#b45309">Chưa có khóa học nào. Vào tab “Khóa học” tạo khóa (VD: Piano cơ bản 2tr) trước.</div>'),
       false, 'rong') : '';
-  var truongNgayHoc = moi ? o('Ngày học trong tuần','<input id="f_NgayHoc" placeholder="VD: Thứ 2 - Thứ 4" value="'+esc(hv.NgayHoc)+'">') : '';
+  var thuTuan = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ Nhật'];
+  var daChonThu = String(hv.NgayHoc||'').split(/[,\/\-\u2013]+/).map(function(x){return x.trim();});
+  var truongNgayHoc = moi ? o('Ngày học trong tuần (bấm chọn)',
+      '<div id="f_NgayHoc_wrap" style="display:flex;gap:6px;flex-wrap:wrap">'
+      + thuTuan.map(function(t){ var on=daChonThu.indexOf(t)>-1; return '<button type="button" class="chipThu'+(on?' chon':'')+'" onclick="this.classList.toggle(\'chon\')">'+t+'</button>'; }).join('')
+      + '</div>', false, 'rong') : '';
 
   moModal((moi?'Thêm học viên':'Sửa hồ sơ · '+esc(hv.MaHV)),
     '<div class="baoLoi an" id="loiForm"></div>'
@@ -889,7 +900,7 @@ function luuHocVien(dong, ma){
   });
   // Khóa học + ngày học (chỉ có khi thêm mới)
   var elKhoa = document.getElementById('f_Khoa');
-  var elNgayHoc = document.getElementById('f_NgayHoc');
+  var elNgayHoc = document.getElementById('f_NgayHoc_wrap');
   if(elKhoa && elKhoa.value){
     var k = DsKhoa.filter(function(x){return x.MaKhoa===elKhoa.value;})[0];
     if(k){
@@ -898,7 +909,10 @@ function luuHocVien(dong, ma){
       hv.NgayBatDauKhoa = new Date().toLocaleDateString('vi-VN');
     }
   }
-  if(elNgayHoc) hv.NgayHoc = elNgayHoc.value.trim();
+  if(elNgayHoc){
+    hv.NgayHoc = Array.prototype.slice.call(elNgayHoc.querySelectorAll('.chon'))
+      .map(function(b){return b.textContent;}).join(', ');
+  }
 
   var loi = document.getElementById('loiForm');
   loi.classList.add('an');
@@ -1791,7 +1805,7 @@ function khoaLuu(khoa){
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 const firebaseConfig = {
   apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
@@ -1804,7 +1818,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
 const auth = getAuth(app);
-window.FB = { db, auth, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, signInWithEmailAndPassword, onAuthStateChanged, signOut };
+window.FB = { db, auth, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment, signInWithEmailAndPassword, onAuthStateChanged, signOut };
 if (window.onFbReady) window.onFbReady();
 </script>
 </body>
