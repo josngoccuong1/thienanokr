@@ -288,6 +288,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
       <div class="the" style="margin-top:16px">
         <div style="padding:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--vien)">
           <strong style="color:#12294d">📋 Danh sách điểm danh</strong>
+          <button class="nutPhu" onclick="chonFileNhapDD()">⬆ Nhập Excel</button>
+          <button class="nutPhu" onclick="xuatDiemDanh()">⬇ Tải xuống</button>
+          <button class="nutPhu" onclick="taiMauDiemDanh()">File mẫu</button>
           <input type="month" id="ddThang" onchange="napDsDiemDanh()" style="width:auto;margin-left:auto">
         </div>
         <div class="cuonBang" id="dsDiemDanhBox">
@@ -867,7 +870,87 @@ async function nhapDL(loai, rows){
   }catch(e){ bao('Lỗi khi nhập: '+e.message, true); }
 }
 
-/* ---------- Lưu dữ liệu vào máy để đăng nhập lần sau hiện tức thì ---------- */
+/* ---------- NHẬP / XUẤT ĐIỂM DANH ---------- */
+function _isoTuNgay(v){
+  if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+('0'+(v.getMonth()+1)).slice(-2)+'-'+('0'+v.getDate()).slice(-2);
+  if(typeof v==='number' && v>1){ var d=new Date(Math.round((v-25569)*86400*1000)); return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2); }
+  var s=String(v||'').trim(); if(!s) return null;
+  var m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  return null;
+}
+async function xuatDiemDanh(){
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel.', true); return; }
+  bao('Đang chuẩn bị dữ liệu...');
+  try{
+    var dd = await docsCol('diemdanh');
+    var rows = dd.map(function(r){ return {'Ngày':r.Ngay||'', 'Mã lớp':r.MaLop||'', 'Tên lớp':r.TenLop||'',
+      'Mã HV':r.MaHV||'', 'Họ tên':r.HoTen||'', 'Trạng thái':r.TrangThai||'', 'Người điểm danh':r.NguoiDiemDanh||'', 'Ghi chú':r.GhiChu||''}; });
+    if(!rows.length) rows=[{'Ngày':'','Mã lớp':'','Tên lớp':'','Mã HV':'','Họ tên':'','Trạng thái':'','Người điểm danh':'','Ghi chú':''}];
+    xuatExcelFile('ThienAn_diemdanh_'+ngayFile()+'.xlsx', rows);
+    bao('Đã tải xuống '+rows.length+' dòng điểm danh');
+  }catch(e){ bao('Lỗi: '+e.message, true); }
+}
+function taiMauDiemDanh(){
+  xuatExcelFile('Mau_diemdanh.xlsx', [{'Ngày':'01/07/2026','Mã lớp':'','Tên lớp':'Lớp Piano cô Lan','Mã HV':'','Họ tên':'Nguyễn Văn A','Trạng thái':'Có mặt','Người điểm danh':'admin','Ghi chú':''}]);
+  bao('Đã tải file mẫu điểm danh. Điền Ngày, Tên lớp (hoặc Mã lớp), Họ tên (hoặc Mã HV), Trạng thái.');
+}
+function chonFileNhapDD(){
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel.', true); return; }
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=function(){ var f=inp.files[0]; if(!f) return; bao('Đang đọc file...');
+    var reader=new FileReader();
+    reader.onload=function(e){ try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){ bao('File trống.', true); return; }
+      nhapDiemDanh(rows);
+    }catch(err){ bao('Không đọc được file: '+err.message, true); } };
+    reader.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+async function nhapDiemDanh(rows){
+  var docs=[], affected={}, boQua=0;
+  rows.forEach(function(r){
+    var ngayISO=_isoTuNgay(r['Ngày']||r['Ngay']); if(!ngayISO){ boQua++; return; }
+    var maLop=String(r['Mã lớp']||r['Ma lop']||'').trim();
+    var tenLop=String(r['Tên lớp']||r['Ten lop']||'').trim();
+    if(!maLop && tenLop){ var l=DsLop.filter(function(x){return String(x.TenLop).trim()===tenLop;})[0]; if(l){maLop=l.MaLop; tenLop=l.TenLop;} }
+    else if(maLop){ var l2=DsLop.filter(function(x){return x.MaLop===maLop;})[0]; if(l2) tenLop=l2.TenLop; }
+    if(!maLop){ boQua++; return; }
+    var maHV=String(r['Mã HV']||r['Ma HV']||'').trim();
+    var hoTen=String(r['Họ tên']||r['Ho ten']||'').trim();
+    if(!maHV && hoTen){ var hv=TatCaHV.filter(function(x){return String(x.HoTen).trim()===hoTen;})[0]; if(hv){maHV=hv.MaHV; hoTen=hv.HoTen;} }
+    else if(maHV){ var hv2=TatCaHV.filter(function(x){return x.MaHV===maHV;})[0]; if(hv2) hoTen=hv2.HoTen; }
+    if(!maHV){ boQua++; return; }
+    var tt=String(r['Trạng thái']||r['Trang thai']||'Có mặt').trim()||'Có mặt';
+    var ngay=ngayISO.split('-').reverse().join('/');
+    docs.push({id:maLop+'_'+ngayISO+'_'+maHV, obj:{NgayISO:ngayISO,Ngay:ngay,Thang:ngayISO.slice(0,7),MaLop:maLop,TenLop:tenLop,MaHV:maHV,HoTen:hoTen,TrangThai:tt,GhiChu:String(r['Ghi chú']||r['Ghi chu']||''),NguoiDiemDanh:String(r['Người điểm danh']||r['Nguoi diem danh']||''),ThoiGian:new Date().toLocaleString('vi-VN')}});
+    affected[maHV]=true;
+  });
+  if(!docs.length){ bao('Không có dòng hợp lệ. Kiểm tra Ngày, Lớp, Học viên có khớp không.', true); return; }
+  bao('Đang nhập '+docs.length+' dòng điểm danh...');
+  try{
+    for(var i=0;i<docs.length;i+=400){
+      var batch=FB.writeBatch(FB.db);
+      docs.slice(i,i+400).forEach(function(d){ batch.set(FB.doc(FB.db,'diemdanh',d.id), d.obj, {merge:true}); });
+      await batch.commit();
+    }
+    // Tính lại "số buổi đã học" cho các em vừa nhập
+    var all=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
+    var dem={}; all.docs.forEach(function(d){ var m=String(d.data().MaHV); dem[m]=(dem[m]||0)+1; });
+    var dsMa=Object.keys(affected);
+    for(var j=0;j<dsMa.length;j+=400){
+      var b2=FB.writeBatch(FB.db);
+      dsMa.slice(j,j+400).forEach(function(ma){ b2.set(FB.doc(FB.db,'hocvien',ma), {DaHocKhoa:dem[ma]||0}, {merge:true}); });
+      await b2.commit();
+    }
+    bao('✓ Đã nhập '+docs.length+' dòng điểm danh'+(boQua?' ('+boQua+' dòng bỏ qua vì thiếu/không khớp)':'')+'!');
+    napDsDiemDanh(); lamMoiDsHocVien();
+  }catch(e){ bao('Lỗi khi nhập: '+e.message, true); }
+}
 var CACHE_KEY = 'thienan_hv_cache_v1';
 function luuCache(bd){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(bd)); }catch(e){} }
 function docCache(){ try{ var s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
