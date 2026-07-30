@@ -159,7 +159,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
 @media print{
   body>*{display:none !important}
   #vungIn{display:block !important}
-  @page{size:A5 landscape;margin:8mm}
+  .hd{max-width:100% !important;page-break-inside:avoid;padding:0 !important}
+  .hd .ky b{margin-bottom:40px}
+  @page{size:A4 portrait;margin:14mm}
 }
 @media(max-width:640px){
   main{padding:12px}
