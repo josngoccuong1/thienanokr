@@ -333,6 +333,14 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
           <button class="nutChinh" onclick="baoCaoDoanhThu()">Xem</button>
         </div>
         <div id="kqDoanhThu"></div>
+        <div style="border-top:1px solid var(--vien);margin-top:16px;padding-top:14px">
+          <div style="font-weight:600;color:#12294d;margin-bottom:10px">📅 Doanh thu theo ngày</div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <input type="month" id="bcThangNgay" style="width:auto">
+            <button class="nutPhu" onclick="baoCaoDoanhThuNgay()">Xem</button>
+          </div>
+          <div id="kqDoanhThuNgay"></div>
+        </div>
       </div>
 
       <div class="the" style="padding:16px;margin-bottom:16px">
@@ -488,6 +496,7 @@ async function goi(hanhDong, dl){
     case 'sapHetKhoa':       return await fbSapHetKhoa(dl);
     case 'boSungHocVien':    return await fbBoSungHocVien(dl);
     case 'baoCaoDoanhThu':   return await fbBaoCaoDoanhThu(dl);
+    case 'doanhThuNgay':     return await fbDoanhThuNgay(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
     case 'chuyenHV':         return await fbChuyenHV(dl);
@@ -774,7 +783,20 @@ async function fbSapHetKhoa(dl){
 }
 
 /* ---------- Báo cáo doanh thu + tăng trưởng theo tháng/quý ---------- */
-function _thangCuaNgay(str){
+async function fbDoanhThuNgay(dl){
+  var thang=String(dl.thang||'').trim(); if(!thang) throw new Error('Chưa chọn tháng.');
+  var pt=await docsCol('phieuthu');
+  var theoNgay={};
+  var tong=0;
+  pt.forEach(function(r){
+    var iso=r.NgayThuISO || _isoTuNgay(r.NgayThu); if(!iso) return;
+    if(iso.slice(0,7)!==thang) return;
+    if(!theoNgay[iso]) theoNgay[iso]={ngayISO:iso, ngay:iso.split('-').reverse().join('/'), doanhThu:0, soPhieu:0};
+    var st=soTienJS(r.SoTien); theoNgay[iso].doanhThu+=st; theoNgay[iso].soPhieu++; tong+=st;
+  });
+  var ds=Object.keys(theoNgay).map(function(k){return theoNgay[k];}).sort(function(a,b){return a.ngayISO.localeCompare(b.ngayISO);});
+  return {thang:thang, tong:tong, soNgay:ds.length, danhSach:ds};
+}function _thangCuaNgay(str){
   // trả 'yyyy-MM' từ chuỗi dd/mm/yyyy hoặc yyyy-mm-dd; null nếu không đọc được
   str=String(str||'').trim(); if(!str) return null;
   var m=str.match(/(\d{4})-(\d{1,2})-\d{1,2}/); if(m) return m[1]+'-'+('0'+m[2]).slice(-2);
@@ -2090,6 +2112,28 @@ function napThangBaoCao(){
   }
   var en = document.getElementById('bcNam');
   if(en && !en.value){ en.value = new Date().getFullYear(); baoCaoDoanhThu(); }
+  var etn = document.getElementById('bcThangNgay');
+  if(etn && !etn.value){ var n=new Date(); etn.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2); baoCaoDoanhThuNgay(); }
+}
+
+function baoCaoDoanhThuNgay(){
+  var thang = document.getElementById('bcThangNgay').value;
+  var box = document.getElementById('kqDoanhThuNgay');
+  if(!thang){ box.innerHTML=''; return; }
+  box.innerHTML = '<div class="dangTai" style="padding:12px">Đang tính...</div>';
+  goi('doanhThuNgay', {thang:thang}).then(function(d){
+    if(!d.danhSach.length){ box.innerHTML='<div class="trong" style="padding:14px">Tháng này chưa có khoản thu nào.</div>'; return; }
+    var maxDT = Math.max.apply(null, d.danhSach.map(function(x){return x.doanhThu;}).concat([1]));
+    var html = '<div style="font-size:13px;color:#6b7280;margin-bottom:10px">Có thu tiền trong <strong>'+d.soNgay+'</strong> ngày · Tổng: <strong style="color:#0f7a4d">'+tien(d.tong)+' đ</strong></div>';
+    html += '<div class="cuonBang"><table class="nho"><thead><tr><th>Ngày</th><th class="tien">Doanh thu</th><th>Số phiếu</th><th style="width:40%">Tỷ trọng</th></tr></thead><tbody>'
+      + d.danhSach.map(function(x){ var w=Math.round(x.doanhThu/maxDT*100);
+          return '<tr><td><strong>'+esc(x.ngay)+'</strong></td>'
+            + '<td class="tien" style="color:#0f7a4d;font-weight:600">'+tien(x.doanhThu)+'</td>'
+            + '<td>'+x.soPhieu+'</td>'
+            + '<td><div style="background:#eef1f5;border-radius:5px;overflow:hidden"><div style="width:'+w+'%;min-width:6px;height:16px;background:linear-gradient(90deg,#c9a227,#12294d);border-radius:5px"></div></div></td></tr>'; }).join('')
+      + '</tbody></table></div>';
+    box.innerHTML = html;
+  }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
 }
 
 function baoCaoDoanhThu(){
@@ -2104,8 +2148,8 @@ function baoCaoDoanhThu(){
       + '<div class="oTomTat du"><div class="nhan-o">Tổng doanh thu '+d.nam+'</div><div class="so" style="font-size:20px">'+tien(d.tongDoanhThu)+' đ</div></div>'
       + '<div class="oTomTat"><div class="nhan-o">Học sinh mới '+d.nam+'</div><div class="so" style="font-size:20px">'+d.tongHsMoi+'</div></div>'
       + '</div>';
-    // Biểu đồ cột doanh thu theo tháng
-    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Doanh thu theo tháng</div>'
+    // Biểu đồ cột doanh thu theo tháng (kèm HS mới dưới mỗi cột)
+    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Doanh thu theo tháng (số xanh = học sinh mới)</div>'
       + '<div style="display:flex;align-items:flex-end;gap:6px;height:150px;padding:8px 0;border-bottom:2px solid var(--vien);margin-bottom:6px">'
       + d.thang.map(function(t){
           var h = Math.round(t.doanhThu/maxDT*130);
@@ -2115,13 +2159,9 @@ function baoCaoDoanhThu(){
             + '</div>';
         }).join('')
       + '</div>'
-      + '<div style="display:flex;gap:6px;margin-bottom:18px">'+d.thang.map(function(t){return '<div style="flex:1;text-align:center;font-size:11px;color:#6b7280">'+tenThang[t.thang]+'</div>';}).join('')+'</div>';
-    // Bảng theo tháng
-    html += '<div class="cuonBang"><table class="nho"><thead><tr><th>Tháng</th><th class="tien">Doanh thu</th><th>HS mới</th></tr></thead><tbody>'
-      + d.thang.map(function(t){ return '<tr><td>Tháng '+t.thang+'</td><td class="tien">'+(t.doanhThu?tien(t.doanhThu):'—')+'</td><td>'+(t.hsMoi||'—')+'</td></tr>'; }).join('')
-      + '</tbody></table></div>';
+      + '<div style="display:flex;gap:6px;margin-bottom:18px">'+d.thang.map(function(t){return '<div style="flex:1;text-align:center"><div style="font-size:11px;color:#6b7280">'+tenThang[t.thang]+'</div><div style="font-size:11px;color:#0369a1;font-weight:600">'+(t.hsMoi?'+'+t.hsMoi:'')+'</div></div>';}).join('')+'</div>';
     // Bảng theo quý
-    html += '<div style="font-weight:600;color:#12294d;margin:18px 0 10px">Theo quý</div>'
+    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Theo quý</div>'
       + '<div class="cuonBang"><table class="nho"><thead><tr><th>Quý</th><th class="tien">Doanh thu</th><th>HS mới</th></tr></thead><tbody>'
       + d.quy.map(function(q){ return '<tr><td><strong>Quý '+q.quy+'</strong></td><td class="tien">'+(q.doanhThu?tien(q.doanhThu):'—')+'</td><td>'+(q.hsMoi||'—')+'</td></tr>'; }).join('')
       + '</tbody></table></div>';
