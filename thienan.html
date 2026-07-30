@@ -561,6 +561,11 @@ async function fbXemHocVien(dl){
   var lopHocRaw=await docsWhere('dangky','MaHV',maHV);
   var hocPhiRaw=await docsWhere('hocphi','MaHV',maHV);
   var phieuThuRaw=await docsWhere('phieuthu','MaHV',maHV);
+  var diemDanhRaw=await docsWhere('diemdanh','MaHV',maHV);
+  var diemDanh=diemDanhRaw.map(function(r){ return {NgayISO:r.NgayISO||'',Ngay:r.Ngay||'',TenLop:r.TenLop||'',TrangThai:r.TrangThai||'',GhiChu:r.GhiChu||'',NguoiDiemDanh:r.NguoiDiemDanh||''}; })
+    .sort(function(a,b){return String(b.NgayISO).localeCompare(String(a.NgayISO));});
+  var ddCoMat=0,ddVang=0,ddPhep=0;
+  diemDanh.forEach(function(r){ if(r.TrangThai==='Có mặt')ddCoMat++; else if(r.TrangThai==='Vắng')ddVang++; else if(r.TrangThai==='Có phép')ddPhep++; });
   var timLop=function(ma){ return DsLop.filter(function(l){return String(l.MaLop)===String(ma);})[0]||{}; };
   var lopHoc=lopHocRaw.map(function(r){ var l=timLop(r.MaLop);
     return {_dong:r._dong,MaDK:r._dong,MaLop:r.MaLop,TenLop:r.TenLop||l.TenLop||'',MonHoc:l.MonHoc||'',TenGV:l.TenGV||'',Thu:l.Thu||'',Gio:(l.GioBatDau||'')+(l.GioKetThuc?' - '+l.GioKetThuc:''),CoSo:l.CoSo||'',NgayDangKy:r.NgayBatDau||'',TrangThai:r.TrangThai||'Đang học'}; });
@@ -576,6 +581,7 @@ async function fbXemHocVien(dl){
     phieuThu:phieuThu,
     hocVien:{_dong:maHV,MaHV:hv.MaHV,HoTen:hv.HoTen,NgaySinh:hv.NgaySinh||'',GioiTinh:hv.GioiTinh,TenPhuHuynh:hv.TenPhuHuynh,SDT_PhuHuynh:String(hv.SDT_PhuHuynh||''),DiaChi:hv.DiaChi,CoSo:hv.CoSo,NgayNhapHoc:hv.NgayNhapHoc||'',TrangThai:hv.TrangThai,GhiChu:hv.GhiChu,MaKhoa:hv.MaKhoa||'',TenKhoa:hv.TenKhoa||'',SoBuoiKhoa:soTienJS(hv.SoBuoiKhoa),DaHocKhoa:soTienJS(hv.DaHocKhoa),SoBuoiConLaiKhoa:soTienJS(hv.SoBuoiKhoa)-soTienJS(hv.DaHocKhoa),NgayHoc:hv.NgayHoc||'',NgayBatDauKhoa:hv.NgayBatDauKhoa||''},
     lopHoc:lopHoc, hocPhi:hocPhi,
+    diemDanh:diemDanh, ddThongKe:{coMat:ddCoMat,vang:ddVang,coPhep:ddPhep},
     tongKet:{tongPhaiThu:tPT,tongDaThu:tDT,conNo:conNo,tongBuoi:tB,tongBuoiDaHoc:tBH,soBuoiConLai:tB-tBH,tinhTrang:conNo<=0?'Đã thanh toán đủ':'Còn nợ'}
   };
 }
@@ -1480,6 +1486,7 @@ function veChiTiet(){
     + '</div>'
 
     + '<h3 class="muc">Lớp đang theo học</h3>' + bangLopHoc(d.lopHoc)
+    + '<h3 class="muc">Lịch sử điểm danh</h3>' + bangDiemDanhHV(d.diemDanh, d.ddThongKe)
     + '<h3 class="muc">Học phí</h3>' + bangHocPhi(d.hocPhi)
     + '<h3 class="muc">Phiếu thu đã lập</h3>' + bangPhieuThu(d.phieuThu);
 
@@ -1560,8 +1567,20 @@ function oTom(nhan, gt, lop){
 }
 function ht(nhan, gt){ return '<div><b>'+nhan+'</b><span>'+(gt||'—')+'</span></div>'; }
 
-function bangLopHoc(ds){
-  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
+function bangDiemDanhHV(ds, tk){
+  ds = ds || []; tk = tk || {coMat:0,vang:0,coPhep:0};
+  var tomTat = '<div class="tomTat" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">'
+    + '<div class="oTomTat du"><div class="nhan-o">Có mặt</div><div class="so">'+tk.coMat+'</div></div>'
+    + '<div class="oTomTat no"><div class="nhan-o">Vắng</div><div class="so">'+tk.vang+'</div></div>'
+    + '<div class="oTomTat"><div class="nhan-o">Có phép</div><div class="so">'+tk.coPhep+'</div></div></div>';
+  if(!ds.length) return tomTat + '<div class="trong" style="padding:12px">Chưa có buổi điểm danh nào.</div>';
+  var mau=function(t){ return t==='Vắng'?'no':(t==='Có phép'?'bao':'du'); };
+  return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
+    + ds.map(function(r){ return '<tr><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(r.TenLop)+'</td>'
+        + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'; }).join('')
+    + '</tbody></table></div>';
+}
+function bangLopHoc(ds){  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
     + '<th>Lớp</th><th>Môn</th><th>Giáo viên</th><th>Lịch</th><th>Ngày đăng ký</th><th>Trạng thái</th>'
     + '</tr></thead><tbody>'
