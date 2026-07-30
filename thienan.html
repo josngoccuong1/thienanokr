@@ -170,6 +170,7 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   .an-mobile{display:none}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -217,6 +218,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
           <option>Đang học</option><option>Bảo lưu</option><option>Đã nghỉ</option>
         </select>
         <button class="nutChinh" onclick="moHocVien()">Thêm học viên</button>
+        <button class="nutPhu" onclick="chonFileNhap('hocvien')">⬆ Nhập Excel</button>
+        <button class="nutPhu" onclick="xuatDL('hocvien')">⬇ Tải xuống</button>
+        <button class="nutPhu" onclick="taiMau('hocvien')">File mẫu</button>
       </div>
       <div class="the">
         <div class="cuonBang"><table>
@@ -241,6 +245,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
     <section id="vung-lop" class="an">
       <div class="thanhCong">
         <button class="nutChinh" onclick="moLop()">Thêm lớp</button>
+        <button class="nutPhu" onclick="chonFileNhap('lop')">⬆ Nhập Excel</button>
+        <button class="nutPhu" onclick="xuatDL('lop')">⬇ Tải xuống</button>
+        <button class="nutPhu" onclick="taiMau('lop')">File mẫu</button>
       </div>
       <div class="the">
         <div class="cuonBang"><table>
@@ -291,6 +298,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
     <section id="vung-khoahoc" class="an">
       <div class="thanhCong">
         <button class="nutChinh" onclick="moKhoaHoc()">Thêm khóa học</button>
+        <button class="nutPhu" onclick="chonFileNhap('khoahoc')">⬆ Nhập Excel</button>
+        <button class="nutPhu" onclick="xuatDL('khoahoc')">⬇ Tải xuống</button>
+        <button class="nutPhu" onclick="taiMau('khoahoc')">File mẫu</button>
       </div>
       <div class="the">
         <div class="cuonBang"><table>
@@ -704,6 +714,106 @@ function bao(text, laLoi){
 }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ================= NHẬP / XUẤT EXCEL ================= */
+var CAU_HINH_XLS = {
+  hocvien: { ten:'Học viên', col:'hocvien', maField:'MaHV', maPrefix:'HV', tenChinh:'HoTen',
+    cots:[['MaHV','Mã HV'],['HoTen','Họ tên'],['NgaySinh','Ngày sinh'],['GioiTinh','Giới tính'],
+          ['TenPhuHuynh','Tên phụ huynh'],['SDT_PhuHuynh','SĐT phụ huynh'],['DiaChi','Địa chỉ'],
+          ['CoSo','Cơ sở'],['NgayNhapHoc','Ngày nhập học'],['TrangThai','Trạng thái'],
+          ['TenKhoa','Khóa học'],['NgayHoc','Ngày học'],['GhiChu','Ghi chú']] },
+  lop: { ten:'Lớp', col:'lop', maField:'MaLop', maPrefix:'LOP', tenChinh:'TenLop',
+    cots:[['MaLop','Mã lớp'],['TenLop','Tên lớp'],['MonHoc','Môn học'],['CapDo','Cấp độ'],
+          ['TenGV','Giáo viên'],['CoSo','Cơ sở'],['Thu','Thứ'],['GioBatDau','Giờ bắt đầu'],
+          ['GioKetThuc','Giờ kết thúc'],['SiSoToiDa','Sĩ số tối đa'],['TrangThai','Trạng thái'],['GhiChu','Ghi chú']] },
+  khoahoc: { ten:'Khóa học', col:'khoahoc', maField:'MaKhoa', maPrefix:'KH', tenChinh:'TenKhoa',
+    cots:[['MaKhoa','Mã khóa'],['TenKhoa','Tên khóa'],['MonHoc','Môn học'],['SoBuoi','Số buổi'],
+          ['GiaTien','Giá tiền'],['TrangThai','Trạng thái'],['GhiChu','Ghi chú']] }
+};
+function nguonDL(loai){ return loai==='hocvien'?TatCaHV:(loai==='lop'?DsLop:DsKhoa); }
+function ngayFile(){ var d=new Date(); return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+
+function xuatExcelFile(tenFile, rows){
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel, thử lại sau giây lát.', true); return; }
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data');
+  XLSX.writeFile(wb, tenFile);
+}
+function xuatDL(loai){
+  var cfg=CAU_HINH_XLS[loai];
+  var rows=nguonDL(loai).map(function(r){ var o={}; cfg.cots.forEach(function(c){ o[c[1]]=(r[c[0]]!==undefined&&r[c[0]]!==null)?r[c[0]]:''; }); return o; });
+  if(!rows.length){ var o={}; cfg.cots.forEach(function(c){o[c[1]]='';}); rows=[o]; }
+  xuatExcelFile('ThienAn_'+loai+'_'+ngayFile()+'.xlsx', rows);
+  bao('Đã tải xuống '+rows.length+' dòng '+cfg.ten.toLowerCase());
+}
+function taiMau(loai){
+  var cfg=CAU_HINH_XLS[loai]; var o={}; cfg.cots.forEach(function(c){o[c[1]]='';});
+  // 1 dòng ví dụ để dễ hình dung
+  var vd={};
+  if(loai==='hocvien') vd={'Mã HV':'','Họ tên':'Nguyễn Văn A','Ngày sinh':'01/01/2015','Giới tính':'Nam','Tên phụ huynh':'Nguyễn Văn B','SĐT phụ huynh':'0900000000','Địa chỉ':'','Cơ sở':'CS1','Ngày nhập học':'','Trạng thái':'Đang học','Khóa học':'Piano Cơ Bản','Ngày học':'Thứ 2, Thứ 4','Ghi chú':''};
+  if(loai==='lop') vd={'Mã lớp':'','Tên lớp':'Lớp Piano cô Lan','Môn học':'Piano','Cấp độ':'Cơ bản','Giáo viên':'Cô Lan','Cơ sở':'CS1','Thứ':'Thứ 2','Giờ bắt đầu':'18:00','Giờ kết thúc':'19:00','Sĩ số tối đa':'10','Trạng thái':'Đang mở','Ghi chú':''};
+  if(loai==='khoahoc') vd={'Mã khóa':'','Tên khóa':'Piano Cơ Bản','Môn học':'Piano','Số buổi':'24','Giá tiền':'2000000','Trạng thái':'Đang mở','Ghi chú':''};
+  xuatExcelFile('Mau_'+loai+'.xlsx', [vd]);
+  bao('Đã tải file mẫu. Điền dữ liệu vào rồi bấm “Nhập Excel”.');
+}
+
+function chonFileNhap(loai){
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel, thử lại sau giây lát.', true); return; }
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=function(){
+    var f=inp.files[0]; if(!f) return;
+    bao('Đang đọc file...');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var wb=XLSX.read(e.target.result,{type:'array'});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+        if(!rows.length){ bao('File trống hoặc sai định dạng.', true); return; }
+        nhapDL(loai, rows);
+      }catch(err){ bao('Không đọc được file: '+err.message, true); }
+    };
+    reader.readAsArrayBuffer(f);
+  };
+  inp.click();
+}
+
+async function nhapDL(loai, rows){
+  var cfg=CAU_HINH_XLS[loai];
+  var nguon=nguonDL(loai).slice();
+  var docs=[];
+  rows.forEach(function(r){
+    var obj={};
+    cfg.cots.forEach(function(c){ var v=r[c[1]]; if(v!==undefined && String(v).trim()!=='') obj[c[0]]=(typeof v==='string')?v.trim():v; });
+    if(!String(obj[cfg.tenChinh]||'').trim()) return; // bỏ dòng thiếu tên
+    var ma=String(obj[cfg.maField]||'').trim() || sinhMaMoi(cfg.maPrefix, nguon, cfg.maField);
+    obj[cfg.maField]=ma;
+    if(loai==='hocvien'){
+      if(!obj.TrangThai) obj.TrangThai='Đang học';
+      obj.SDT_PhuHuynh=String(obj.SDT_PhuHuynh||'');
+      if(obj.TenKhoa){ var k=DsKhoa.filter(function(x){return String(x.TenKhoa).trim()===String(obj.TenKhoa).trim();})[0];
+        if(k){ obj.MaKhoa=k.MaKhoa; obj.TenKhoa=k.TenKhoa; obj.SoBuoiKhoa=soTienJS(k.SoBuoi); if(obj.DaHocKhoa===undefined) obj.DaHocKhoa=0; obj.NgayBatDauKhoa=new Date().toLocaleDateString('vi-VN'); } }
+    }
+    if(loai==='khoahoc'){ obj.SoBuoi=soTienJS(obj.SoBuoi); obj.GiaTien=soTienJS(obj.GiaTien); if(!obj.TrangThai) obj.TrangThai='Đang mở'; }
+    if(loai==='lop' && !obj.TrangThai) obj.TrangThai='Đang mở';
+    docs.push({ma:ma, obj:obj});
+    nguon.push(obj);
+  });
+  if(!docs.length){ bao('Không có dòng hợp lệ (thiếu cột tên).', true); return; }
+  bao('Đang nhập '+docs.length+' dòng...');
+  try{
+    for(var i=0;i<docs.length;i+=400){
+      var batch=FB.writeBatch(FB.db);
+      docs.slice(i,i+400).forEach(function(d){ batch.set(FB.doc(FB.db,cfg.col,d.ma), d.obj, {merge:true}); });
+      await batch.commit();
+    }
+    bao('✓ Đã nhập '+docs.length+' '+cfg.ten.toLowerCase()+' thành công!');
+    if(loai==='hocvien'){ lamMoiDsHocVien(); }
+    if(loai==='lop'){ taiLop(); }
+    if(loai==='khoahoc'){ taiKhoaHoc(); }
+  }catch(e){ bao('Lỗi khi nhập: '+e.message, true); }
+}
 
 /* ---------- Lưu dữ liệu vào máy để đăng nhập lần sau hiện tức thì ---------- */
 var CACHE_KEY = 'thienan_hv_cache_v1';
