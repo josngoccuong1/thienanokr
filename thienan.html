@@ -326,6 +326,18 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
     <!-- TAB BÁO CÁO -->
     <section id="vung-baocao" class="an">
       <div class="the" style="padding:16px;margin-bottom:16px">
+        <div style="font-weight:600;color:#12294d;margin-bottom:10px">👥 Tình trạng học viên</div>
+        <div id="oTinhTrang" style="margin-bottom:14px"></div>
+        <div style="font-weight:600;color:#b45309;margin:6px 0 8px">🔎 Nghi đã nghỉ (lâu không đi học)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <span style="font-size:13px;color:#6b7280">Không đi học quá</span>
+          <input type="number" id="ttNgay" value="21" min="1" style="width:70px"><span style="font-size:13px;color:#6b7280">ngày</span>
+          <button class="nutPhu" onclick="napTinhTrangHV()">Xem</button>
+        </div>
+        <div id="dsLauKhongHoc"></div>
+      </div>
+
+      <div class="the" style="padding:16px;margin-bottom:16px">
         <div style="font-weight:600;color:#12294d;margin-bottom:10px">💰 Doanh thu & tăng trưởng học sinh</div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
           <span style="font-size:13px;color:#6b7280">Năm</span>
@@ -497,6 +509,7 @@ async function goi(hanhDong, dl){
     case 'boSungHocVien':    return await fbBoSungHocVien(dl);
     case 'baoCaoDoanhThu':   return await fbBaoCaoDoanhThu(dl);
     case 'doanhThuNgay':     return await fbDoanhThuNgay(dl);
+    case 'doiTrangThaiHV':   return await fbDoiTrangThaiHV(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
     case 'chuyenHV':         return await fbChuyenHV(dl);
@@ -678,6 +691,12 @@ async function fbLuuDiemDanh(dl){
     batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg});
     var cu=(ttCu[maHV]==='Có mặt')?1:0, moi=((hs.trangThai||'Có mặt')==='Có mặt')?1:0, delta=moi-cu;
     if(delta!==0) batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(delta)});
+    // Cập nhật ngày đi học gần nhất (nếu buổi này có mặt và mới hơn)
+    if((hs.trangThai||'Có mặt')==='Có mặt'){
+      var hvCu=TatCaHV.filter(function(x){return x.MaHV===maHV;})[0];
+      if(!hvCu || !hvCu.NgayHocCuoi || ngayISO>=String(hvCu.NgayHocCuoi))
+        batch.set(FB.doc(FB.db,'hocvien',maHV), {NgayHocCuoi:ngayISO}, {merge:true});
+    }
   });
   await batch.commit();
   return { soLuong:dl.danhSach.length, ngay:ngay };
@@ -783,8 +802,12 @@ async function fbSapHetKhoa(dl){
 }
 
 /* ---------- Báo cáo doanh thu + tăng trưởng theo tháng/quý ---------- */
-async function fbDoanhThuNgay(dl){
-  var thang=String(dl.thang||'').trim(); if(!thang) throw new Error('Chưa chọn tháng.');
+async function fbDoiTrangThaiHV(dl){
+  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
+  await FB.setDoc(FB.doc(FB.db,'hocvien',maHV), {TrangThai:dl.trangThai||'Đang học', NgayCapNhat:new Date().toLocaleString('vi-VN')}, {merge:true});
+  return true;
+}
+async function fbDoanhThuNgay(dl){  var thang=String(dl.thang||'').trim(); if(!thang) throw new Error('Chưa chọn tháng.');
   var pt=await docsCol('phieuthu');
   var theoNgay={};
   var tong=0;
@@ -1106,13 +1129,13 @@ async function nhapDiemDanh(rows){
       docs.slice(i,i+400).forEach(function(d){ batch.set(FB.doc(FB.db,'diemdanh',d.id), d.obj, {merge:true}); });
       await batch.commit();
     }
-    // Tính lại "số buổi đã học" cho các em vừa nhập
+    // Tính lại "số buổi đã học" + ngày đi học gần nhất cho các em vừa nhập
     var all=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
-    var dem={}; all.docs.forEach(function(d){ var m=String(d.data().MaHV); dem[m]=(dem[m]||0)+1; });
+    var dem={}, cuoi={}; all.docs.forEach(function(d){ var o=d.data(); var m=String(o.MaHV); dem[m]=(dem[m]||0)+1; var iso=String(o.NgayISO||''); if(!cuoi[m]||iso>cuoi[m]) cuoi[m]=iso; });
     var dsMa=Object.keys(affected);
     for(var j=0;j<dsMa.length;j+=400){
       var b2=FB.writeBatch(FB.db);
-      dsMa.slice(j,j+400).forEach(function(ma){ b2.set(FB.doc(FB.db,'hocvien',ma), {DaHocKhoa:dem[ma]||0}, {merge:true}); });
+      dsMa.slice(j,j+400).forEach(function(ma){ b2.set(FB.doc(FB.db,'hocvien',ma), {DaHocKhoa:dem[ma]||0, NgayHocCuoi:cuoi[ma]||''}, {merge:true}); });
       await b2.commit();
     }
     bao('✓ Đã nhập '+docs.length+' dòng điểm danh'+(boQua?' ('+boQua+' dòng bỏ qua vì thiếu/không khớp)':'')+'!');
@@ -2105,6 +2128,7 @@ function luuKhoaHoc(dong, ma){
 
 /* ---------- BÁO CÁO ---------- */
 function napThangBaoCao(){
+  napTinhTrangHV();
   var el = document.getElementById('bcThang');
   if(el && !el.value){
     var n = new Date();
@@ -2116,8 +2140,51 @@ function napThangBaoCao(){
   if(etn && !etn.value){ var n=new Date(); etn.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2); baoCaoDoanhThuNgay(); }
 }
 
-function baoCaoDoanhThuNgay(){
-  var thang = document.getElementById('bcThangNgay').value;
+function _soNgayTu(iso){
+  if(!iso) return null;
+  var p=String(iso).split('-'); if(p.length<3) return null;
+  var d=new Date(+p[0], +p[1]-1, +p[2]);
+  return Math.floor((new Date() - d)/86400000);
+}
+function napTinhTrangHV(){
+  // Đếm theo trạng thái (tức thì, từ bộ nhớ)
+  var dem={'Đang học':0,'Bảo lưu':0,'Đã nghỉ':0};
+  TatCaHV.forEach(function(h){ var t=h.TrangThai||'Đang học'; if(dem[t]===undefined) dem[t]=0; dem[t]++; });
+  document.getElementById('oTinhTrang').innerHTML='<div class="tomTat" style="grid-template-columns:repeat(3,1fr)">'
+    +'<div class="oTomTat du"><div class="nhan-o">Đang học</div><div class="so">'+dem['Đang học']+'</div></div>'
+    +'<div class="oTomTat"><div class="nhan-o">Bảo lưu</div><div class="so">'+(dem['Bảo lưu']||0)+'</div></div>'
+    +'<div class="oTomTat no"><div class="nhan-o">Đã nghỉ</div><div class="so">'+(dem['Đã nghỉ']||0)+'</div></div></div>';
+  // Nghi đã nghỉ: đang học nhưng lâu không có mặt
+  var nguong=parseInt(document.getElementById('ttNgay').value,10)||21;
+  var box=document.getElementById('dsLauKhongHoc');
+  var ds=TatCaHV.filter(function(h){
+    if((h.TrangThai||'Đang học')==='Đã nghỉ') return false;
+    if(!h.NgayHocCuoi) return false; // chưa có dữ liệu điểm danh thì không kết luận
+    var n=_soNgayTu(h.NgayHocCuoi); return n!==null && n>nguong;
+  }).map(function(h){ return {MaHV:h.MaHV,HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),NgayHocCuoi:h.NgayHocCuoi,soNgay:_soNgayTu(h.NgayHocCuoi),TenKhoa:h.TenKhoa||''}; })
+    .sort(function(a,b){return b.soNgay-a.soNgay;});
+  var chuaCoDD=TatCaHV.filter(function(h){return (h.TrangThai||'')!=='Đã nghỉ' && !h.NgayHocCuoi;}).length;
+  if(!ds.length){
+    box.innerHTML='<div class="trong" style="padding:14px">Không có em nào nghỉ quá '+nguong+' ngày. 👍'
+      +(chuaCoDD?'<br><span style="font-size:12px;color:#9ca3af">('+chuaCoDD+' em chưa có buổi điểm danh nào nên không xét)</span>':'')+'</div>';
+    return;
+  }
+  box.innerHTML='<div style="font-size:13px;color:#6b7280;margin-bottom:8px">'+ds.length+' em đang học nhưng đã lâu không đi — nên gọi hỏi thăm hoặc chuyển "Đã nghỉ":</div>'
+    +'<div class="cuonBang"><table class="nho"><thead><tr><th>Học viên</th><th>SĐT</th><th>Buổi cuối</th><th>Vắng mặt</th><th></th></tr></thead><tbody>'
+    + ds.map(function(r){ return '<tr><td><strong>'+esc(r.HoTen)+'</strong><br><span class="ma">'+esc(r.TenKhoa)+'</span></td>'
+        +'<td class="ma"><a href="tel:'+esc(r.SDT)+'">'+esc(r.SDT)+'</a></td>'
+        +'<td>'+esc(r.NgayHocCuoi.split('-').reverse().join('/'))+'</td>'
+        +'<td><span class="nhan no">'+r.soNgay+' ngày</span></td>'
+        +'<td><button class="nutNho" onclick="danhDauNghi(\''+esc(r.MaHV)+'\',\''+esc(r.HoTen).replace(/'/g,"\\'")+'\')">Đánh dấu nghỉ</button></td></tr>'; }).join('')
+    +'</tbody></table></div>'
+    +(chuaCoDD?'<div style="font-size:12px;color:#9ca3af;margin-top:8px">('+chuaCoDD+' em chưa có buổi điểm danh nào nên không xét ở đây)</div>':'');
+}
+function danhDauNghi(maHV, hoTen){
+  if(!confirm('Chuyển "'+hoTen+'" sang trạng thái Đã nghỉ?')) return;
+  goi('doiTrangThaiHV',{maHV:maHV, trangThai:'Đã nghỉ'}).then(function(){ bao('Đã chuyển '+hoTen+' sang Đã nghỉ'); napTinhTrangHV(); lamMoiDsHocVien(); })
+    .catch(function(e){ bao(e.message,true); });
+}
+function baoCaoDoanhThuNgay(){  var thang = document.getElementById('bcThangNgay').value;
   var box = document.getElementById('kqDoanhThuNgay');
   if(!thang){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="dangTai" style="padding:12px">Đang tính...</div>';
