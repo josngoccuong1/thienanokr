@@ -2148,20 +2148,14 @@ function baoCaoDoanhThu(){
       + '<div class="oTomTat du"><div class="nhan-o">Tổng doanh thu '+d.nam+'</div><div class="so" style="font-size:20px">'+tien(d.tongDoanhThu)+' đ</div></div>'
       + '<div class="oTomTat"><div class="nhan-o">Học sinh mới '+d.nam+'</div><div class="so" style="font-size:20px">'+d.tongHsMoi+'</div></div>'
       + '</div>';
-    // Biểu đồ cột doanh thu theo tháng (kèm HS mới dưới mỗi cột)
-    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Doanh thu theo tháng (số xanh = học sinh mới)</div>'
-      + '<div style="display:flex;align-items:flex-end;gap:6px;height:150px;padding:8px 0;border-bottom:2px solid var(--vien);margin-bottom:6px">'
-      + d.thang.map(function(t){
-          var h = Math.round(t.doanhThu/maxDT*130);
-          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">'
-            + '<div style="font-size:10px;color:#0f7a4d;margin-bottom:2px;white-space:nowrap">'+(t.doanhThu>0?Math.round(t.doanhThu/1000)+'k':'')+'</div>'
-            + '<div title="'+tien(t.doanhThu)+' đ" style="width:100%;max-width:36px;height:'+h+'px;background:linear-gradient(#c9a227,#12294d);border-radius:4px 4px 0 0;min-height:'+(t.doanhThu>0?4:0)+'px"></div>'
-            + '</div>';
-        }).join('')
-      + '</div>'
-      + '<div style="display:flex;gap:6px;margin-bottom:18px">'+d.thang.map(function(t){return '<div style="flex:1;text-align:center"><div style="font-size:11px;color:#6b7280">'+tenThang[t.thang]+'</div><div style="font-size:11px;color:#0369a1;font-weight:600">'+(t.hsMoi?'+'+t.hsMoi:'')+'</div></div>';}).join('')+'</div>';
+    // Bảng doanh thu theo tháng (ghi rõ số)
+    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Doanh thu theo tháng</div>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr><th>Tháng</th><th class="tien">Doanh thu</th><th>HS mới</th></tr></thead><tbody>'
+      + d.thang.map(function(t){ return '<tr><td><strong>Tháng '+t.thang+'</strong></td><td class="tien" style="font-weight:600">'+(t.doanhThu?tien(t.doanhThu)+' đ':'—')+'</td><td>'+(t.hsMoi?'+'+t.hsMoi:'—')+'</td></tr>'; }).join('')
+      + '<tr style="border-top:2px solid var(--vien)"><td><strong>Cả năm</strong></td><td class="tien" style="font-weight:700;color:#0f7a4d">'+tien(d.tongDoanhThu)+' đ</td><td><strong>'+d.tongHsMoi+'</strong></td></tr>'
+      + '</tbody></table></div>';
     // Bảng theo quý
-    html += '<div style="font-weight:600;color:#12294d;margin:6px 0 10px">Theo quý</div>'
+    html += '<div style="font-weight:600;color:#12294d;margin:18px 0 10px">Theo quý</div>'
       + '<div class="cuonBang"><table class="nho"><thead><tr><th>Quý</th><th class="tien">Doanh thu</th><th>HS mới</th></tr></thead><tbody>'
       + d.quy.map(function(q){ return '<tr><td><strong>Quý '+q.quy+'</strong></td><td class="tien">'+(q.doanhThu?tien(q.doanhThu):'—')+'</td><td>'+(q.hsMoi||'—')+'</td></tr>'; }).join('')
       + '</tbody></table></div>';
