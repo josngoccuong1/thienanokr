@@ -764,7 +764,7 @@ function doiTab(ten){
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
   if(ten==='hocvien') lamMoiDsHocVien();
-  if(ten==='lop' && !DsLop.length) taiLop();
+  if(ten==='lop') taiLop();
   if(ten==='khoahoc') taiKhoaHoc();
   if(ten==='diemdanh') napLopChoDiemDanh();
   if(ten==='saphetkhoa') napSapHetKhoa();
@@ -889,7 +889,7 @@ function moHocVien(hv){
   + truongXepLop
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
-    'luuHocVien(' + (hv._dong||0) + ',\'' + esc(hv.MaHV||'') + '\')');
+    'luuHocVien(\'' + esc(hv._dong||'') + '\',\'' + esc(hv.MaHV||'') + '\')');
 }
 
 function luuHocVien(dong, ma){
@@ -1001,7 +1001,7 @@ function moLop(l){
       +['Đang mở','Đã đóng'].map(function(t){return '<option'+(l.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(l.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
-    'luuLop(' + (l._dong||0) + ',\'' + esc(l.MaLop||'') + '\')');
+    'luuLop(\'' + esc(l._dong||'') + '\',\'' + esc(l.MaLop||'') + '\')');
 }
 
 function luuLop(dong, ma){
@@ -1659,7 +1659,7 @@ function moKhoaHoc(k){
     + o('Trạng thái','<select id="k_TrangThai">'
         +['Đang mở','Đóng'].map(function(t){return '<option'+(k.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
     + o('Ghi chú','<textarea id="k_GhiChu" rows="2">'+esc(k.GhiChu)+'</textarea>',false,'rong')
-    + '</div>', 'luuKhoaHoc('+(k._dong||0)+',\''+esc(k.MaKhoa||'')+'\')');
+    + '</div>', 'luuKhoaHoc(\''+esc(k._dong||'')+'\',\''+esc(k.MaKhoa||'')+'\')');
 }
 
 function luuKhoaHoc(dong, ma){
