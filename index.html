@@ -1435,6 +1435,7 @@ function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
     <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
     ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm Objective</button>`:""}
     <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
+    ${state.user.isAdmin?`<button class="btn-sm" id="btnMigrateFB" style="background:#0F3460;color:#fff;font-size:11px;padding:5px 10px">⬆️ Đưa OKR lên Firebase</button>`:""}
   </div>
   ${OBJECTIVES.map(obj=>{
     const sc=obj.krs.length?Math.round(obj.krs.reduce((acc,kr)=>{
@@ -2123,8 +2124,52 @@ function saveLoTrinhData(){
 async function loadLoTrinhFromSheets(){
   try{ const d=await apiGet({action:"getLoTrinh"}); if(d&&d.lotrinh){ state.lotrinh=d.lotrinh; ls_set("ta_lotrinh",d.lotrinh); if(state.tab==="lotrinh"&&!state.showLoTrinhModal) render(); } }catch(e){}
 }
-async function loadObjectivesFromSheets(){
-  try{ const d=await apiGet({action:"getObjectives"}); if(d&&Array.isArray(d.objectives)&&d.objectives.length){ OBJECTIVES=d.objectives; ls_set("ta_objectives",d.objectives); if(state.tab==="okr"&&!state.showOKREditor&&!state.okr_editKR) render(); } }catch(e){}
+// ===== ĐƯA OKR SANG FIREBASE (một nút, chạy khi bấm) =====
+function _loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Không tải được "+src));document.head.appendChild(s);});}
+async function ensureFirebase(){
+  if(window.qldb) return;
+  await _loadScript("https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js");
+  await _loadScript("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js");
+  firebase.initializeApp({
+    apiKey:"AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
+    authDomain:"thien-an-bb976.firebaseapp.com",
+    projectId:"thien-an-bb976",
+    storageBucket:"thien-an-bb976.firebasestorage.app",
+    messagingSenderId:"1065254649793",
+    appId:"1:1065254649793:web:83d2fba4d40c11a2363940"
+  });
+  window.qldb=firebase.firestore();
+}
+async function migrateOKRToFirebase(){
+  if(!(state.user&&state.user.isAdmin)) return;
+  if(!confirm("Đưa toàn bộ OKR hiện tại (Objective + KR + số các quý) lên Firebase?\nGhi vào ql_objectives / ql_actuals — KHÔNG đụng app Học sinh.")) return;
+  try{
+    showLoading("Đang kết nối Firebase…");
+    await ensureFirebase();
+    showLoading("Đang đưa Objective lên Firebase…");
+    for(let i=0;i<OBJECTIVES.length;i++){
+      const o=OBJECTIVES[i];
+      await qldb.collection("ql_objectives").doc(String(o.id)).set({
+        id:o.id, icon:o.icon||"🎯", title:o.title, order:i+1,
+        krs:(o.krs||[]).map(k=>({id:k.id,text:k.text,unit:k.unit||"",target:Number(k.target)||0,ownerRole:k.ownerRole||""}))
+      });
+    }
+    showLoading("Đang đưa số thực tế các quý…");
+    let na=0;
+    for(const q of QUARTERS){
+      let data={};
+      try{ data=await apiGet({action:"getActuals",quarter:q})||{}; }catch(e){}
+      for(const krId of Object.keys(data)){
+        const rec=data[krId];
+        const val=(rec&&rec.actual!=null)?rec.actual:rec;
+        await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
+        na++;
+      }
+    }
+    doneLoading("Đã đưa "+OBJECTIVES.length+" Objective + "+na+" số lên Firebase ✓");
+  }catch(e){ hideLoading(); alert("Lỗi khi đưa lên Firebase: "+(e&&e.message?e.message:e)); }
+}
+async function loadObjectivesFromSheets(){  try{ const d=await apiGet({action:"getObjectives"}); if(d&&Array.isArray(d.objectives)&&d.objectives.length){ OBJECTIVES=d.objectives; ls_set("ta_objectives",d.objectives); if(state.tab==="okr"&&!state.showOKREditor&&!state.okr_editKR) render(); } }catch(e){}
 }
 // Làm mới dữ liệu của tab đang mở (không cần đăng xuất)
 function refreshCurrentTab(){
@@ -2225,6 +2270,7 @@ function attachEvents(){
   document.getElementById("btnLogout")?.addEventListener("click",logout);
   // Làm mới tab hiện tại + thu gọn OKR
   document.getElementById("btnRefreshTab")?.addEventListener("click",refreshCurrentTab);
+  document.getElementById("btnMigrateFB")?.addEventListener("click",migrateOKRToFirebase);
   document.getElementById("btnToggleAllOkr")?.addEventListener("click",toggleAllOkr);
   document.querySelectorAll(".okr-toggle").forEach(h=>h.addEventListener("click",e=>{
     if(e.target.closest("button"))return; // đừng thu gọn khi bấm nút sửa/xóa
