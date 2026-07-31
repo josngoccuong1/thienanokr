@@ -171,6 +171,96 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 </head>
 <body>
 
+<!-- ===== KẾT NỐI FIRESTORE ===== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, updateDoc, setDoc, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ⚠️ NẾU BÁO "invalid-api-key": dán đè khối này bằng firebaseConfig từ Firebase Console */
+const firebaseConfig = {
+  apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
+  authDomain: "thien-an-bb976.firebaseapp.com",
+  projectId: "thien-an-bb976",
+  storageBucket: "thien-an-bb976.firebasestorage.app",
+  messagingSenderId: "1065254649793",
+  appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
+};
+/* Tài khoản nội bộ — nhân viên KHÔNG cần biết, app tự đăng nhập sau khi nhập đúng PIN */
+const FS_EMAIL = "festival@thienan.vn";
+const FS_PASS  = "thienan123";
+
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+const C_TS  = "festival_contestants";
+const C_SC  = "festival_scores";
+
+async function ensureAuth(){
+  if(auth.currentUser) return;
+  try{ await signInWithEmailAndPassword(auth, FS_EMAIL, FS_PASS); }
+  catch(e){ console.warn("Đăng nhập Firebase:", e.code||e.message); }
+}
+
+window.FS = {
+  async loadAll(){
+    await ensureAuth();
+    const [cs, ss] = await Promise.all([
+      getDocs(collection(db, C_TS)),
+      getDocs(collection(db, C_SC))
+    ]);
+    const contestants = [];
+    cs.forEach(d=>{
+      const v = d.data();
+      contestants.push({
+        row: d.id,                                  // mã định danh (thay cho dòng sheet)
+        order: Number(v.order) || 0,                // thứ tự biểu diễn
+        regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"",
+        name: v.name||"", dob: v.dob||"", gender: v.gender||"",
+        category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
+        minutes: v.minutes||"", billUrl: v.billUrl||"",
+        fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
+        checkin: v.checkin||"", done: v.done||"",
+        session: String(v.session||"").trim()
+      });
+    });
+    const scores = [];
+    ss.forEach(d=>{
+      const v = d.data();
+      scores.push({
+        row: v.contestantId, sbd: v.sbd, name: v.name, category: v.category,
+        judge: v.judge, technique: Number(v.technique)||0, music: Number(v.music)||0,
+        perform: Number(v.perform)||0, total: Number(v.total)||0
+      });
+    });
+    return { contestants, scores };
+  },
+  async update(row, obj){
+    await ensureAuth();
+    await updateDoc(doc(db, C_TS, String(row)), obj);
+  },
+  async setScore(row, judge, obj){
+    await ensureAuth();
+    const id = String(row) + "__" + String(judge).replace(/[^\w]/g, "_");
+    await setDoc(doc(db, C_SC, id), obj, { merge:true });
+  },
+  async bulkUpdate(items){          // [{row, data}]
+    await ensureAuth();
+    for(let i=0; i<items.length; i+=400){
+      const batch = writeBatch(db);
+      items.slice(i, i+400).forEach(it=>{
+        batch.update(doc(db, C_TS, String(it.row)), it.data);
+      });
+      await batch.commit();
+    }
+    return items.length;
+  }
+};
+ensureAuth();
+</script>
+
 <!-- Báo hiệu đang xử lý -->
 <div id="loadingToast" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(26,26,46,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:22px 28px;box-shadow:0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:180px">
@@ -257,6 +347,26 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
         <div class="toolbar" id="jvCats"></div>
         <div class="note" style="margin-bottom:10px">Chỉ hiện thí sinh <b>đã check-in</b>. Bấm vào tên để chấm điểm.</div>
         <div id="jvList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SẮP XẾP & CHIA BUỔI ============ -->
+  <div id="manageView" class="hidden">
+    <div class="card">
+      <div class="card-h"><span>⚙️</span><span class="t">Sắp xếp & Chia buổi</span><span class="n" id="mgCount"></span></div>
+      <div class="card-b">
+        <div class="note" style="margin-bottom:10px">
+          Thứ tự ở đây là <b>thứ tự biểu diễn</b> hiện trên Check-in và Điểm danh (MC đọc theo thứ tự này).
+          Thí sinh đăng ký sau tự xếp cuối — sắp lại bằng nút bên dưới.
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn btn-gold" id="btnSortUnit" style="padding:9px 13px;font-size:12px">🏫 Sắp theo Đơn vị → Tên</button>
+          <button class="btn btn-out" id="btnSortName" style="padding:9px 13px;font-size:12px">🔤 Sắp theo Tên (A-Z)</button>
+        </div>
+        <input id="mgSearch" placeholder="🔎 Tìm theo tên / đơn vị…"/>
+        <div class="toolbar" style="margin-top:10px" id="mgSess"></div>
+        <div id="mgList" style="margin-top:8px"></div>
       </div>
     </div>
   </div>
@@ -376,6 +486,7 @@ let ROLE = null, JUDGE = null;
 let VIEW = null;   // mục ĐANG XEM (có thể khác ROLE khi xem chéo để kiểm soát)
 // Chỉ được thao tác khi đang ở đúng mục của mình. Kết quả & In bằng dùng chung 1 màn hình.
 function canEdit(){
+  if(VIEW === "manage") return ["result","print"].includes(ROLE);  // chỉ Kết quả / In bằng được sắp xếp
   if(VIEW === ROLE) return true;
   const g = ["result","print"];
   return g.includes(VIEW) && g.includes(ROLE);
@@ -433,24 +544,28 @@ $("pin").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 
 function showRole(){
   if(!VIEW) VIEW = ROLE;
-  ["loginView","checkinView","judgeView","scoreView","resultView"].forEach(v=>$(v).classList.add("hidden"));
+  ["loginView","checkinView","judgeView","scoreView","resultView","manageView"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.remove("hidden");
   $("viewBar").classList.remove("hidden");
-  $("sessionBar").classList.remove("hidden");
+  $("sessionBar").classList.toggle("hidden", VIEW==="manage");
   renderViewBar();
-  renderSessionBar();
+  if(VIEW!=="manage") renderSessionBar();
   const me = ROLES.find(r=>r.key===ROLE);
   $("barInfo").textContent = (me? me.ic+" "+(ROLE==="judge"?JUDGE:me.nm) : "") + (canEdit()? "" : " · đang xem");
   if(VIEW==="checkin"){ $("checkinView").classList.remove("hidden"); renderCheckin(); }
   else if(VIEW==="judge"){ $("judgeView").classList.remove("hidden"); renderJudge(); }
+  else if(VIEW==="manage"){ $("manageView").classList.remove("hidden"); renderManage(); }
   else { $("resultView").classList.remove("hidden"); renderResults(); }
 }
 
 // Thanh chuyển mục: ai cũng xem được mọi mục, nhưng chỉ thao tác ở mục của mình
 function renderViewBar(){
-  $("viewChips").innerHTML = ROLES.map(r=>{
+  const list = ROLES.concat([{key:"manage", ic:"⚙️", nm:"Sắp xếp"}]);
+  $("viewChips").innerHTML = list.map(r=>{
     const active = VIEW===r.key;
-    const mine = (r.key===ROLE) || (["result","print"].includes(r.key) && ["result","print"].includes(ROLE));
+    const mine = (r.key===ROLE)
+              || (["result","print"].includes(r.key) && ["result","print"].includes(ROLE))
+              || (r.key==="manage" && ["result","print"].includes(ROLE));
     return `<button class="btn-out${active?" active":""}" data-vw="${r.key}" style="font-size:12px">
       ${r.ic} ${r.nm}${mine?' <b style="color:'+(active?"#D4AF37":"#27AE60")+'">•</b>':""}
     </button>`;
@@ -505,12 +620,15 @@ function hideLoading(){ $("loadingToast").style.display="none"; }
 async function loadData(silent){
   if(!silent) $("barInfo").textContent = "Đang tải…";
   try{
-    const url = CONFIG.SCRIPT_URL + "?action=getFestival&password=" + encodeURIComponent(CONFIG.ADMIN_PASSWORD);
-    const res = await fetch(url);
-    const d = await res.json();
-    if(d.ok){ DATA.contestants = d.contestants||[]; DATA.scores = d.scores||[]; return true; }
-    alert("Lỗi tải dữ liệu: " + (d.error||"")); return false;
-  }catch(err){ alert("Không kết nối được máy chủ. Kiểm tra mạng."); return false; }
+    if(!window.FS) throw new Error("Chưa kết nối được Firestore");
+    const d = await window.FS.loadAll();
+    DATA.contestants = d.contestants || [];
+    DATA.scores = d.scores || [];
+    return true;
+  }catch(err){
+    alert("Không tải được dữ liệu: " + (err.message||err));
+    return false;
+  }
 }
 $("btnRefresh").addEventListener("click", async ()=>{
   const b=$("btnRefresh"); b.disabled=true; b.textContent="⏳ Đang tải…";
@@ -521,12 +639,88 @@ $("btnRefresh").addEventListener("click", async ()=>{
   showRole();
 });
 
+/* Giữ nguyên cách gọi post({action:...}) như cũ — bên trong nay ghi thẳng Firestore */
+function _gio(){
+  const d = new Date(), p = n => String(n).padStart(2,"0");
+  return p(d.getHours())+":"+p(d.getMinutes())+" "+p(d.getDate())+"/"+p(d.getMonth()+1);
+}
+function _gioNgan(){
+  const d = new Date(), p = n => String(n).padStart(2,"0");
+  return p(d.getHours())+":"+p(d.getMinutes());
+}
 async function post(payload){
-  const res = await fetch(CONFIG.SCRIPT_URL, {
-    method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body: JSON.stringify(payload)
-  });
-  return await res.json();
+  try{
+    if(!window.FS) throw new Error("Chưa kết nối được Firestore");
+    const row = payload.row;
+
+    if(payload.action === "checkin"){
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      let sbd = c && c.sbd;
+      if(!sbd){                                  // cấp SBD = số lớn nhất hiện có + 1
+        let max = 0;
+        DATA.contestants.forEach(x=>{ const n = parseInt(x.sbd,10); if(!isNaN(n) && n>max) max = n; });
+        sbd = max + 1;
+      }
+      const stamp = "Đã check-in " + _gio();
+      await window.FS.update(row, { sbd: Number(sbd), checkin: stamp });
+      if(c){ c.sbd = Number(sbd); c.checkin = stamp; }
+      return { ok:true, row, sbd };
+    }
+
+    if(payload.action === "uncheckin"){
+      await window.FS.update(row, { checkin: "" });
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(c) c.checkin = "";
+      return { ok:true, row };
+    }
+
+    if(payload.action === "setdone"){
+      const val = payload.done ? ("Xong " + _gioNgan()) : "";
+      await window.FS.update(row, { done: val });
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(c) c.done = val;
+      return { ok:true, row, done: val };
+    }
+
+    if(payload.action === "setfee"){
+      await window.FS.update(row, { feeStatus: payload.status || "Chờ duyệt" });
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(c) c.fee = payload.status || "Chờ duyệt";
+      return { ok:true };
+    }
+
+    if(payload.action === "editinfo"){
+      const data = {};
+      if(payload.name     != null) data.name     = payload.name;
+      if(payload.piece    != null) data.piece    = payload.piece;
+      if(payload.category != null) data.category = payload.category;
+      await window.FS.update(row, data);
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(c) Object.assign(c, data);
+      return { ok:true, row };
+    }
+
+    if(payload.action === "score"){
+      const c = DATA.contestants.find(x=>String(x.row)===String(row)) || {};
+      const t = Number(payload.technique)||0, m = Number(payload.music)||0, p = Number(payload.perform)||0;
+      const total = t + m + p;
+      await window.FS.setScore(row, payload.judge, {
+        contestantId: String(row), sbd: c.sbd ?? null, name: c.name || "",
+        category: c.category || "", judge: payload.judge,
+        technique: t, music: m, perform: p, total: total,
+        updatedAt: new Date().toISOString()
+      });
+      const i = DATA.scores.findIndex(s=>String(s.row)===String(row) && s.judge===payload.judge);
+      const rec = { row:String(row), sbd:c.sbd, name:c.name, category:c.category,
+                    judge:payload.judge, technique:t, music:m, perform:p, total };
+      if(i>=0) DATA.scores[i] = rec; else DATA.scores.push(rec);
+      return { ok:true, row, total };
+    }
+
+    return { ok:false, error:"Không rõ thao tác: " + payload.action };
+  }catch(e){
+    return { ok:false, error: e.message || String(e) };
+  }
 }
 
 /* ================= CHECK-IN ================= */
@@ -539,9 +733,9 @@ function groupByUnit(list){
   const map={};
   list.forEach(c=>{
     const k=unitKeyOf(c);   // "Cá nhân" và "Cá Nhân" gộp làm 1
-    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow:Number(c.row)||999999}; }
+    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow:Number(c.order)||999999}; }
     map[k].items.push(c);
-    map[k].minRow=Math.min(map[k].minRow, Number(c.row)||999999);
+    map[k].minRow=Math.min(map[k].minRow, Number(c.order)||999999);
   });
   const groups=Object.values(map);
   // Đơn vị xếp theo lần xuất hiện đầu trong sheet; nhóm "Cá nhân" luôn xuống CUỐI
@@ -579,7 +773,7 @@ function catChips(sel, cur){
 /* Popup sửa Họ tên / Tác phẩm / Bảng — dùng ở Check-in để bổ sung tác phẩm còn thiếu */
 function openEditInfo(row){
   if(!canEdit()) return;
-  const c = DATA.contestants.find(x=>x.row===row); if(!c) return;
+  const c = DATA.contestants.find(x=>String(x.row)===String(row)); if(!c) return;
   const cats = [...new Set(DATA.contestants.map(x=>x.category).filter(Boolean))].sort();
   const catOpts = ['<option value="">— Chọn bảng —</option>']
     .concat(cats.map(x=>`<option${x===c.category?" selected":""}>${esc(x)}</option>`)).join("");
@@ -688,18 +882,18 @@ function renderCheckin(){
     if(g) exportGroupItems(g.items, g.label);
   }));
   $("ciList").querySelectorAll("[data-ci]").forEach(b=>b.addEventListener("click", async ()=>{
-    const row = Number(b.dataset.ci), undo = b.dataset.un==="1";
+    const row = b.dataset.ci, undo = b.dataset.un==="1";
     b.disabled=true; b.textContent="…";
     try{
       const d = await post({action: undo?"uncheckin":"checkin", row});
       if(d.ok){
-        const c = DATA.contestants.find(x=>x.row===row);
+        const c = DATA.contestants.find(x=>String(x.row)===String(row));
         if(c){ if(undo){ c.checkin=""; } else { c.checkin="vừa xong"; c.sbd=d.sbd; } }
         renderCheckin();
       } else { alert("Lỗi: "+(d.error||"")); b.disabled=false; renderCheckin(); }
     }catch(e){ alert("Lỗi kết nối"); b.disabled=false; renderCheckin(); }
   }));
-  $("ciList").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>openEditInfo(Number(b.dataset.edit))));
+  $("ciList").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click", ()=>openEditInfo(b.dataset.edit)));
 }
 $("ciSearch").addEventListener("input", ()=>renderCheckin());
 $("ciExport").addEventListener("click", ()=>{
@@ -712,7 +906,7 @@ $("ciExport").addEventListener("click", ()=>{
 });
 
 /* ================= GIÁM KHẢO ================= */
-function myScore(row){ return DATA.scores.find(s=>s.row===row && s.judge===JUDGE); }
+function myScore(row){ return DATA.scores.find(s=>String(s.row)===String(row) && s.judge===JUDGE); }
 
 function renderJudge(){
   $("jvTitle").textContent = "Chấm điểm — " + JUDGE;
@@ -723,7 +917,7 @@ function renderJudge(){
   const list = DATA.contestants
     .filter(inSession)
     .filter(c=>!jvCat || c.category===jvCat)
-    .sort((a,b)=>(Number(a.row)||999999)-(Number(b.row)||999999));
+    .sort((a,b)=>(Number(a.order)||999999)-(Number(b.order)||999999));
 
   const checkedInCount = list.filter(c=>c.checkin).length;
   const finished = list.filter(c=>c.done).length;
@@ -781,15 +975,15 @@ function renderJudge(){
     const g = (window.__jvGroups||[])[Number(b.dataset.grpx)];
     if(g) exportGroupItems(g.items, g.label);
   }));
-  $("jvList").querySelectorAll("[data-sc]").forEach(el=>el.addEventListener("click",()=>openScore(Number(el.dataset.sc))));
+  $("jvList").querySelectorAll("[data-sc]").forEach(el=>el.addEventListener("click",()=>openScore(el.dataset.sc)));
   $("jvList").querySelectorAll("[data-done]").forEach(b=>b.addEventListener("click", async e=>{
     e.stopPropagation();
-    const row=Number(b.dataset.done), val=b.dataset.val==="1";
+    const row=b.dataset.done, val=b.dataset.val==="1";
     b.disabled=true; b.textContent="…";
     try{
       const d=await post({action:"setdone", row, done:val});
       if(d.ok){
-        const c=DATA.contestants.find(x=>x.row===row);
+        const c=DATA.contestants.find(x=>String(x.row)===String(row));
         if(c) c.done = val ? (d.done||"Xong") : "";
         renderJudge();
       } else { alert("Lỗi: "+(d.error||"")); renderJudge(); }
@@ -803,9 +997,112 @@ $("jvExport").addEventListener("click", ()=>{
   exportCSV(rows, "DiemDanh"+ten+".csv");
 });
 
+/* ================= SẮP XẾP & CHIA BUỔI ================= */
+let mgSess = "";
+function renderManage(){
+  const ed = canEdit();
+  const all = [...DATA.contestants].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+
+  // thanh lọc buổi riêng cho màn này
+  let chips = `<button class="btn-out${mgSess===""?" active":""}" data-ms="">Tất cả</button>`;
+  for(let i=1;i<=CONFIG.SESSIONS;i++){
+    const n = all.filter(c=>String(c.session||"")===String(i)).length;
+    chips += `<button class="btn-out${mgSess===String(i)?" active":""}" data-ms="${i}">Buổi ${i}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
+  }
+  const chuaChia = all.filter(c=>!String(c.session||"").trim()).length;
+  chips += `<button class="btn-out${mgSess==="0"?" active":""}" data-ms="0">Chưa chia${chuaChia?` <b style="color:var(--red)">${chuaChia}</b>`:""}</button>`;
+  $("mgSess").innerHTML = chips;
+  $("mgSess").querySelectorAll("[data-ms]").forEach(b=>b.addEventListener("click",()=>{ mgSess=b.dataset.ms; renderManage(); }));
+
+  const q = norm($("mgSearch").value||"");
+  const list = all
+    .filter(c=> mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess))
+    .filter(c=> !q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
+
+  $("mgCount").textContent = list.length + " thí sinh";
+  $("mgList").innerHTML = list.length===0 ? `<div class="center" style="padding:24px;color:#aaa">Không có thí sinh</div>` :
+    list.map(c=>{
+      const idx = all.findIndex(x=>String(x.row)===String(c.row));
+      const ss = String(c.session||"").trim();
+      return `<div class="item">
+        <div class="sbd" title="Thứ tự biểu diễn">${idx+1}</div>
+        <div class="info">
+          <div class="nm">${esc(c.name)}</div>
+          <div class="sub">${esc(c.unit||"Cá nhân")}${c.category?" · "+esc(c.category):""}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px">
+          ${ed?`<button class="btn-out" data-up="${c.row}" style="padding:6px 9px;font-size:13px" title="Lên trên">▲</button>
+                <button class="btn-out" data-dn="${c.row}" style="padding:6px 9px;font-size:13px" title="Xuống dưới">▼</button>
+                <select data-ss="${c.row}" style="padding:7px;border-radius:8px;border:2px solid #E5E7EB;font-size:12px;font-weight:700">
+                  <option value=""${ss?"":" selected"}>— Buổi —</option>
+                  ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
+                    `<option value="${i}"${ss===String(i)?" selected":""}>Buổi ${i}</option>`).join("")}
+                </select>`
+             :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?"Buổi "+ss:"Chưa chia"}</span>`}
+        </div>
+      </div>`;
+    }).join("");
+
+  if(!ed) return;
+
+  // đổi buổi
+  $("mgList").querySelectorAll("[data-ss]").forEach(sel=>sel.addEventListener("change", async ()=>{
+    const row = sel.dataset.ss, val = sel.value;
+    sel.disabled = true;
+    try{
+      await window.FS.update(row, { session: val });
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(c) c.session = val;
+      renderManage();
+    }catch(e){ alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
+  }));
+
+  // đổi chỗ lên / xuống
+  const swap = async (row, dir)=>{
+    const arr = [...DATA.contestants].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+    const i = arr.findIndex(x=>String(x.row)===String(row));
+    const j = i + dir;
+    if(i<0 || j<0 || j>=arr.length) return;
+    const a = arr[i], b = arr[j];
+    const oa = Number(a.order)||0, ob = Number(b.order)||0;
+    showLoading("Đang đổi chỗ…");
+    try{
+      await window.FS.bulkUpdate([{row:a.row, data:{order:ob}}, {row:b.row, data:{order:oa}}]);
+      a.order = ob; b.order = oa;
+      doneLoading("Đã đổi ✓");
+      renderManage();
+    }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+  };
+  $("mgList").querySelectorAll("[data-up]").forEach(b=>b.addEventListener("click",()=>swap(b.dataset.up,-1)));
+  $("mgList").querySelectorAll("[data-dn]").forEach(b=>b.addEventListener("click",()=>swap(b.dataset.dn,+1)));
+}
+
+/* Đánh số lại thứ tự biểu diễn cho toàn bộ danh sách */
+async function renumber(cmp, tenCach){
+  if(!canEdit()){ alert("Chỉ mục Kết quả / In bằng mới sắp xếp được."); return; }
+  if(!confirm("Sắp xếp lại toàn bộ thứ tự biểu diễn theo "+tenCach+"?\n(Không ảnh hưởng check-in, điểm số)")) return;
+  const arr = [...DATA.contestants].sort(cmp);
+  showLoading("Đang sắp xếp "+arr.length+" thí sinh…");
+  try{
+    const items = arr.map((c,i)=>({ row:c.row, data:{ order:i+1 } }));
+    await window.FS.bulkUpdate(items);
+    arr.forEach((c,i)=>{ c.order = i+1; });
+    doneLoading("Đã sắp xếp ✓");
+    renderManage();
+  }catch(e){ hideLoading(); alert("Lỗi khi sắp xếp: "+(e.message||e)); }
+}
+const _vi = s => norm(String(s||""));
+$("btnSortUnit").addEventListener("click", ()=>renumber(
+  (a,b)=> _vi(a.unit||"Cá nhân").localeCompare(_vi(b.unit||"Cá nhân")) || _vi(a.name).localeCompare(_vi(b.name)),
+  "Đơn vị → Tên"));
+$("btnSortName").addEventListener("click", ()=>renumber(
+  (a,b)=> _vi(a.name).localeCompare(_vi(b.name)),
+  "Tên (A-Z)"));
+$("mgSearch").addEventListener("input", ()=>renderManage());
+
 function openScore(row){
   if(!canEdit()) return;   // xem chéo: không mở form chấm điểm
-  const c = DATA.contestants.find(x=>x.row===row); if(!c) return;
+  const c = DATA.contestants.find(x=>String(x.row)===String(row)); if(!c) return;
   scoring = c;
   const old = myScore(row);
   scoreVals = {};
@@ -935,7 +1232,7 @@ function renderResults(){
   $("rsTable").innerHTML = h;
 
   $("rsTable").querySelectorAll("[data-print]").forEach(b=>b.addEventListener("click",()=>{
-    const r = all.find(x=>x.row===Number(b.dataset.print));
+    const r = all.find(x=>String(x.row)===b.dataset.print);
     if(r) printCerts([r]);
   }));
 }
