@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Thiên Ân — OKR (Firebase thử nghiệm)</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;margin:0;min-height:100vh}
+  .main{max-width:900px;margin:0 auto;padding:14px}
+  .topbar{background:linear-gradient(135deg,#1A1A2E,#0F3460);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .topbar b{color:#D4AF37}
+  .pill{background:#27AE60;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:12px;overflow:hidden}
+  .obj-head{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);border-left:4px solid #D4AF37;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px}
+  .obj-head .t{flex:1;font-size:13px;font-weight:700;color:#fff}
+  .kr-list{padding:6px 12px 12px}
+  .kr-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F5F5F5}
+  .kr-row:last-child{border-bottom:none}
+  .kr-t{flex:1;font-size:12px;font-weight:600;color:#1A1A2E}
+  .prog{background:#F0F0F0;border-radius:4px;height:6px;width:70px;flex:none;overflow:hidden}
+  .prog>div{height:100%}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px}
+  .btn-gold{background:#D4AF37;color:#1A1A2E;font-weight:700;padding:6px 12px;font-size:12px}
+  .btn-nav{background:#0F3460;color:#fff;font-weight:700;padding:6px 12px;font-size:12px}
+  .btn-sm{padding:3px 8px;font-size:11px}
+  .btn-x{background:#eee;color:#333}
+  .btn-val{background:#FFF9E6;border:1px solid #D4AF37;color:#1A1A2E;font-weight:700;padding:4px 10px;font-size:12px;border-radius:8px}
+  select{border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700}
+  .login{max-width:340px;margin:60px auto;background:#fff;border-radius:20px;padding:36px 28px;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}
+  .login input{width:100%;padding:10px 12px;margin:6px 0;border:2px solid #E5E7EB;border-radius:10px;font-size:14px}
+  .muted{color:#888;font-size:11px}
+  .badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+// ===== Cấu hình Firebase (công khai — an toàn) =====
+const firebaseConfig = {
+  apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
+  authDomain: "thien-an-bb976.firebaseapp.com",
+  projectId: "thien-an-bb976",
+  storageBucket: "thien-an-bb976.firebasestorage.app",
+  messagingSenderId: "1065254649793",
+  appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// Dùng collection RIÊNG có tiền tố ql_ -> KHÔNG đụng app Học sinh
+const COL_OBJ = "ql_objectives";
+const COL_ACT = "ql_actuals";
+
+// ===== Tài khoản (giữ kiểu cũ, nâng cấp sau) =====
+const USERS = {
+  cuong:{pass:"thienan2025", name:"Thầy Cương", admin:true},
+  piano:{pass:"piano2025", name:"GV Piano", admin:false},
+  guitar:{pass:"guitar2025", name:"GV Guitar", admin:false},
+  vocal:{pass:"vocal2025", name:"GV Thanh Nhạc", admin:false},
+  marketing:{pass:"mkt2025", name:"Marketing", admin:false},
+};
+
+const QUARTERS = ["Q1/2026","Q2/2026","Q3/2026","Q4/2026"];
+
+// OKR mẫu của Thầy (chính là default trong app cũ) — chỉ để bấm nạp thử
+const SEED = [
+  {id:"O1", icon:"🎓", order:1, title:"Tăng trưởng số lượng học viên", krs:[
+    {id:"O1K1", text:"Tuyển mới học viên Piano", unit:"học viên", target:15},
+    {id:"O1K2", text:"Tuyển mới học viên Guitar", unit:"học viên", target:10},
+    {id:"O1K3", text:"Tuyển mới học viên Thanh Nhạc", unit:"học viên", target:8},
+  ]},
+  {id:"O2", icon:"🎵", order:2, title:"Nâng cao chất lượng giảng dạy", krs:[
+    {id:"O2K1", text:"Tỷ lệ học viên hoàn thành khóa học", unit:"%", target:85},
+    {id:"O2K2", text:"Học viên thi chứng chỉ AMEB/ABRSM", unit:"người", target:5},
+  ]},
+];
+
+// ===== State + realtime =====
+const state = { user:null, quarter:"Q1/2026", objectives:[], actuals:{} };
+
+function startListeners(){
+  // OKR realtime: sửa ở máy khác là máy này thấy ngay
+  onSnapshot(collection(db, COL_OBJ), snap=>{
+    state.objectives = snap.docs.map(d=>d.data()).sort((a,b)=>(a.order||0)-(b.order||0));
+    render();
+  });
+  // Số thực tế realtime (id doc = "quarter__krId")
+  onSnapshot(collection(db, COL_ACT), snap=>{
+    const m={}; snap.forEach(d=>{ const x=d.data(); (m[x.quarter]=m[x.quarter]||{})[x.krId]=Number(x.actual)||0; });
+    state.actuals = m; render();
+  });
+}
+
+// ===== Ghi dữ liệu =====
+async function saveObjective(o){ await setDoc(doc(db, COL_OBJ, o.id), o); }
+async function delObjective(id){ if(confirm("Xóa Objective này?")) await deleteDoc(doc(db, COL_OBJ, id)); }
+async function saveActual(krId, val){
+  const id = state.quarter + "__" + krId;
+  await setDoc(doc(db, COL_ACT, id), { quarter:state.quarter, krId, actual:Number(val)||0, by:state.user.name, at:new Date().toISOString() });
+}
+async function seed(){ for(const o of SEED) await saveObjective(o); }
+
+// ===== Thao tác qua prompt (bản thử — bản chính sẽ có form đẹp) =====
+window.addObjective = async ()=>{
+  const title = prompt("Tên Objective mới:"); if(!title) return;
+  const id = "O"+Date.now();
+  await saveObjective({ id, icon:"🎯", order:(state.objectives.length+1), title:title.trim(), krs:[] });
+};
+window.addKR = async (oid)=>{
+  const o = state.objectives.find(x=>x.id===oid); if(!o) return;
+  const text = prompt("Nội dung KR:"); if(!text) return;
+  const target = Number(prompt("Chỉ tiêu (số):","10"))||0;
+  const unit = prompt("Đơn vị (vd: học viên, %):","học viên")||"";
+  o.krs = o.krs||[]; o.krs.push({ id:"K"+Date.now(), text:text.trim(), unit, target });
+  await saveObjective(o);
+};
+window.delKR = async (oid, kid)=>{
+  const o = state.objectives.find(x=>x.id===oid); if(!o) return;
+  if(!confirm("Xóa KR này?")) return;
+  o.krs = (o.krs||[]).filter(k=>k.id!==kid);
+  await saveObjective(o);
+};
+window.editActual = async (krId, cur)=>{
+  const v = prompt("Nhập số thực tế ("+state.quarter+"):", cur); if(v===null) return;
+  await saveActual(krId, v);
+};
+window.delObjective = delObjective;
+window.setQuarter = (q)=>{ state.quarter=q; render(); };
+window.doSeed = async ()=>{ if(confirm("Nạp 2 Objective mẫu (O1, O2)?")) await seed(); };
+window.logout = ()=>{ localStorage.removeItem("ql_fb_user"); state.user=null; render(); };
+window.doLogin = ()=>{
+  const u = document.getElementById("u").value.trim();
+  const p = document.getElementById("p").value.trim();
+  const rec = USERS[u];
+  if(rec && String(rec.pass)===p){ state.user={id:u,...rec}; localStorage.setItem("ql_fb_user",u); render(); }
+  else document.getElementById("err").textContent="Sai tài khoản hoặc mật khẩu.";
+};
+
+// ===== Giao diện =====
+function pct(a,t){ t=Number(t)||0; if(!t) return 0; return Math.min(100, Math.round((Number(a)||0)/t*100)); }
+function color(p){ return p>=80?"#27AE60":p>=60?"#E67E22":"#E74C3C"; }
+
+function render(){
+  const root = document.getElementById("root");
+  if(!state.user){
+    root.innerHTML = `<div class="login">
+      <div style="font-size:20px;font-weight:800;color:#1A1A2E">🎹 Thiên Ân</div>
+      <div class="muted" style="margin-bottom:14px">OKR chạy trên Firebase (thử nghiệm)</div>
+      <input id="u" placeholder="Tài khoản (vd: cuong)"/>
+      <input id="p" type="password" placeholder="Mật khẩu"/>
+      <div id="err" style="color:#E74C3C;font-size:12px;min-height:16px"></div>
+      <button class="btn-nav" style="width:100%;padding:11px" onclick="doLogin()">Đăng nhập</button>
+    </div>`;
+    return;
+  }
+  const admin = state.user.admin;
+  const A = state.actuals[state.quarter] || {};
+  root.innerHTML = `
+    <div class="topbar">
+      <div>🎹 <b>Thiên Ân</b> · OKR <span class="pill">⚡ Firebase realtime</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px">${state.user.name}</span>
+        <button class="btn-sm btn-x" onclick="logout()">Đăng xuất</button>
+      </div>
+    </div>
+    <div class="main">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <select onchange="setQuarter(this.value)">
+          ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
+        </select>
+        ${admin?`<button class="btn-nav btn-sm" onclick="addObjective()">➕ Thêm Objective</button>`:""}
+        ${admin&&state.objectives.length===0?`<button class="btn-gold btn-sm" onclick="doSeed()">Nạp OKR mẫu (O1,O2)</button>`:""}
+        <span class="muted">Sửa số → tự lưu Firebase, máy khác thấy ngay.</span>
+      </div>
+      ${state.objectives.length===0?`<div class="card" style="padding:30px;text-align:center;color:#aaa">Chưa có Objective. ${admin?"Bấm ➕ Thêm Objective hoặc Nạp OKR mẫu.":""}</div>`:""}
+      ${state.objectives.map(obj=>{
+        const sc = obj.krs&&obj.krs.length ? Math.round(obj.krs.reduce((s,kr)=>s+pct(A[kr.id]||0,kr.target),0)/obj.krs.length) : 0;
+        return `<div class="card" style="padding:10px">
+          <div class="obj-head">
+            <span style="font-size:18px">${obj.icon||"🎯"}</span>
+            <div class="t">${obj.title}</div>
+            <span style="font-size:13px;font-weight:800;color:${color(sc)==='#27AE60'?'#7CFC9E':'#FFD86B'}">${sc}%</span>
+            ${admin?`<button class="btn-sm btn-gold" onclick="addKR('${obj.id}')">➕KR</button>
+            <button class="btn-sm btn-x" onclick="delObjective('${obj.id}')">🗑️</button>`:""}
+          </div>
+          <div class="kr-list">
+            ${(obj.krs||[]).length===0?`<div class="muted" style="padding:8px 0">Chưa có KR.</div>`:""}
+            ${(obj.krs||[]).map(kr=>{
+              const a = A[kr.id]||0; const p = pct(a,kr.target);
+              return `<div class="kr-row">
+                <span class="kr-t">${kr.text}</span>
+                <div class="prog"><div style="width:${p}%;background:${color(p)}"></div></div>
+                <span style="font-size:11px;font-weight:700;color:${color(p)};width:32px">${p}%</span>
+                ${admin
+                  ? `<button class="btn-val" onclick="editActual('${kr.id}',${a})">${a}<span style="color:#999">/${kr.target}</span> ${kr.unit}</button>`
+                  : `<span style="font-size:12px;font-weight:700">${a}/${kr.target} ${kr.unit}</span>`}
+                ${admin?`<button class="btn-sm btn-x" onclick="delKR('${obj.id}','${kr.id}')">✕</button>`:""}
+              </div>`;
+            }).join("")}
+          </div>
+        </div>`;
+      }).join("")}
+      <div class="muted" style="text-align:center;margin-top:10px">Dữ liệu lưu ở collection <b>ql_objectives</b> / <b>ql_actuals</b> — tách biệt hoàn toàn với app Học sinh.</div>
+    </div>`;
+}
+
+// Tự đăng nhập lại nếu còn phiên
+const saved = localStorage.getItem("ql_fb_user");
+if(saved && USERS[saved]) state.user = {id:saved, ...USERS[saved]};
+startListeners();
+render();
+</script>
+</body>
+</html>
