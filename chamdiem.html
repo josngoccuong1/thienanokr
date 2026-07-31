@@ -486,7 +486,8 @@ let ROLE = null, JUDGE = null;
 let VIEW = null;   // mục ĐANG XEM (có thể khác ROLE khi xem chéo để kiểm soát)
 // Chỉ được thao tác khi đang ở đúng mục của mình. Kết quả & In bằng dùng chung 1 màn hình.
 function canEdit(){
-  if(VIEW === "manage") return ["result","print"].includes(ROLE);  // chỉ Kết quả / In bằng được sắp xếp
+  // Check-in là nơi chốt danh sách gốc -> được sắp xếp. Điểm danh chỉ bám theo nên chỉ xem.
+  if(VIEW === "manage") return ["checkin","result","print"].includes(ROLE);
   if(VIEW === ROLE) return true;
   const g = ["result","print"];
   return g.includes(VIEW) && g.includes(ROLE);
@@ -565,7 +566,7 @@ function renderViewBar(){
     const active = VIEW===r.key;
     const mine = (r.key===ROLE)
               || (["result","print"].includes(r.key) && ["result","print"].includes(ROLE))
-              || (r.key==="manage" && ["result","print"].includes(ROLE));
+              || (r.key==="manage" && ["checkin","result","print"].includes(ROLE));
     return `<button class="btn-out${active?" active":""}" data-vw="${r.key}" style="font-size:12px">
       ${r.ic} ${r.nm}${mine?' <b style="color:'+(active?"#D4AF37":"#27AE60")+'">•</b>':""}
     </button>`;
@@ -1079,7 +1080,7 @@ function renderManage(){
 
 /* Đánh số lại thứ tự biểu diễn cho toàn bộ danh sách */
 async function renumber(cmp, tenCach){
-  if(!canEdit()){ alert("Chỉ mục Kết quả / In bằng mới sắp xếp được."); return; }
+  if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới sắp xếp được."); return; }
   if(!confirm("Sắp xếp lại toàn bộ thứ tự biểu diễn theo "+tenCach+"?\n(Không ảnh hưởng check-in, điểm số)")) return;
   const arr = [...DATA.contestants].sort(cmp);
   showLoading("Đang sắp xếp "+arr.length+" thí sinh…");
