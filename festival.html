@@ -801,7 +801,12 @@ function drawAdminTable(){
     const stt = ADMIN_ROWS.indexOf(r) + 1;  // số thứ tự theo đúng thứ tự sheet đăng ký
     return "<tr><td style='font-weight:700;color:var(--navy)'>"+stt+"</td>"+cols.map(c=>{
     let v=r[c];
-    if(c==="Ngày sinh"&&v){ try{ v=new Date(v).toLocaleDateString('vi-VN'); }catch(_){}}
+    if(c==="Ngày sinh"&&v){
+      const s=String(v).trim();
+      // Đã đúng dạng ngày/tháng/năm thì giữ nguyên, tránh hiện "Invalid Date"
+      if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) v=s;
+      else { const d=new Date(s); v = isNaN(d.getTime()) ? s : d.toLocaleDateString('vi-VN'); }
+    }
     if(c==="Phí (VNĐ)"&&v!==""&&v!=null){ v=new Intl.NumberFormat('vi-VN').format(Number(v)); }
     if(c==="Ảnh bill"){
       return /^https?:\/\//.test(String(v)) ? `<td><a href="${esc(v)}" target="_blank" style="color:#2980B9;font-weight:700">📄 Xem</a></td>` : `<td style="color:#aaa">${esc(v||"—")}</td>`;
