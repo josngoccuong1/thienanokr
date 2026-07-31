@@ -119,6 +119,74 @@ textarea{resize:vertical;min-height:44px}
 </head>
 <body>
 
+<!-- ===== KẾT NỐI FIRESTORE ===== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, writeBatch, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ⚠️ NẾU BÁO LỖI "invalid-api-key": copy đoạn firebaseConfig từ
+   Firebase Console → Project settings → Your apps → Config, rồi dán đè khối dưới đây */
+const firebaseConfig = {
+  apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
+  authDomain: "thien-an-bb976.firebaseapp.com",
+  projectId: "thien-an-bb976",
+  storageBucket: "thien-an-bb976.firebasestorage.app",
+  messagingSenderId: "1065254649793",
+  appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
+};
+
+const db = getFirestore(initializeApp(firebaseConfig));
+const COL = "festival_contestants";
+
+window.FS = {
+  /* Ghi danh sách thí sinh vừa đăng ký vào Firestore */
+  async addContestants(regCode, unit, students, billUrl, fee){
+    const batch = writeBatch(db);
+    const base = Date.now();          // thí sinh mới xếp sau danh sách đã có
+    students.forEach((s, i) => {
+      batch.set(doc(collection(db, COL)), {
+        order:     base + i,
+        sheetRow:  0,
+        regCode:   regCode || "",
+        unit:      unit.name || "",
+        contact:   unit.contact || "",
+        phone:     unit.phone || "",
+        email:     unit.email || "",
+        address:   unit.address || "",
+        name:      s.name || "",
+        dob:       s.dob || "",
+        gender:    s.gender || "",
+        category:  s.category || "",
+        piece:     s.piece || "",
+        teacher:   s.teacher || "",
+        minutes:   s.note || "",
+        fee:       Number(fee) || 0,
+        billUrl:   billUrl || "",
+        feeStatus: "Chờ duyệt",
+        sbd:       null,
+        checkin:   "",
+        done:      "",
+        session:   "",
+        createdAt: new Date().toISOString()
+      });
+    });
+    await batch.commit();
+    return students.length;
+  },
+
+  /* Đọc toàn bộ danh sách cho trang quản trị */
+  async getAll(){
+    const snap = await getDocs(collection(db, COL));
+    const rows = [];
+    snap.forEach(d => rows.push({ _id: d.id, ...d.data() }));
+    rows.sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0));
+    return rows;
+  }
+};
+window.dispatchEvent(new Event("fs-ready"));
+</script>
+
 <div id="loadingToast" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(26,26,46,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:22px 28px;box-shadow:0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:200px">
     <div id="loadSpin" style="width:44px;height:44px;border:4px solid #EEE;border-top-color:#D4AF37;border-radius:50%;animation:spin .8s linear infinite"></div>
@@ -593,7 +661,8 @@ async function submitReg(){
     return;
   }
 
-  let sent = false, serverErr = "";
+  let sent = false, serverErr = "", billUrl = "";
+  // Bước 1: gửi lên Apps Script — lưu ảnh bill vào Drive + ghi bản dự phòng vào Google Sheet
   try{
     const res = await fetch(CONFIG.SCRIPT_URL, {
       method:"POST",
@@ -601,8 +670,24 @@ async function submitReg(){
       body: JSON.stringify(payload)
     });
     sent = true;
-    try{ const d = await res.json(); if(d && d.ok===false){ sent = false; serverErr = d.error||""; } }catch(_){ /* opaque coi như ok */ }
+    try{
+      const d = await res.json();
+      if(d && d.ok===false){ sent = false; serverErr = d.error||""; }
+      else if(d && d.bill){ billUrl = d.bill; }
+    }catch(_){ /* opaque coi như ok */ }
   }catch(err){ sent = false; serverErr = String(err && err.message || err); }
+
+  // Bước 2: ghi vào Firestore — đây là nơi app Ban tổ chức đọc
+  if(sent){
+    showLoading("Đang lưu vào hệ thống…");
+    try{
+      if(!window.FS) throw new Error("Chưa kết nối được Firestore");
+      await window.FS.addContestants(regCode, payload.unit, payload.students, billUrl, CONFIG.FEE_PER_STUDENT);
+    }catch(e){
+      sent = false;
+      serverErr = "Đã lưu bản dự phòng nhưng chưa vào được hệ thống chính (" + (e.message||e) + "). Vui lòng báo Ban tổ chức mã " + regCode;
+    }
+  }
 
   submitting = false; btn.textContent = old; btn.disabled = false;
   if(sent){ doneLoading("Đã gửi ✓"); showSuccess(regCode, payload.students.length); }
@@ -658,20 +743,36 @@ async function admLogin(){
     renderAdmin(store);
     return;
   }
+  if(pass !== CONFIG.ADMIN_PASSWORD){ $("admMsg").textContent = "❌ Sai mật khẩu"; return; }
   try{
     showLoading("Đang tải danh sách…");
-    const url = CONFIG.SCRIPT_URL + "?action=getAll&password=" + encodeURIComponent(pass);
-    const res = await fetch(url);
-    const d = await res.json();
-    if(!d.ok){ hideLoading(); $("admMsg").textContent = "❌ " + (d.error||"Sai mật khẩu"); return; }
+    if(!window.FS) throw new Error("Chưa kết nối được Firestore");
+    const docs = await window.FS.getAll();
+    // Đổi sang tên cột tiếng Việt để dùng lại toàn bộ phần hiển thị sẵn có
+    const rows = docs.map(d => ({
+      "Mã ĐK": d.regCode || "",
+      "Đơn vị": d.unit || "",
+      "Người phụ trách": d.contact || "",
+      "Họ tên thí sinh": d.name || "",
+      "Ngày sinh": d.dob || "",
+      "Bảng dự thi": d.category || "",
+      "Tác phẩm dự thi": d.piece || "",
+      "Giáo viên HD": d.teacher || "",
+      "Số phút": d.minutes || "",
+      "SĐT": d.phone || "",
+      "Email": d.email || "",
+      "Phí (VNĐ)": d.fee || "",
+      "Trạng thái phí": d.feeStatus || "Chờ duyệt",
+      "Ảnh bill": d.billUrl || ""
+    }));
     $("admMsg").textContent = "";
     $("adminLogin").classList.add("hidden");
     $("adminDash").classList.remove("hidden");
-    renderAdmin(d.rows||[]);
+    renderAdmin(rows);
     doneLoading("Đã tải ✓");
   }catch(err){
     hideLoading();
-    $("admMsg").textContent = "❌ Không kết nối được máy chủ. Kiểm tra URL Apps Script.";
+    $("admMsg").textContent = "❌ Không tải được dữ liệu: " + (err.message||err);
   }
 }
 let ADMIN_ROWS = [];
