@@ -226,6 +226,9 @@ window.FS = {
         session: String(v.session||"").trim()
       });
     });
+    // Firestore trả về theo mã tài liệu -> phải sắp lại theo THỨ TỰ BIỂU DIỄN
+    // để Check-in, Điểm danh, Kết quả, Sắp xếp đều hiện cùng một thứ tự.
+    contestants.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
     const scores = [];
     ss.forEach(d=>{
       const v = d.data();
@@ -1013,6 +1016,8 @@ async function applyOrder(flat){
   });
   if(!changed.length) return 0;
   await window.FS.bulkUpdate(changed);
+  // sắp lại ngay trong bộ nhớ để các màn khác (Check-in, Điểm danh…) hiện đúng liền
+  DATA.contestants.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
   return changed.length;
 }
 /* Dàn các nhóm đơn vị thành 1 danh sách phẳng theo đúng thứ tự đang hiển thị */
