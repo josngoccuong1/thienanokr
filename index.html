@@ -2154,16 +2154,34 @@ async function migrateOKRToFirebase(){
         krs:(o.krs||[]).map(k=>({id:k.id,text:k.text,unit:k.unit||"",target:Number(k.target)||0,ownerRole:k.ownerRole||""}))
       });
     }
-    showLoading("Đang đưa số thực tế các quý…");
+    showLoading("Đang đưa số thực tế…");
     let na=0;
-    for(const q of QUARTERS){
-      let data={};
-      try{ data=await apiGet({action:"getActuals",quarter:q})||{}; }catch(e){}
-      for(const krId of Object.keys(data)){
-        const rec=data[krId];
-        const val=(rec&&rec.actual!=null)?rec.actual:rec;
-        await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
-        na++;
+    let all=null;
+    try{ all=await apiGet({action:"getAllActuals"}); }catch(e){}
+    const isMap = all && typeof all==="object" && !all.error && Object.keys(all).some(k=>/^Q\d\/\d{4}$/.test(k));
+    if(isMap){
+      // Backend hỗ trợ getAllActuals -> lấy hết trong 1 lần (nhanh)
+      for(const q of Object.keys(all)){
+        for(const krId of Object.keys(all[q])){
+          const rec=all[q][krId];
+          const val=(rec&&rec.actual!=null)?rec.actual:rec;
+          await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
+          na++;
+        }
+      }
+    } else {
+      // Dự phòng: chỉ quét các quý gần đây (năm nay ±1) để không gọi 36 lần
+      const yr=new Date().getFullYear();
+      const qs=[]; for(let y=yr-1;y<=yr+1;y++) for(let n=1;n<=4;n++) qs.push("Q"+n+"/"+y);
+      for(const q of qs){
+        let data={};
+        try{ data=await apiGet({action:"getActuals",quarter:q})||{}; }catch(e){}
+        for(const krId of Object.keys(data)){
+          const rec=data[krId];
+          const val=(rec&&rec.actual!=null)?rec.actual:rec;
+          await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
+          na++;
+        }
       }
     }
     doneLoading("Đã đưa "+OBJECTIVES.length+" Objective + "+na+" số lên Firebase ✓");
