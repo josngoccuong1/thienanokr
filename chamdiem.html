@@ -365,7 +365,8 @@ ensureAuth();
           <button class="btn btn-out" id="btnSortName" style="padding:9px 13px;font-size:12px">🔤 Sắp theo Tên (A-Z)</button>
         </div>
         <input id="mgSearch" placeholder="🔎 Tìm theo tên / đơn vị…"/>
-        <div class="toolbar" style="margin-top:10px" id="mgSess"></div>
+        <div id="mgHint" style="margin-top:8px;font-size:11px;color:var(--muted);font-weight:600"></div>
+        <div class="toolbar" style="margin-top:8px" id="mgSess"></div>
         <div id="mgList" style="margin-top:8px"></div>
       </div>
     </div>
@@ -1000,11 +1001,40 @@ $("jvExport").addEventListener("click", ()=>{
 
 /* ================= SẮP XẾP & CHIA BUỔI ================= */
 let mgSess = "";
+let mgDrag = null;                      // {row, gi} thí sinh đang kéo
+const mgTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* Ghi lại thứ tự mới — chỉ cập nhật những em thực sự đổi chỗ */
+async function applyOrder(flat){
+  const changed = [];
+  flat.forEach((c,i)=>{
+    const want = i+1;
+    if(Number(c.order) !== want){ changed.push({ row:c.row, data:{ order:want } }); c.order = want; }
+  });
+  if(!changed.length) return 0;
+  await window.FS.bulkUpdate(changed);
+  return changed.length;
+}
+/* Dàn các nhóm đơn vị thành 1 danh sách phẳng theo đúng thứ tự đang hiển thị */
+function mgFlat(groups){
+  const out = [];
+  groups.forEach(g => g.items.forEach(c => out.push(c)));
+  return out;
+}
+function mgGroups(){
+  const all = [...DATA.contestants].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+  const gs = groupByUnit(all);
+  gs.forEach(g => g.items.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0)));
+  return gs;
+}
+
 function renderManage(){
   const ed = canEdit();
-  const all = [...DATA.contestants].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+  const groups = mgGroups();
+  window.__mgGroups = groups;
+  const all = mgFlat(groups);
 
-  // thanh lọc buổi riêng cho màn này
+  // lọc theo buổi
   let chips = `<button class="btn-out${mgSess===""?" active":""}" data-ms="">Tất cả</button>`;
   for(let i=1;i<=CONFIG.SESSIONS;i++){
     const n = all.filter(c=>String(c.session||"")===String(i)).length;
@@ -1016,25 +1046,37 @@ function renderManage(){
   $("mgSess").querySelectorAll("[data-ms]").forEach(b=>b.addEventListener("click",()=>{ mgSess=b.dataset.ms; renderManage(); }));
 
   const q = norm($("mgSearch").value||"");
-  const list = all
-    .filter(c=> mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess))
-    .filter(c=> !q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
+  const hop = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess))
+                && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
 
-  $("mgCount").textContent = list.length + " thí sinh";
-  $("mgList").innerHTML = list.length===0 ? `<div class="center" style="padding:24px;color:#aaa">Không có thí sinh</div>` :
-    list.map(c=>{
-      const idx = all.findIndex(x=>String(x.row)===String(c.row));
+  let stt = 0, html = "", hienThi = 0;
+  groups.forEach((g, gi)=>{
+    const items = g.items.filter(hop);
+    const soTrongNhom = g.items.length;
+    if(items.length === 0){ stt += soTrongNhom; return; }
+    hienThi += items.length;
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
+      <span style="font-size:14px">🏫</span>
+      <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(g.label)}</span>
+      <span style="color:#D4AF37;font-weight:700;font-size:11px">${soTrongNhom} thí sinh</span>
+      ${ed?`<button class="btn-out" data-gup="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị lên trên">▲</button>
+            <button class="btn-out" data-gdn="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị xuống dưới">▼</button>`:""}
+    </div>`;
+    g.items.forEach(c=>{
+      stt++;
+      if(!hop(c)) return;
       const ss = String(c.session||"").trim();
-      return `<div class="item">
-        <div class="sbd" title="Thứ tự biểu diễn">${idx+1}</div>
+      const keo = (ed && !mgTouch);
+      html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""}>
+        <div class="sbd" title="Thứ tự biểu diễn">${stt}</div>
         <div class="info">
-          <div class="nm">${esc(c.name)}</div>
-          <div class="sub">${esc(c.unit||"Cá nhân")}${c.category?" · "+esc(c.category):""}</div>
+          <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${esc(c.name)}</div>
+          <div class="sub">${esc(c.category||"—")}${c.piece?" · "+esc(c.piece):""}</div>
         </div>
         <div style="display:flex;align-items:center;gap:5px">
-          ${ed?`<button class="btn-out" data-up="${c.row}" style="padding:6px 9px;font-size:13px" title="Lên trên">▲</button>
-                <button class="btn-out" data-dn="${c.row}" style="padding:6px 9px;font-size:13px" title="Xuống dưới">▼</button>
-                <select data-ss="${c.row}" style="padding:7px;border-radius:8px;border:2px solid #E5E7EB;font-size:12px;font-weight:700">
+          ${(ed && mgTouch)?`<button class="btn-out" data-up="${c.row}" style="padding:6px 9px;font-size:13px">▲</button>
+                             <button class="btn-out" data-dn="${c.row}" style="padding:6px 9px;font-size:13px">▼</button>`:""}
+          ${ed?`<select data-ss="${c.row}" style="padding:7px;border-radius:8px;border:2px solid #E5E7EB;font-size:12px;font-weight:700">
                   <option value=""${ss?"":" selected"}>— Buổi —</option>
                   ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
                     `<option value="${i}"${ss===String(i)?" selected":""}>Buổi ${i}</option>`).join("")}
@@ -1042,11 +1084,18 @@ function renderManage(){
              :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?"Buổi "+ss:"Chưa chia"}</span>`}
         </div>
       </div>`;
-    }).join("");
+    });
+  });
 
+  $("mgCount").textContent = hienThi + " thí sinh";
+  $("mgList").innerHTML = html || `<div class="center" style="padding:24px;color:#aaa">Không có thí sinh</div>`;
+  $("mgHint").textContent = ed
+    ? (mgTouch ? "Dùng ▲▼ để đổi chỗ thí sinh · ▲▼ trên tên đơn vị để chuyển cả đơn vị"
+               : "Bấm giữ chuột vào thí sinh rồi kéo để đổi chỗ · ▲▼ trên tên đơn vị để chuyển cả đơn vị")
+    : "Đang xem — không thao tác được";
   if(!ed) return;
 
-  // đổi buổi
+  /* --- đổi buổi --- */
   $("mgList").querySelectorAll("[data-ss]").forEach(sel=>sel.addEventListener("change", async ()=>{
     const row = sel.dataset.ss, val = sel.value;
     sel.disabled = true;
@@ -1058,39 +1107,82 @@ function renderManage(){
     }catch(e){ alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
   }));
 
-  // đổi chỗ lên / xuống
-  const swap = async (row, dir)=>{
-    const arr = [...DATA.contestants].sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
-    const i = arr.findIndex(x=>String(x.row)===String(row));
-    const j = i + dir;
-    if(i<0 || j<0 || j>=arr.length) return;
-    const a = arr[i], b = arr[j];
-    const oa = Number(a.order)||0, ob = Number(b.order)||0;
-    showLoading("Đang đổi chỗ…");
-    try{
-      await window.FS.bulkUpdate([{row:a.row, data:{order:ob}}, {row:b.row, data:{order:oa}}]);
-      a.order = ob; b.order = oa;
-      doneLoading("Đã đổi ✓");
-      renderManage();
-    }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+  /* --- chuyển cả đơn vị lên / xuống --- */
+  const moveGroup = async (gi, dir)=>{
+    const gs = mgGroups(); const gj = gi + dir;
+    if(gj < 0 || gj >= gs.length) return;
+    const t = gs[gi]; gs[gi] = gs[gj]; gs[gj] = t;
+    showLoading("Đang chuyển đơn vị…");
+    try{ await applyOrder(mgFlat(gs)); doneLoading("Đã chuyển ✓"); renderManage(); }
+    catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
   };
-  $("mgList").querySelectorAll("[data-up]").forEach(b=>b.addEventListener("click",()=>swap(b.dataset.up,-1)));
-  $("mgList").querySelectorAll("[data-dn]").forEach(b=>b.addEventListener("click",()=>swap(b.dataset.dn,+1)));
+  $("mgList").querySelectorAll("[data-gup]").forEach(b=>b.addEventListener("click",()=>moveGroup(Number(b.dataset.gup),-1)));
+  $("mgList").querySelectorAll("[data-gdn]").forEach(b=>b.addEventListener("click",()=>moveGroup(Number(b.dataset.gdn),+1)));
+
+  /* --- đổi chỗ thí sinh trong cùng đơn vị --- */
+  const moveInGroup = async (row, dir)=>{
+    const gs = mgGroups();
+    for(const g of gs){
+      const i = g.items.findIndex(x=>String(x.row)===String(row));
+      if(i < 0) continue;
+      const j = i + dir;
+      if(j < 0 || j >= g.items.length) return;
+      const t = g.items[i]; g.items[i] = g.items[j]; g.items[j] = t;
+      showLoading("Đang đổi chỗ…");
+      try{ await applyOrder(mgFlat(gs)); doneLoading("Đã đổi ✓"); renderManage(); }
+      catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+      return;
+    }
+  };
+  $("mgList").querySelectorAll("[data-up]").forEach(b=>b.addEventListener("click",()=>moveInGroup(b.dataset.up,-1)));
+  $("mgList").querySelectorAll("[data-dn]").forEach(b=>b.addEventListener("click",()=>moveInGroup(b.dataset.dn,+1)));
+
+  /* --- KÉO THẢ (máy tính) --- */
+  if(mgTouch) return;
+  $("mgList").querySelectorAll("[data-drag]").forEach(el=>{
+    el.addEventListener("dragstart", e=>{
+      mgDrag = { row: el.dataset.drag, gi: Number(el.dataset.gi) };
+      el.style.opacity = ".4";
+      e.dataTransfer.effectAllowed = "move";
+      try{ e.dataTransfer.setData("text/plain", el.dataset.drag); }catch(_){}
+    });
+    el.addEventListener("dragend", ()=>{ el.style.opacity = ""; mgDrag = null;
+      $("mgList").querySelectorAll("[data-drag]").forEach(x=>x.style.borderTop=""); });
+    el.addEventListener("dragover", e=>{
+      if(!mgDrag) return;
+      e.preventDefault();
+      el.style.borderTop = (Number(el.dataset.gi)===mgDrag.gi) ? "3px solid #D4AF37" : "3px solid #C0202A";
+    });
+    el.addEventListener("dragleave", ()=>{ el.style.borderTop = ""; });
+    el.addEventListener("drop", async e=>{
+      e.preventDefault();
+      el.style.borderTop = "";
+      if(!mgDrag) return;
+      const dichGi = Number(el.dataset.gi), dichRow = el.dataset.drag;
+      if(dichGi !== mgDrag.gi){ alert("Chỉ đổi chỗ trong cùng một đơn vị.\nMuốn chuyển cả đơn vị thì dùng ▲▼ ở dòng tên đơn vị."); mgDrag=null; return; }
+      if(String(dichRow) === String(mgDrag.row)){ mgDrag=null; return; }
+      const gs = mgGroups(); const g = gs[dichGi];
+      const from = g.items.findIndex(x=>String(x.row)===String(mgDrag.row));
+      let to = g.items.findIndex(x=>String(x.row)===String(dichRow));
+      if(from < 0 || to < 0){ mgDrag=null; return; }
+      const [moved] = g.items.splice(from,1);
+      g.items.splice(to,0,moved);
+      mgDrag = null;
+      showLoading("Đang sắp lại…");
+      try{ await applyOrder(mgFlat(gs)); doneLoading("Đã sắp ✓"); renderManage(); }
+      catch(err){ hideLoading(); alert("Lỗi: "+(err.message||err)); }
+    });
+  });
 }
 
-/* Đánh số lại thứ tự biểu diễn cho toàn bộ danh sách */
+/* Đánh số lại toàn bộ thứ tự biểu diễn */
 async function renumber(cmp, tenCach){
   if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới sắp xếp được."); return; }
   if(!confirm("Sắp xếp lại toàn bộ thứ tự biểu diễn theo "+tenCach+"?\n(Không ảnh hưởng check-in, điểm số)")) return;
   const arr = [...DATA.contestants].sort(cmp);
   showLoading("Đang sắp xếp "+arr.length+" thí sinh…");
-  try{
-    const items = arr.map((c,i)=>({ row:c.row, data:{ order:i+1 } }));
-    await window.FS.bulkUpdate(items);
-    arr.forEach((c,i)=>{ c.order = i+1; });
-    doneLoading("Đã sắp xếp ✓");
-    renderManage();
-  }catch(e){ hideLoading(); alert("Lỗi khi sắp xếp: "+(e.message||e)); }
+  try{ await applyOrder(arr); doneLoading("Đã sắp xếp ✓"); renderManage(); }
+  catch(e){ hideLoading(); alert("Lỗi khi sắp xếp: "+(e.message||e)); }
 }
 const _vi = s => norm(String(s||""));
 $("btnSortUnit").addEventListener("click", ()=>renumber(
