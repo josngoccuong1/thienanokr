@@ -2192,7 +2192,7 @@ async function migrateOKRToFirebase(){
     for(const t of (state.transactions||[])){ await qldb.collection("ql_thuchi").doc(String(t.id)).set({id:t.id,type:t.type,cat:t.cat,amount:Number(t.amount)||0,note:t.note||"",date:t.date||"",month:t.month||"",nguoi:t.nguoi||"",httt:t.httt||""}); extra++; }
     // Lương
     const LD=state.luongData||{};
-    for(const key of Object.keys(LD)){ const l=LD[key]; await qldb.collection("ql_luong").doc(key).set({user:l.user||"",name:l.name||"",month:l.month||"",base:Number(l.base)||0,bonus:Number(l.bonus)||0,note:l.note||"",status:l.status||"",total:Number(l.total)||0}); extra++; }
+    for(const key of Object.keys(LD)){ const l=LD[key]; await qldb.collection("ql_luong").doc(String(key).replace(/\//g,"-")).set({user:l.user||"",name:l.name||"",month:l.month||"",base:Number(l.base)||0,bonus:Number(l.bonus)||0,note:l.note||"",status:l.status||"",total:Number(l.total)||0}); extra++; }
     // Lộ trình
     if(state.lotrinh){ await qldb.collection("ql_lotrinh").doc("main").set(state.lotrinh); extra++; }
     // Nhân sự
