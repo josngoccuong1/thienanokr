@@ -310,7 +310,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v5 · Sửa được Đơn vị của thí sinh</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v6 · 6 buổi + Gala</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -448,7 +448,8 @@ const CONFIG = {
   SCRIPT_URL: "https://script.google.com/macros/s/AKfycbw8Idu12ftfEURVZukA2gHAcmnhN2xCXkNNka-1pVLdhzkfCm7caAOwGi8Uq2Kgx4s/exec",
   ADMIN_PASSWORD: "thienan123",       // phải trùng ADMIN_PASSWORD trong Code.gs
   FESTIVAL_NAME: "Music Festival 2026",
-  SESSIONS: 3,   // số buổi biểu diễn (Buổi 1 / 2 / 3)
+  SESSIONS: 6,        // tổng số buổi biểu diễn
+  GALA: 6,            // buổi số mấy là Gala (đặt 0 nếu không có Gala)
 
   // Mã PIN cho từng vai trò (ĐỔI trước khi dùng thật)
   PIN_CHECKIN: "thienan123",
@@ -593,12 +594,18 @@ function renderViewBar(){
   $("viewNote").classList.toggle("hidden", canEdit());
 }
 
-// Thanh chọn buổi: Tất cả / Buổi 1 / Buổi 2 / Buổi 3
+/* Tên hiển thị của buổi: buổi cuối cùng gọi là "Gala" */
+function tenBuoi(i){
+  const n = Number(i);
+  return (CONFIG.GALA && n === CONFIG.GALA) ? "🌟 Gala" : ("Buổi " + n);
+}
+
+// Thanh chọn buổi: Tất cả / Buổi 1..5 / Gala
 function renderSessionBar(){
   let html = `<button class="btn-out${SESSION===""?" active":""}" data-ss="">Tất cả</button>`;
   for(let i=1;i<=CONFIG.SESSIONS;i++){
     const n = DATA.contestants.filter(c=>String(c.session||"").trim()===String(i)).length;
-    html += `<button class="btn-out${SESSION===String(i)?" active":""}" data-ss="${i}">Buổi ${i}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
+    html += `<button class="btn-out${SESSION===String(i)?" active":""}" data-ss="${i}">${tenBuoi(i)}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
   }
   $("sessionChips").innerHTML = html;
   $("sessionChips").querySelectorAll("[data-ss]").forEach(b=>b.addEventListener("click",()=>{
@@ -1068,7 +1075,7 @@ function renderManage(){
   let chips = `<button class="btn-out${mgSess===""?" active":""}" data-ms="">Tất cả</button>`;
   for(let i=1;i<=CONFIG.SESSIONS;i++){
     const n = all.filter(c=>String(c.session||"")===String(i)).length;
-    chips += `<button class="btn-out${mgSess===String(i)?" active":""}" data-ms="${i}">Buổi ${i}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
+    chips += `<button class="btn-out${mgSess===String(i)?" active":""}" data-ms="${i}">${tenBuoi(i)}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
   }
   const chuaChia = all.filter(c=>!String(c.session||"").trim()).length;
   chips += `<button class="btn-out${mgSess==="0"?" active":""}" data-ms="0">Chưa chia${chuaChia?` <b style="color:var(--red)">${chuaChia}</b>`:""}</button>`;
@@ -1109,11 +1116,11 @@ function renderManage(){
           ${ed?`<select data-ss="${c.row}" style="padding:7px;border-radius:8px;border:2px solid #E5E7EB;font-size:12px;font-weight:700">
                   <option value=""${ss?"":" selected"}>— Buổi —</option>
                   ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
-                    `<option value="${i}"${ss===String(i)?" selected":""}>Buổi ${i}</option>`).join("")}
+                    `<option value="${i}"${ss===String(i)?" selected":""}>${tenBuoi(i)}</option>`).join("")}
                 </select>
                 <button class="btn-out" data-del="${c.row}" title="Xóa thí sinh"
                   style="padding:6px 9px;font-size:13px;color:var(--red);border-color:#F3C9CC">🗑️</button>`
-             :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?"Buổi "+ss:"Chưa chia"}</span>`}
+             :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?tenBuoi(ss):"Chưa chia"}</span>`}
         </div>
       </div>`;
     });
