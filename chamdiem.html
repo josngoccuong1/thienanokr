@@ -176,7 +176,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, getDocs, updateDoc, setDoc, writeBatch }
+import { getFirestore, collection, doc, getDocs, updateDoc, setDoc, writeBatch, deleteDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ⚠️ NẾU BÁO "invalid-api-key": dán đè khối này bằng firebaseConfig từ Firebase Console */
@@ -259,6 +259,15 @@ window.FS = {
       await batch.commit();
     }
     return items.length;
+  },
+  /* Xóa thí sinh + toàn bộ điểm của thí sinh đó */
+  async remove(row, judges){
+    await ensureAuth();
+    for(const j of (judges||[])){
+      const id = String(row) + "__" + String(j).replace(/[^\w]/g, "_");
+      try{ await deleteDoc(doc(db, C_SC, id)); }catch(_){}
+    }
+    await deleteDoc(doc(db, C_TS, String(row)));
   }
 };
 ensureAuth();
@@ -1085,7 +1094,9 @@ function renderManage(){
                   <option value=""${ss?"":" selected"}>— Buổi —</option>
                   ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
                     `<option value="${i}"${ss===String(i)?" selected":""}>Buổi ${i}</option>`).join("")}
-                </select>`
+                </select>
+                <button class="btn-out" data-del="${c.row}" title="Xóa thí sinh"
+                  style="padding:6px 9px;font-size:13px;color:var(--red);border-color:#F3C9CC">🗑️</button>`
              :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?"Buổi "+ss:"Chưa chia"}</span>`}
         </div>
       </div>`;
@@ -1110,6 +1121,33 @@ function renderManage(){
       if(c) c.session = val;
       renderManage();
     }catch(e){ alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
+  }));
+
+  /* --- XÓA thí sinh (phải nhập mật khẩu) --- */
+  $("mgList").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", async ()=>{
+    const row = b.dataset.del;
+    const c = DATA.contestants.find(x=>String(x.row)===String(row));
+    if(!c) return;
+    const soDiem = DATA.scores.filter(s=>String(s.row)===String(row)).length;
+    if(!confirm(
+      "XÓA THÍ SINH\n\n"
+      + "• Họ tên: " + c.name + "\n"
+      + "• Đơn vị: " + (c.unit||"Cá nhân") + "\n"
+      + (c.sbd ? "• SBD: " + c.sbd + "\n" : "")
+      + (soDiem ? "• Sẽ xóa luôn " + soDiem + " bản ghi điểm\n" : "")
+      + "\nXóa rồi KHÔNG khôi phục lại được. Tiếp tục?")) return;
+    const pw = prompt("Nhập mật khẩu để xác nhận xóa:");
+    if(pw === null) return;
+    if(String(pw).trim() !== CONFIG.ADMIN_PASSWORD){ alert("❌ Sai mật khẩu — chưa xóa gì cả."); return; }
+    showLoading("Đang xóa…");
+    try{
+      const judges = DATA.scores.filter(s=>String(s.row)===String(row)).map(s=>s.judge);
+      await window.FS.remove(row, judges);
+      DATA.contestants = DATA.contestants.filter(x=>String(x.row)!==String(row));
+      DATA.scores      = DATA.scores.filter(s=>String(s.row)!==String(row));
+      doneLoading("Đã xóa ✓");
+      renderManage();
+    }catch(e){ hideLoading(); alert("Lỗi khi xóa: "+(e.message||e)); }
   }));
 
   /* --- chuyển cả đơn vị lên / xuống --- */
