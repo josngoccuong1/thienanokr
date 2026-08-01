@@ -122,6 +122,8 @@ textarea{resize:vertical;min-height:44px}
 <!-- ===== KẾT NỐI FIRESTORE ===== -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, writeBatch, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -136,8 +138,19 @@ const firebaseConfig = {
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
 
-const db = getFirestore(initializeApp(firebaseConfig));
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
 const COL = "festival_contestants";
+
+/* Tài khoản nội bộ — chỉ dùng cho trang quản trị đọc danh sách.
+   Phụ huynh đăng ký KHÔNG cần đăng nhập (quy tắc cho phép tạo mới). */
+const FS_EMAIL = "festival@thienan.vn";
+const FS_PASS  = "thienan123";
+async function ensureAuth(){
+  if(auth.currentUser) return;
+  await signInWithEmailAndPassword(auth, FS_EMAIL, FS_PASS);
+}
 
 window.FS = {
   /* Ghi danh sách thí sinh vừa đăng ký vào Firestore */
@@ -177,6 +190,7 @@ window.FS = {
 
   /* Đọc toàn bộ danh sách cho trang quản trị */
   async getAll(){
+    await ensureAuth();
     const snap = await getDocs(collection(db, COL));
     const rows = [];
     snap.forEach(d => rows.push({ _id: d.id, ...d.data() }));
