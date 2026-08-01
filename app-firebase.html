@@ -395,7 +395,7 @@ async function apiPost(d){
       return {saved:true};
     }
     if(a==="batchThuChi"){ for(const x of (d.items||[])){ await qldb.collection("ql_thuchi").doc(String(x.id||Date.now())).set(x);} return {saved:true}; }
-    if(a==="batchLuong"){ for(const x of (d.items||[])){ await qldb.collection("ql_luong").doc((x.user||"")+"__"+(x.month||"")).set(x);} return {saved:true}; }
+    if(a==="batchLuong"){ for(const x of (d.items||[])){ await qldb.collection("ql_luong").doc(((x.user||"")+"__"+(x.month||"")).replace(/\//g,"-")).set(x);} return {saved:true}; }
     return {};
   }catch(e){ console.error("apiPost(FB)",d.action,e); return {}; }
 }
@@ -421,7 +421,7 @@ async function syncGet(params){
     if(a==="deletePlanGet"){ await qldb.collection("ql_plans").doc(String(params.id)).delete(); return {deleted:true}; }
     if(a==="saveThuChiGet"){ await qldb.collection("ql_thuchi").doc(String(params.id)).set({id:params.id,type:params.type,cat:params.cat,amount:Number(params.amount)||0,note:params.note||"",date:params.date||"",month:params.month||"",nguoi:params.nguoi||"",httt:params.httt||""}); return {saved:true}; }
     if(a==="deleteThuChiGet"){ await qldb.collection("ql_thuchi").doc(String(params.id)).delete(); return {deleted:true}; }
-    if(a==="saveLuongGet"){ const key=(params.user||"")+"__"+(params.month||""); await qldb.collection("ql_luong").doc(key).set({user:params.user,name:params.name||"",month:params.month,base:Number(params.base)||0,bonus:Number(params.bonus)||0,note:params.note||"",status:params.status||"",total:Number(params.total)||0}); return {saved:true}; }
+    if(a==="saveLuongGet"){ const key=((params.user||"")+"__"+(params.month||"")).replace(/\//g,"-"); await qldb.collection("ql_luong").doc(key).set({user:params.user,name:params.name||"",month:params.month,base:Number(params.base)||0,bonus:Number(params.bonus)||0,note:params.note||"",status:params.status||"",total:Number(params.total)||0}); return {saved:true}; }
     if(a==="saveStudentGet"){ const o=Object.assign({},params); delete o.action; if(o.name) o.name=decodeURIComponent(o.name); if(o.note) o.note=decodeURIComponent(o.note); await qldb.collection("ql_students").doc(String(o.id||Date.now())).set(o); return {saved:true}; }
     if(a==="deleteStudentGet"){ await qldb.collection("ql_students").doc(String(params.id)).delete(); return {deleted:true}; }
     if(a==="saveAttendanceGet"){ const o=Object.assign({},params); delete o.action; await qldb.collection("ql_attendance").doc(String(o.key||Date.now())).set(o); return {saved:true}; }
