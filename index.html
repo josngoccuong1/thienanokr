@@ -1435,7 +1435,7 @@ function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
     <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
     ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm Objective</button>`:""}
     <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
-    ${state.user.isAdmin?`<button class="btn-sm" id="btnMigrateFB" style="background:#0F3460;color:#fff;font-size:11px;padding:5px 10px">⬆️ Đưa OKR lên Firebase</button>`:""}
+    ${state.user.isAdmin?`<button class="btn-sm" id="btnMigrateFB" style="background:#0F3460;color:#fff;font-size:11px;padding:5px 10px">⬆️ Đưa TẤT CẢ lên Firebase</button>`:""}
   </div>
   ${OBJECTIVES.map(obj=>{
     const sc=obj.krs.length?Math.round(obj.krs.reduce((acc,kr)=>{
@@ -2142,7 +2142,7 @@ async function ensureFirebase(){
 }
 async function migrateOKRToFirebase(){
   if(!(state.user&&state.user.isAdmin)) return;
-  if(!confirm("Đưa toàn bộ OKR hiện tại (Objective + KR + số các quý) lên Firebase?\nGhi vào ql_objectives / ql_actuals — KHÔNG đụng app Học sinh.")) return;
+  if(!confirm("Đưa TẤT CẢ dữ liệu app Quản lý (OKR, Kế hoạch, Lương, Thu chi, Lộ trình, Nhân sự) lên Firebase?\nGhi vào các collection ql_ — KHÔNG đụng app Học sinh.")) return;
   try{
     showLoading("Đang kết nối Firebase…");
     await ensureFirebase();
@@ -2184,7 +2184,20 @@ async function migrateOKRToFirebase(){
         }
       }
     }
-    doneLoading("Đã đưa "+OBJECTIVES.length+" Objective + "+na+" số lên Firebase ✓");
+    showLoading("Đang đưa Kế hoạch / Thu chi / Lương / Lộ trình / Nhân sự…");
+    let extra=0;
+    // Kế hoạch
+    for(const p of (state.plans||[])){ await qldb.collection("ql_plans").doc(String(p.id)).set({id:p.id,title:p.title||"",month:p.month||"",target:p.target||"",owner:p.owner||"",status:p.status||"",actual:(p.actual==null?"":p.actual),okrObj:p.okrObj||"",okrKr:p.okrKr||""}); extra++; }
+    // Thu chi
+    for(const t of (state.transactions||[])){ await qldb.collection("ql_thuchi").doc(String(t.id)).set({id:t.id,type:t.type,cat:t.cat,amount:Number(t.amount)||0,note:t.note||"",date:t.date||"",month:t.month||"",nguoi:t.nguoi||"",httt:t.httt||""}); extra++; }
+    // Lương
+    const LD=state.luongData||{};
+    for(const key of Object.keys(LD)){ const l=LD[key]; await qldb.collection("ql_luong").doc(key).set({user:l.user||"",name:l.name||"",month:l.month||"",base:Number(l.base)||0,bonus:Number(l.bonus)||0,note:l.note||"",status:l.status||"",total:Number(l.total)||0}); extra++; }
+    // Lộ trình
+    if(state.lotrinh){ await qldb.collection("ql_lotrinh").doc("main").set(state.lotrinh); extra++; }
+    // Nhân sự
+    for(const u of (USERS||[])){ await qldb.collection("ql_users").doc(String(u.username)).set({username:u.username,password:String(u.password||""),name:u.name||"",role:u.role||"",isAdmin:!!u.isAdmin,luong:Number(u.luong)||0}); extra++; }
+    doneLoading("Đã đưa "+OBJECTIVES.length+" Objective + "+na+" số + "+extra+" mục (KH/TC/Lương/Lộ trình/NS) lên Firebase ✓");
   }catch(e){ hideLoading(); alert("Lỗi khi đưa lên Firebase: "+(e&&e.message?e.message:e)); }
 }
 async function loadObjectivesFromSheets(){  try{ const d=await apiGet({action:"getObjectives"}); if(d&&Array.isArray(d.objectives)&&d.objectives.length){ OBJECTIVES=d.objectives; ls_set("ta_objectives",d.objectives); if(state.tab==="okr"&&!state.showOKREditor&&!state.okr_editKR) render(); } }catch(e){}
