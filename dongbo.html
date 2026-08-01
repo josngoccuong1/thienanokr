@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Đồng bộ Sheet → Firestore — Thiên Ân</title>
+<style>
+  :root{--navy:#1A1A2E;--navy2:#0F3460;--gold:#D4AF37;--gold-d:#A8862A;--green:#27AE60;--red:#C0202A;--amber:#E8A33D;--muted:#6B7280}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#F0F2F5;color:#111}
+  .wrap{max-width:900px;margin:0 auto;padding:18px}
+  .hero{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:0 0 18px 18px;padding:22px 18px;text-align:center}
+  .hero h1{margin:6px 0 4px;font-size:21px}
+  .hero .k{color:var(--gold);font-size:12px;letter-spacing:2px;font-weight:700}
+  .card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-top:14px;overflow:hidden}
+  .card-h{background:var(--navy);color:#fff;padding:11px 15px;font-weight:800;font-size:14px;display:flex;gap:8px;align-items:center}
+  .card-b{padding:15px}
+  button{border:none;border-radius:10px;padding:13px 18px;font-size:14px;font-weight:800;cursor:pointer}
+  .btn-gold{background:var(--gold);color:var(--navy)}
+  .btn-navy{background:var(--navy);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .full{width:100%}
+  .note{background:#FFF7E0;border:1px solid #F0DFA8;border-radius:9px;padding:10px 12px;font-size:12px;color:#8A6D00;line-height:1.6}
+  .log{background:#0B1020;color:#D7E0F5;border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.7;max-height:240px;overflow:auto;white-space:pre-wrap;margin-top:12px}
+  .ok{color:#7BE3A6;font-weight:800}
+  .err{color:#FF8A8A;font-weight:800}
+  .warn{color:#FFD37B;font-weight:800}
+  .stat{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .stat > div{flex:1;min-width:110px;background:#F7F8FA;border-radius:10px;padding:11px;text-align:center}
+  .stat b{display:block;font-size:22px;color:var(--navy)}
+  .stat span{font-size:11px;color:var(--muted)}
+  .step{display:inline-block;background:var(--gold);color:var(--navy);width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;font-weight:900;font-size:12px;margin-right:6px}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+  th{background:#F2F4F8;text-align:left;padding:8px;font-weight:800;position:sticky;top:0}
+  td{padding:8px;border-top:1px solid #EEF0F4}
+  .scroll{max-height:340px;overflow:auto;border:1px solid #EEF0F4;border-radius:10px}
+  .bar{height:10px;background:#E5E7EB;border-radius:999px;overflow:hidden;margin-top:10px}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-d));transition:width .25s}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="k">HỌC VIỆN ÂM NHẠC THIÊN ÂN</div>
+  <h1>Đồng bộ Sheet → Firestore</h1>
+  <div style="font-size:12px;opacity:.85">Tìm thí sinh có trong Sheet mà app chưa có · Không xóa, không sửa gì</div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="card-h"><span class="step">1</span> Kiểm tra hai bên</div>
+    <div class="card-b">
+      <div class="note">
+        So khớp theo <b>họ tên + số điện thoại</b> (không theo số dòng) — nên sắp xếp lại Sheet
+        bao nhiêu lần cũng <b>không bị thêm trùng</b>. Chạy lại nhiều lần vẫn an toàn.
+      </div>
+      <button class="btn-navy full" id="btnCheck" style="margin-top:12px">🔍 Kiểm tra</button>
+      <div class="stat" id="stat" style="display:none">
+        <div><b id="nSheet">0</b><span>Trong Sheet</span></div>
+        <div><b id="nFire">0</b><span>Trong app</span></div>
+        <div><b id="nThieu" style="color:var(--red)">0</b><span>App còn thiếu</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="cardPreview" style="display:none">
+    <div class="card-h"><span class="step">2</span> Danh sách sẽ được thêm vào app</div>
+    <div class="card-b">
+      <div class="note">Xem kỹ trước khi thêm. Bỏ tick ở em nào không muốn thêm.</div>
+      <div class="scroll" id="preview"></div>
+      <button class="btn-gold full" id="btnAdd" style="margin-top:12px">➕ Thêm những em đã tick vào app</button>
+      <div class="bar"><i id="bar"></i></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">📋 Nhật ký</div>
+    <div class="card-b"><div class="log" id="log">Chưa chạy.</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
+  authDomain: "thien-an-bb976.firebaseapp.com",
+  projectId: "thien-an-bb976",
+  storageBucket: "thien-an-bb976.firebasestorage.app",
+  messagingSenderId: "1065254649793",
+  appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
+};
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8Idu12ftfEURVZukA2gHAcmnhN2xCXkNNka-1pVLdhzkfCm7caAOwGi8Uq2Kgx4s/exec";
+const PASS = "thienan123";
+const FS_EMAIL = "festival@thienan.vn", FS_PASS = "thienan123";
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const COL  = "festival_contestants";
+
+const $ = id => document.getElementById(id);
+let THIEU = [], maxOrder = 0;
+
+function log(m, cls){
+  const el=$("log");
+  if(el.textContent==="Chưa chạy.") el.textContent="";
+  el.innerHTML += (cls?`<span class="${cls}">${m}</span>`:m) + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* Chuẩn hóa để so khớp: bỏ dấu, bỏ khoảng trắng thừa, không phân biệt hoa thường */
+const norm = s => String(s||"").trim().toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/\s+/g," ");
+/* Chuẩn hóa SĐT: Sheets lưu dạng SỐ nên mất số 0 đầu (0363... -> 363...).
+   Bỏ mã nước 84 và mọi số 0 đứng đầu để cùng một người luôn ra cùng một khóa. */
+const soDT = s => {
+  let d = String(s||"").replace(/\D/g,"");
+  if(d.length > 10 && d.startsWith("84")) d = d.slice(2);
+  return d.replace(/^0+/, "");
+};
+const khoa = (ten, dt) => norm(ten) + "|" + soDT(dt);        // khóa so khớp
+
+async function ensureAuth(){
+  if(auth.currentUser) return;
+  await signInWithEmailAndPassword(auth, FS_EMAIL, FS_PASS);
+}
+
+/* ---------- Bước 1: kiểm tra ---------- */
+$("btnCheck").addEventListener("click", async ()=>{
+  const b=$("btnCheck"); b.disabled=true; b.textContent="⏳ Đang kiểm tra…";
+  try{
+    log("Đang đọc Google Sheet…");
+    const res = await fetch(SCRIPT_URL + "?action=getFestival&password=" + encodeURIComponent(PASS));
+    const d = await res.json();
+    if(!d.ok) throw new Error(d.error||"Sheet trả về lỗi");
+    const sheet = (d.contestants||[]).filter(c => String(c.name||"").trim());
+    log(`  → Sheet có ${sheet.length} thí sinh`);
+
+    log("Đang đọc dữ liệu trong app…");
+    await ensureAuth();
+    const snap = await getDocs(collection(db, COL));
+    const co = new Set();
+    maxOrder = 0;
+    snap.forEach(x=>{
+      const v = x.data();
+      co.add(khoa(v.name, v.phone));
+      const o = Number(v.order)||0; if(o>maxOrder) maxOrder=o;
+    });
+    log(`  → App có ${snap.size} thí sinh`);
+
+    // tìm em có trong Sheet mà app chưa có (bỏ qua trùng lặp trong chính Sheet)
+    const daThay = new Set();
+    THIEU = sheet.filter(c=>{
+      const k = khoa(c.name, c.phone);
+      if(co.has(k) || daThay.has(k)) return false;
+      daThay.add(k); return true;
+    });
+
+    $("stat").style.display="flex";
+    $("nSheet").textContent = sheet.length;
+    $("nFire").textContent  = snap.size;
+    $("nThieu").textContent = THIEU.length;
+
+    if(THIEU.length===0){
+      $("cardPreview").style.display="none";
+      log("✅ Không có ai thiếu — app đã đủ so với Sheet.", "ok");
+    }else{
+      log(`⚠️ App còn thiếu ${THIEU.length} thí sinh — xem danh sách bên dưới.`, "warn");
+      $("cardPreview").style.display="block";
+      $("preview").innerHTML =
+        `<table><tr><th style="width:34px"><input type="checkbox" id="tickAll" checked/></th>
+          <th>Họ tên</th><th>Đơn vị</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th></tr>` +
+        THIEU.map((c,i)=>`<tr>
+          <td><input type="checkbox" class="tick" data-i="${i}" checked/></td>
+          <td><b>${esc(c.name)}</b></td>
+          <td>${esc(c.unit||"Cá nhân")}</td>
+          <td>${esc(String(c.category||"—").split("—")[0].trim())}</td>
+          <td>${esc(c.piece||"—")}</td>
+          <td>${esc(c.phone||"—")}</td>
+        </tr>`).join("") + `</table>`;
+      $("tickAll").addEventListener("change", e=>{
+        document.querySelectorAll(".tick").forEach(t=>t.checked = e.target.checked);
+      });
+    }
+  }catch(e){
+    log("❌ Lỗi: " + e.message, "err");
+    alert("Lỗi khi kiểm tra:\n" + e.message);
+  }
+  b.disabled=false; b.textContent="🔍 Kiểm tra";
+});
+
+/* ---------- Bước 2: thêm vào app ---------- */
+$("btnAdd").addEventListener("click", async ()=>{
+  const chon = [...document.querySelectorAll(".tick")].filter(t=>t.checked).map(t=>THIEU[Number(t.dataset.i)]);
+  if(!chon.length){ alert("Chưa tick em nào."); return; }
+  if(!confirm(`Thêm ${chon.length} thí sinh vào app?\n\nNhững em này sẽ xếp CUỐI danh sách biểu diễn — sắp lại sau trong mục ⚙️ Sắp xếp.`)) return;
+
+  const b=$("btnAdd"); b.disabled=true; b.textContent="⏳ Đang thêm…";
+  try{
+    await ensureAuth();
+    let done=0;
+    for(let i=0;i<chon.length;i+=400){
+      const batch = writeBatch(db);
+      chon.slice(i,i+400).forEach((c,j)=>{
+        maxOrder++;
+        batch.set(doc(collection(db, COL)), {
+          order: maxOrder,
+          sheetRow: Number(c.row)||0,
+          regCode: c.regCode || "",
+          unit: c.unit || "", contact: c.contact || "", phone: c.phone || "",
+          email: c.email || "", address: c.address || "",
+          name: c.name || "", dob: c.dob || "", gender: c.gender || "",
+          category: c.category || "", piece: c.piece || "", teacher: c.teacher || "",
+          minutes: c.minutes || "", billUrl: c.billUrl || "",
+          fee: Number(c.feeAmount)||0, feeStatus: c.fee || "Chờ duyệt",
+          sbd: null, checkin: "", done: "", session: String(c.session||"").trim(),
+          createdAt: new Date().toISOString(), nguon: "dongbo-sheet"
+        });
+        done++;
+        $("bar").style.width = Math.round(done/chon.length*100)+"%";
+      });
+      await batch.commit();
+      log(`  → đã thêm ${Math.min(i+400,chon.length)}/${chon.length}`);
+    }
+    log(`🎉 Đã thêm ${chon.length} thí sinh vào app.`, "ok");
+    log("Mở app Ban tổ chức → bấm ↻ Làm mới để thấy các em này.", "ok");
+    alert(`✅ Đã thêm ${chon.length} thí sinh!\n\nMở app Ban tổ chức → ↻ Làm mới để kiểm tra.`);
+    $("cardPreview").style.display="none";
+    $("btnCheck").click();
+  }catch(e){
+    log("❌ Lỗi khi thêm: " + e.message, "err");
+    alert("Lỗi:\n" + e.message);
+  }
+  b.disabled=false; b.textContent="➕ Thêm những em đã tick vào app";
+});
+</script>
+</body>
+</html>
