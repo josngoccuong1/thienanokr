@@ -101,7 +101,7 @@ function startListeners(){
 async function saveObjective(o){ await setDoc(doc(db, COL_OBJ, o.id), o); }
 async function delObjective(id){ if(confirm("Xóa Objective này?")) await deleteDoc(doc(db, COL_OBJ, id)); }
 async function saveActual(krId, val){
-  const id = state.quarter + "__" + krId;
+  const id = state.quarter.replace(/\//g,"-") + "__" + krId;
   await setDoc(doc(db, COL_ACT, id), { quarter:state.quarter, krId, actual:Number(val)||0, by:state.user.name, at:new Date().toISOString() });
 }
 async function seed(){ for(const o of SEED) await saveObjective(o); }
