@@ -310,7 +310,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v3 · Xem chéo các bộ phận</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v4 · Sắp xếp mọi đơn vị kể cả Cá nhân</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -752,14 +752,11 @@ function groupByUnit(list){
     map[k].minRow=Math.min(map[k].minRow, Number(c.order)||999999);
   });
   const groups=Object.values(map);
-  // Đơn vị xếp theo lần xuất hiện đầu trong sheet; nhóm "Cá nhân" luôn xuống CUỐI
-  groups.sort((a,b)=>{
-    const ca=a.key==="ca nhan", cb=b.key==="ca nhan";
-    if(ca!==cb) return ca?1:-1;
-    return a.minRow-b.minRow;
-  });
-  // Trong mỗi nhóm giữ đúng thứ tự sheet
-  groups.forEach(g=>g.items.sort((x,y)=>(Number(x.row)||999999)-(Number(y.row)||999999)));
+  // Đơn vị xếp theo THỨ TỰ BIỂU DIỄN thầy đã sắp (kể cả nhóm "Cá nhân" —
+  // trước đây bị ép luôn xuống cuối nên không kéo lên được).
+  groups.sort((a,b)=>a.minRow-b.minRow);
+  // Trong mỗi nhóm cũng theo thứ tự biểu diễn
+  groups.forEach(g=>g.items.sort((x,y)=>(Number(x.order)||999999)-(Number(y.order)||999999)));
   return groups;
 }
 /* Xuất danh sách ra CSV (mở bằng Excel) */
@@ -1150,10 +1147,19 @@ function renderManage(){
     }catch(e){ hideLoading(); alert("Lỗi khi xóa: "+(e.message||e)); }
   }));
 
-  /* --- chuyển cả đơn vị lên / xuống --- */
+  /* --- chuyển cả đơn vị lên / xuống (theo nhóm ĐANG HIỆN, bỏ qua nhóm bị lọc ẩn) --- */
   const moveGroup = async (gi, dir)=>{
-    const gs = mgGroups(); const gj = gi + dir;
-    if(gj < 0 || gj >= gs.length) return;
+    const gs = mgGroups();
+    // chỉ số các nhóm đang thực sự hiển thị dưới bộ lọc hiện tại
+    const hien = gs.map((g,i)=>({i, co:g.items.some(hop)})).filter(x=>x.co).map(x=>x.i);
+    const vt = hien.indexOf(gi);
+    if(vt < 0) return;
+    const vtMoi = vt + dir;
+    if(vtMoi < 0 || vtMoi >= hien.length){
+      alert(dir<0 ? "Đơn vị này đã ở trên cùng." : "Đơn vị này đã ở dưới cùng.");
+      return;
+    }
+    const gj = hien[vtMoi];
     const t = gs[gi]; gs[gi] = gs[gj]; gs[gj] = t;
     showLoading("Đang chuyển đơn vị…");
     try{ await applyOrder(mgFlat(gs)); doneLoading("Đã chuyển ✓"); renderManage(); }
