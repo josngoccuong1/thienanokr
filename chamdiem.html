@@ -310,7 +310,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v4 · Sắp xếp mọi đơn vị kể cả Cá nhân</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v5 · Sửa được Đơn vị của thí sinh</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -708,6 +708,7 @@ async function post(payload){
       if(payload.name     != null) data.name     = payload.name;
       if(payload.piece    != null) data.piece    = payload.piece;
       if(payload.category != null) data.category = payload.category;
+      if(payload.unit     != null) data.unit     = payload.unit;
       await window.FS.update(row, data);
       const c = DATA.contestants.find(x=>String(x.row)===String(row));
       if(c) Object.assign(c, data);
@@ -788,6 +789,13 @@ function openEditInfo(row){
   const cats = [...new Set(DATA.contestants.map(x=>x.category).filter(Boolean))].sort();
   const catOpts = ['<option value="">— Chọn bảng —</option>']
     .concat(cats.map(x=>`<option${x===c.category?" selected":""}>${esc(x)}</option>`)).join("");
+  // Danh sách đơn vị đang có (để chuyển thí sinh sang nhóm khác)
+  const dvHienCo = [...new Set(DATA.contestants.map(x=>(x.unit||"").trim()).filter(Boolean))]
+    .sort((a,b)=>norm(a).localeCompare(norm(b)));
+  const dvNow = (c.unit||"").trim();
+  const dvOpts = ['<option value="">— Cá nhân —</option>']
+    .concat(dvHienCo.map(x=>`<option${norm(x)===norm(dvNow)?" selected":""}>${esc(x)}</option>`))
+    .concat([`<option value="__moi__">➕ Đơn vị khác (gõ tay)…</option>`]).join("");
   const ov = document.createElement("div");
   ov.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(26,26,46,.5);display:flex;align-items:center;justify-content:center;padding:18px";
   ov.innerHTML = `
@@ -799,7 +807,11 @@ function openEditInfo(row){
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Tác phẩm dự thi</label>
         <input id="ei_piece" value="${esc(c.piece||"")}" placeholder="Tên bài — tác giả" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Bảng dự thi</label>
-        <select id="ei_cat" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:16px">${catOpts}</select>
+        <select id="ei_cat" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px">${catOpts}</select>
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Đơn vị / Trung tâm</label>
+        <select id="ei_unit" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:8px">${dvOpts}</select>
+        <input id="ei_unit_moi" placeholder="Gõ tên đơn vị mới" value="" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px;display:none"/>
+        <div style="font-size:11px;color:#6B7280;margin-bottom:14px">Đổi đơn vị xong, thí sinh sẽ chuyển sang nhóm đó ở Check-in và Điểm danh.</div>
         <div style="display:flex;gap:9px">
           <button id="ei_cancel" class="btn-out" style="flex:1;padding:11px">Hủy</button>
           <button id="ei_save" class="btn btn-gold" style="flex:2;padding:11px">💾 Lưu</button>
@@ -810,17 +822,24 @@ function openEditInfo(row){
   document.body.appendChild(ov);
   const close = ()=>ov.remove();
   ov.querySelector("#ei_cancel").onclick = close;
+  ov.querySelector("#ei_unit").addEventListener("change", e=>{
+    const moi = e.target.value === "__moi__";
+    ov.querySelector("#ei_unit_moi").style.display = moi ? "block" : "none";
+    if(moi) ov.querySelector("#ei_unit_moi").focus();
+  });
   ov.addEventListener("click", e=>{ if(e.target===ov) close(); });
   ov.querySelector("#ei_save").onclick = async ()=>{
     const name = ov.querySelector("#ei_name").value.trim();
     const piece = ov.querySelector("#ei_piece").value.trim();
     const category = ov.querySelector("#ei_cat").value;
+    let unit = ov.querySelector("#ei_unit").value;
+    if(unit === "__moi__") unit = ov.querySelector("#ei_unit_moi").value.trim();
     if(!name){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">Tên không được để trống</span>'; return; }
     const btn = ov.querySelector("#ei_save"); btn.disabled=true; btn.textContent="Đang lưu…";
     try{
-      const d = await post({action:"editinfo", row, name, piece, category});
+      const d = await post({action:"editinfo", row, name, piece, category, unit});
       if(d.ok){
-        c.name=name; c.piece=piece; c.category=category;
+        c.name=name; c.piece=piece; c.category=category; c.unit=unit;
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
     }catch(e){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ Lỗi kết nối</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
