@@ -2165,7 +2165,7 @@ async function migrateOKRToFirebase(){
         for(const krId of Object.keys(all[q])){
           const rec=all[q][krId];
           const val=(rec&&rec.actual!=null)?rec.actual:rec;
-          await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
+          await qldb.collection("ql_actuals").doc(q.replace(/\//g,"-")+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
           na++;
         }
       }
@@ -2179,7 +2179,7 @@ async function migrateOKRToFirebase(){
         for(const krId of Object.keys(data)){
           const rec=data[krId];
           const val=(rec&&rec.actual!=null)?rec.actual:rec;
-          await qldb.collection("ql_actuals").doc(q+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
+          await qldb.collection("ql_actuals").doc(q.replace(/\//g,"-")+"__"+krId).set({quarter:q,krId:krId,actual:Number(val)||0});
           na++;
         }
       }
