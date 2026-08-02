@@ -48,6 +48,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 .tb-del{color:#E74C3C;cursor:pointer;font-weight:800;font-size:12px;padding:0 2px}
 .tb-body{color:#555;margin-top:3px;line-height:1.4;white-space:pre-wrap}
 .tb-meta{color:#999;font-size:10.5px;margin-top:4px}
+.bh-inp{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box}
 .htitle h1{font-size:14px;font-weight:800}
 .htitle p{font-size:10px;color:#D4AF37;font-weight:600}
 .hright{margin-left:auto;display:flex;align-items:center;gap:6px}
@@ -338,6 +339,11 @@ let state={
   quarter:currentQuarter(),month:currentMonth(),
   // Thông báo chung realtime
   thongbao:[],showThongBao:false,showTbModal:false,tb_title:"",tb_body:"",
+  // Bảo hành
+  bh_data:[],bh_search:"",bh_filter:"all",
+  showBhModal:false,bh_edit:null,
+  bh_khach:"",bh_sdt:"",bh_loai:"Piano cơ",bh_model:"",bh_serial:"",bh_ngayban:"",bh_hanbh:12,bh_ghichu:"",
+  showBhSvcModal:false,bh_svc_for:null,bh_svc_date:"",bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:"",
   txViewAll:false,txPage:1,
   loginError:"",uname:"",upass:"",
   actuals:{},
@@ -1166,6 +1172,7 @@ function enterApp(u){
   render();
   loadActuals();
   startThongBaoListener();
+  loadBaoHanhData();
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1424,6 +1431,7 @@ function renderApp(){
     {id:"thuchi",label:"💰 Thu chi",show:u.isAdmin},
     {id:"baocao",label:"📈 Báo cáo",show:u.isAdmin},
     {id:"users",label:"👥 Nhân sự",show:u.isAdmin},
+    {id:"baohanh",label:"🛠 Bảo hành",show:true},
   ].filter(t=>t.show);
 
   return`<div class="header">
@@ -1449,12 +1457,15 @@ function renderApp(){
     ${state.tab==="thuchi"?renderThuChi():""}
     ${state.tab==="baocao"?renderBaoCao():""}
     ${state.tab==="users"?renderUsers():""}
+    ${state.tab==="baohanh"?renderBaoHanh():""}
   </div>
   ${state.showTxForm?renderTxModal():""}
   ${state.showPlanForm?renderPlanModal():""}
   ${state.showLuongModal?renderLuongModal():""}
   ${state.showLoTrinhModal?renderLoTrinhModal():""}
   ${state.showTbModal?renderTbModal():""}
+  ${state.showBhModal?renderBhModal():""}
+  ${state.showBhSvcModal?renderBhSvcModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
@@ -2480,6 +2491,171 @@ function renderTbModal(){
     </div>
   </div>`;
 }
+// ============================================================
+// BẢO HÀNH — collection ql_baohanh (hồ sơ + sổ sửa chữa)
+// ============================================================
+async function loadBaoHanhData(){
+  try{
+    const snap=await qldb.collection("ql_baohanh").get();
+    const arr=[]; snap.forEach(d=>arr.push(d.data()));
+    arr.sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
+    state.bh_data=arr;
+    if(state.screen==="app") render();
+  }catch(e){ console.error("loadBaoHanhData",e); }
+}
+function bhFmt(s){ if(!s)return "—"; const p=String(s).split("-"); return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):s; }
+function bhEndDate(r){
+  if(!r.ngayban || !r.hanbh) return null;
+  const d=new Date(r.ngayban); if(isNaN(d.getTime())) return null;
+  d.setMonth(d.getMonth()+Number(r.hanbh||0));
+  return d;
+}
+function bhStatus(r){
+  const end=bhEndDate(r);
+  if(!end) return {key:"na",label:"—",color:"#888",bg:"#F1F1F1"};
+  const days=Math.floor((end.getTime()-new Date().setHours(0,0,0,0))/86400000);
+  if(days<0) return {key:"expired",label:"Hết hạn",color:"#E74C3C",bg:"#FDEDEC"};
+  if(days<=30) return {key:"soon",label:"Sắp hết ("+days+"n)",color:"#E67E22",bg:"#FEF9E7"};
+  return {key:"valid",label:"Còn BH",color:"#27AE60",bg:"#E8F8F0"};
+}
+function openBhAdd(){ setState({showBhModal:true,bh_edit:null,bh_khach:"",bh_sdt:"",bh_loai:"Piano cơ",bh_model:"",bh_serial:"",bh_ngayban:"",bh_hanbh:12,bh_ghichu:""}); }
+function openBhEdit(id){
+  const r=(state.bh_data||[]).find(x=>String(x.id)===String(id)); if(!r)return;
+  setState({showBhModal:true,bh_edit:r.id,bh_khach:r.khach||"",bh_sdt:r.sdt||"",bh_loai:r.loai||"Piano cơ",bh_model:r.model||"",bh_serial:r.serial||"",bh_ngayban:r.ngayban||"",bh_hanbh:r.hanbh||12,bh_ghichu:r.ghichu||""});
+}
+function openBhSvc(id){ setState({showBhSvcModal:true,bh_svc_for:id,bh_svc_date:new Date().toISOString().slice(0,10),bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:""}); }
+async function saveBaoHanh(){
+  const k=(state.bh_khach||"").trim();
+  if(!k){ alert("Nhập tên khách hàng."); return; }
+  const id = state.bh_edit ? String(state.bh_edit) : "bh_"+Date.now();
+  const ex=(state.bh_data||[]).find(x=>String(x.id)===id);
+  const rec={
+    id:id, khach:k, sdt:(state.bh_sdt||"").trim(),
+    loai:state.bh_loai||"", model:(state.bh_model||"").trim(), serial:(state.bh_serial||"").trim(),
+    ngayban:state.bh_ngayban||"", hanbh:Number(state.bh_hanbh)||0, ghichu:(state.bh_ghichu||"").trim(),
+    services: ex&&Array.isArray(ex.services)?ex.services:[],
+    ts: ex&&ex.ts?ex.ts:Date.now()
+  };
+  try{ await qldb.collection("ql_baohanh").doc(id).set(rec); }
+  catch(e){ console.error("saveBaoHanh",e); alert("Lưu lỗi — kiểm tra rule ql_baohanh đã Publish chưa."); return; }
+  setState({showBhModal:false,bh_edit:null});
+  loadBaoHanhData();
+}
+async function deleteBaoHanh(id){
+  if(!(state.user&&state.user.isAdmin)){ alert("Chỉ Quản trị mới xóa được hồ sơ."); return; }
+  if(!confirm("Xóa hồ sơ bảo hành này?"))return;
+  try{ await qldb.collection("ql_baohanh").doc(String(id)).delete(); }catch(e){ console.error(e); }
+  loadBaoHanhData();
+}
+async function saveBhService(){
+  const id=String(state.bh_svc_for||"");
+  const rec=(state.bh_data||[]).find(x=>String(x.id)===id);
+  if(!rec){ setState({showBhSvcModal:false}); return; }
+  const nd=(state.bh_svc_noidung||"").trim();
+  if(!nd){ alert("Nhập nội dung dịch vụ."); return; }
+  const services=Array.isArray(rec.services)?rec.services.slice():[];
+  services.unshift({ date:state.bh_svc_date||new Date().toISOString().slice(0,10), noidung:nd, chiphi:Number(state.bh_svc_chiphi)||0, kythuat:(state.bh_svc_kythuat||"").trim() });
+  try{ await qldb.collection("ql_baohanh").doc(id).update({services:services}); }
+  catch(e){ console.error(e); alert("Lưu dịch vụ lỗi."); return; }
+  setState({showBhSvcModal:false,bh_svc_for:null,bh_svc_date:"",bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:""});
+  loadBaoHanhData();
+}
+function renderBaoHanh(){
+  const all=state.bh_data||[];
+  const q=(state.bh_search||"").trim().toLowerCase();
+  const counts={all:all.length,valid:0,soon:0,expired:0};
+  all.forEach(r=>{ const k=bhStatus(r).key; if(counts[k]!==undefined) counts[k]++; });
+  const list=all.filter(r=>{
+    if(state.bh_filter!=="all" && bhStatus(r).key!==state.bh_filter) return false;
+    if(!q) return true;
+    return [r.khach,r.sdt,r.serial,r.model].some(v=>String(v||"").toLowerCase().includes(q));
+  });
+  const fbtn=(f,lb)=>`<button class="btn-sm bh-filter" data-f="${f}" style="background:${state.bh_filter===f?'#1A1A2E':'#eee'};color:${state.bh_filter===f?'#fff':'#333'}">${lb}${counts[f]!==undefined?" ("+counts[f]+")":""}</button>`;
+  return `<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <button class="btn-sm btn-gold" id="btnBhAdd" style="padding:8px 12px">+ Thêm hồ sơ</button>
+    <input id="bh-search" placeholder="🔍 Tìm tên / SĐT / serial..." value="${tbEsc(state.bh_search||"")}" style="flex:1;min-width:180px;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:13px"/>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+    ${fbtn("all","Tất cả")}${fbtn("valid","Còn hạn")}${fbtn("soon","Sắp hết")}${fbtn("expired","Hết hạn")}
+  </div>
+  ${list.length===0?`<div class="card" style="padding:24px;text-align:center;color:#999">Không có hồ sơ nào.</div>`:
+    list.map(r=>{
+      const st=bhStatus(r); const end=bhEndDate(r);
+      const svc=Array.isArray(r.services)?r.services:[];
+      return `<div class="card" style="padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <div style="font-weight:800;font-size:15px;color:#1A1A2E">${tbEsc(r.khach||"—")}${r.sdt?` <span style="font-weight:500;color:#666;font-size:12px">· ${tbEsc(r.sdt)}</span>`:""}</div>
+            <div style="font-size:12px;color:#666;margin-top:2px">${tbEsc(r.loai||"")}${r.model?" · "+tbEsc(r.model):""}${r.serial?" · SN: "+tbEsc(r.serial):""}</div>
+          </div>
+          <span class="badge" style="background:${st.bg};color:${st.color};white-space:nowrap">${st.label}</span>
+        </div>
+        <div style="font-size:12px;color:#555;margin-top:8px;display:flex;flex-wrap:wrap;gap:14px">
+          <span>📅 Bán: <b>${bhFmt(r.ngayban)}</b></span>
+          <span>⏳ BH: <b>${r.hanbh?r.hanbh+" tháng":"—"}</b></span>
+          <span>🔚 Hết hạn: <b>${end?bhFmt(end.toISOString().slice(0,10)):"—"}</b></span>
+        </div>
+        ${r.ghichu?`<div style="font-size:12px;color:#777;margin-top:6px">📝 ${tbEsc(r.ghichu)}</div>`:""}
+        ${svc.length?`<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:8px">
+          <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">🗓 Lịch sử sửa chữa / bảo dưỡng</div>
+          ${svc.map(s=>`<div style="font-size:12px;color:#555;padding:3px 0;border-bottom:1px solid #f5f5f5">
+            <b>${bhFmt(s.date)}</b> — ${tbEsc(s.noidung||"")}${s.chiphi?" · "+Number(s.chiphi).toLocaleString("vi-VN")+"đ":""}${s.kythuat?" · KTV: "+tbEsc(s.kythuat):""}
+          </div>`).join("")}
+        </div>`:""}
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-sm bh-svc" data-id="${tbEsc(r.id)}" style="background:#EAF2FF;color:#1D4ED8">🗓 Thêm dịch vụ</button>
+          <button class="btn-sm bh-edit" data-id="${tbEsc(r.id)}" style="background:#eee;color:#333">✏️ Sửa</button>
+          ${state.user&&state.user.isAdmin?`<button class="btn-sm bh-del" data-id="${tbEsc(r.id)}" style="background:#FDEDEC;color:#E74C3C">🗑 Xóa</button>`:""}
+        </div>
+      </div>`;
+    }).join("")}`;
+}
+function renderBhModal(){
+  const loais=["Piano cơ","Piano điện","Guitar","Organ","Violin","Trống","Khác"];
+  return `<div class="modal-overlay" id="bhOverlay">
+    <div style="background:#fff;border-radius:14px;padding:20px;width:480px;max-width:94vw;max-height:88vh;overflow:auto">
+      <h3 style="margin:0 0 14px;color:#1A1A2E">${state.bh_edit?"✏️ Sửa hồ sơ bảo hành":"🛠 Thêm hồ sơ bảo hành"}</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <div style="flex:1;min-width:180px"><div class="form-label">Tên khách *</div><input id="bh_khach" value="${tbEsc(state.bh_khach||"")}" class="bh-inp"/></div>
+        <div style="flex:1;min-width:140px"><div class="form-label">SĐT</div><input id="bh_sdt" value="${tbEsc(state.bh_sdt||"")}" class="bh-inp"/></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+        <div style="flex:1;min-width:140px"><div class="form-label">Loại đàn</div>
+          <select id="bh_loai" class="form-select">${loais.map(l=>`<option${state.bh_loai===l?" selected":""}>${l}</option>`).join("")}</select></div>
+        <div style="flex:1;min-width:140px"><div class="form-label">Model</div><input id="bh_model" value="${tbEsc(state.bh_model||"")}" class="bh-inp"/></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+        <div style="flex:1;min-width:140px"><div class="form-label">Serial / SN</div><input id="bh_serial" value="${tbEsc(state.bh_serial||"")}" class="bh-inp"/></div>
+        <div style="flex:1;min-width:120px"><div class="form-label">Ngày bán</div><input id="bh_ngayban" type="date" value="${tbEsc(state.bh_ngayban||"")}" class="bh-inp"/></div>
+        <div style="flex:1;min-width:100px"><div class="form-label">Hạn BH (tháng)</div><input id="bh_hanbh" type="number" value="${tbEsc(String(state.bh_hanbh||""))}" class="bh-inp"/></div>
+      </div>
+      <div style="margin-top:10px"><div class="form-label">Ghi chú</div><textarea id="bh_ghichu" class="bh-inp" style="min-height:60px">${tbEsc(state.bh_ghichu||"")}</textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-sm" id="btnBhCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
+        <button class="btn-sm btn-gold" id="btnBhSave" style="padding:8px 14px">Lưu hồ sơ</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderBhSvcModal(){
+  const r=(state.bh_data||[]).find(x=>String(x.id)===String(state.bh_svc_for));
+  return `<div class="modal-overlay" id="bhSvcOverlay">
+    <div style="background:#fff;border-radius:14px;padding:20px;width:420px;max-width:94vw">
+      <h3 style="margin:0 0 4px;color:#1A1A2E">🗓 Thêm dịch vụ / bảo dưỡng</h3>
+      <div style="font-size:12px;color:#888;margin-bottom:12px">${r?tbEsc(r.khach||""):""}${r&&r.serial?" · SN "+tbEsc(r.serial):""}</div>
+      <div class="form-label">Ngày</div><input id="bh_svc_date" type="date" value="${tbEsc(state.bh_svc_date||"")}" class="bh-inp" style="margin-bottom:10px"/>
+      <div class="form-label">Nội dung *</div><textarea id="bh_svc_noidung" class="bh-inp" style="min-height:60px;margin-bottom:10px">${tbEsc(state.bh_svc_noidung||"")}</textarea>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><div class="form-label">Chi phí (đ)</div><input id="bh_svc_chiphi" type="number" value="${tbEsc(String(state.bh_svc_chiphi||""))}" class="bh-inp"/></div>
+        <div style="flex:1"><div class="form-label">Kỹ thuật viên</div><input id="bh_svc_kythuat" value="${tbEsc(state.bh_svc_kythuat||"")}" class="bh-inp"/></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn-sm" id="btnBhSvcCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
+        <button class="btn-sm btn-gold" id="btnBhSvcSave" style="padding:8px 14px">Lưu dịch vụ</button>
+      </div>
+    </div>
+  </div>`;
+}
 function attachEvents(){
   // LOGIN
   document.getElementById("inp-u")?.addEventListener("input",e=>state.uname=e.target.value);
@@ -2496,6 +2672,28 @@ function attachEvents(){
   document.getElementById("btnTbSend")?.addEventListener("click",sendThongBao);
   document.getElementById("tb_title")?.addEventListener("input",e=>state.tb_title=e.target.value);
   document.getElementById("tb_body")?.addEventListener("input",e=>state.tb_body=e.target.value);
+  // Bảo hành
+  document.getElementById("btnBhAdd")?.addEventListener("click",openBhAdd);
+  document.getElementById("bh-search")?.addEventListener("input",e=>{
+    const v=e.target.value; const pos=e.target.selectionStart;
+    setState({bh_search:v});
+    const el=document.getElementById("bh-search");
+    if(el){ el.focus(); try{el.setSelectionRange(pos,pos);}catch(_){} }
+  });
+  document.querySelectorAll(".bh-filter").forEach(b=>b.addEventListener("click",()=>setState({bh_filter:b.dataset.f})));
+  document.querySelectorAll(".bh-edit").forEach(b=>b.addEventListener("click",()=>openBhEdit(b.dataset.id)));
+  document.querySelectorAll(".bh-del").forEach(b=>b.addEventListener("click",()=>deleteBaoHanh(b.dataset.id)));
+  document.querySelectorAll(".bh-svc").forEach(b=>b.addEventListener("click",()=>openBhSvc(b.dataset.id)));
+  document.getElementById("btnBhCancel")?.addEventListener("click",()=>setState({showBhModal:false,bh_edit:null}));
+  document.getElementById("bhOverlay")?.addEventListener("click",e=>{if(e.target.id==="bhOverlay")setState({showBhModal:false,bh_edit:null});});
+  document.getElementById("btnBhSave")?.addEventListener("click",saveBaoHanh);
+  ["khach","sdt","model","serial","ngayban","ghichu"].forEach(f=>document.getElementById("bh_"+f)?.addEventListener("input",e=>state["bh_"+f]=e.target.value));
+  document.getElementById("bh_loai")?.addEventListener("change",e=>state.bh_loai=e.target.value);
+  document.getElementById("bh_hanbh")?.addEventListener("input",e=>state.bh_hanbh=e.target.value);
+  document.getElementById("btnBhSvcCancel")?.addEventListener("click",()=>setState({showBhSvcModal:false}));
+  document.getElementById("bhSvcOverlay")?.addEventListener("click",e=>{if(e.target.id==="bhSvcOverlay")setState({showBhSvcModal:false});});
+  document.getElementById("btnBhSvcSave")?.addEventListener("click",saveBhService);
+  ["date","noidung","chiphi","kythuat"].forEach(f=>document.getElementById("bh_svc_"+f)?.addEventListener("input",e=>state["bh_svc_"+f]=e.target.value));
   // Làm mới tab hiện tại + thu gọn OKR
   document.getElementById("btnRefreshTab")?.addEventListener("click",refreshCurrentTab);
   document.getElementById("btnMigrateFB")?.addEventListener("click",migrateOKRToFirebase);
@@ -2526,6 +2724,7 @@ function attachEvents(){
     if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
     if(b.dataset.tab==="plan"){ loadPlansFromSheets(); }
     if(b.dataset.tab==="lotrinh"){ loadLoTrinhFromSheets(); }
+    if(b.dataset.tab==="baohanh"){ loadBaoHanhData(); }
   }));
 
   // OKR
