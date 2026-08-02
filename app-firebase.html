@@ -33,6 +33,21 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 /* HEADER */
 .header{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);color:#fff;padding:12px 16px 0;position:sticky;top:0;z-index:50}
 .hrow1{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tb-wrap{position:relative;display:inline-block}
+.tb-bell{position:relative;font-size:14px}
+.tb-badge{position:absolute;top:-6px;right:-6px;background:#E74C3C;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:8px;padding:0 3px}
+.tb-panel{position:absolute;top:34px;right:0;width:320px;max-width:88vw;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:200;overflow:hidden;color:#1A1A2E}
+.tb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1A1A2E;color:#fff;font-size:13px;font-weight:800}
+.tb-newbtn{background:#D4AF37;color:#1A1A2E;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:800;cursor:pointer}
+.tb-list{max-height:360px;overflow-y:auto}
+.tb-empty{padding:22px 12px;text-align:center;color:#999;font-size:12px}
+.tb-item{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
+.tb-item.tb-new{background:#FFF9E6}
+.tb-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.tb-item-top b{color:#1A1A2E;font-size:12.5px;line-height:1.35}
+.tb-del{color:#E74C3C;cursor:pointer;font-weight:800;font-size:12px;padding:0 2px}
+.tb-body{color:#555;margin-top:3px;line-height:1.4;white-space:pre-wrap}
+.tb-meta{color:#999;font-size:10.5px;margin-top:4px}
 .htitle h1{font-size:14px;font-weight:800}
 .htitle p{font-size:10px;color:#D4AF37;font-weight:600}
 .hright{margin-left:auto;display:flex;align-items:center;gap:6px}
@@ -321,6 +336,8 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 let state={
   screen:"login",user:null,tab:"okr",
   quarter:currentQuarter(),month:currentMonth(),
+  // Thông báo chung realtime
+  thongbao:[],showThongBao:false,showTbModal:false,tb_title:"",tb_body:"",
   txViewAll:false,txPage:1,
   loginError:"",uname:"",upass:"",
   actuals:{},
@@ -1148,6 +1165,7 @@ function enterApp(u){
   saveSession(u);
   render();
   loadActuals();
+  startThongBaoListener();
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1244,6 +1262,13 @@ function savePlan(){
     month:item.month, target:item.target||"", actual:item.actual||"",
     owner:item.owner||"", status:item.status||"",
     okrObj:item.okrObj||"", okrKr:item.okrKr||""});
+  if(state.editPlan===null||state.editPlan===undefined){
+    pushThongBao({
+      title:"Giao việc mới: "+item.title,
+      body:(item.owner?("Phụ trách: "+item.owner+" · "):"")+"Tháng "+item.month+(item.target?(" · Chỉ tiêu: "+item.target):""),
+      type:"giao_viec", planId:String(item.id)
+    });
+  }
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
 function deletePlan(id){
@@ -1408,6 +1433,7 @@ function renderApp(){
       <div class="hright">
         <span style="font-size:11px;color:#ddd">${u.name}</span>
         ${u.isAdmin?`<button class="btn-sm btn-gold" id="btnImport">📥 Import</button>`:""}
+        ${renderBell()}
         <button class="btn-sm btn-ghost" id="btnLogout">Đăng xuất</button>
       </div>
     </div>
@@ -1428,6 +1454,7 @@ function renderApp(){
   ${state.showPlanForm?renderPlanModal():""}
   ${state.showLuongModal?renderLuongModal():""}
   ${state.showLoTrinhModal?renderLoTrinhModal():""}
+  ${state.showTbModal?renderTbModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
@@ -2359,6 +2386,100 @@ function renderUserModal(){
 // ============================================================
 // EVENTS
 // ============================================================
+// ============================================================
+// THÔNG BÁO CHUNG (realtime) — collection ql_thongbao
+// ============================================================
+var _tbUnsub=null;
+function tbEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function tbSeen(){ try{return Number(localStorage.getItem("ta_tb_seen")||0);}catch(e){return 0;} }
+function tbSetSeen(t){ try{localStorage.setItem("ta_tb_seen",String(t||Date.now()));}catch(e){} }
+function tbUnread(){ const s=tbSeen(); return (state.thongbao||[]).filter(n=>Number(n.ts||0)>s).length; }
+function tbTimeAgo(ts){
+  const sec=Math.floor((Date.now()-Number(ts||0))/1000);
+  if(sec<60)return "vừa xong";
+  const m=Math.floor(sec/60); if(m<60)return m+" phút trước";
+  const h=Math.floor(m/60); if(h<24)return h+" giờ trước";
+  return Math.floor(h/24)+" ngày trước";
+}
+function startThongBaoListener(){
+  try{
+    if(!window._tbDocBound){
+      window._tbDocBound=true;
+      document.addEventListener("click",function(e){
+        if(state.showThongBao && e.target && !e.target.closest(".tb-wrap")) setState({showThongBao:false});
+      });
+    }
+    if(_tbUnsub) return;
+    _tbUnsub = qldb.collection("ql_thongbao").orderBy("ts","desc").limit(50).onSnapshot(function(snap){
+      const arr=[]; snap.forEach(d=>arr.push(d.data()));
+      state.thongbao=arr;
+      if(state.screen==="app") render();
+    }, function(err){ console.error("thongbao listener",err); });
+  }catch(e){ console.error("startThongBaoListener",e); }
+}
+async function pushThongBao(o){
+  try{
+    const id="tb_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
+    await qldb.collection("ql_thongbao").doc(id).set({
+      id:id, title:(o.title||""), body:(o.body||""),
+      from:(o.from||(state.user&&state.user.name)||"Hệ thống"),
+      type:(o.type||"nhac_viec"), ts:Date.now(), date:new Date().toISOString(),
+      planId:(o.planId||"")
+    });
+  }catch(e){ console.error("pushThongBao",e); }
+}
+async function deleteThongBao(id){
+  if(!confirm("Xóa thông báo này?"))return;
+  try{ await qldb.collection("ql_thongbao").doc(String(id)).delete(); }catch(e){ console.error("deleteThongBao",e); }
+}
+function toggleThongBao(){
+  const open=!state.showThongBao;
+  if(open) tbSetSeen(Date.now()); // mở ra là coi như đã xem
+  setState({showThongBao:open});
+}
+function sendThongBao(){
+  const t=(state.tb_title||"").trim();
+  if(!t){ alert("Nhập tiêu đề thông báo."); return; }
+  pushThongBao({title:t, body:(state.tb_body||"").trim(), type:"nhac_viec"});
+  setState({showTbModal:false,showThongBao:true,tb_title:"",tb_body:""});
+}
+function renderBell(){
+  const unread=tbUnread();
+  const list=state.thongbao||[];
+  const seen=tbSeen();
+  const isAdmin=state.user&&state.user.isAdmin;
+  return `<div class="tb-wrap">
+    <button class="btn-sm btn-ghost tb-bell" id="btnBell">🔔${unread>0?`<span class="tb-badge">${unread>9?"9+":unread}</span>`:""}</button>
+    ${state.showThongBao?`<div class="tb-panel" id="tbPanel">
+      <div class="tb-head"><span>🔔 Thông báo chung</span>
+        ${isAdmin?`<button class="tb-newbtn" id="btnTbNew">📢 Đăng</button>`:""}</div>
+      <div class="tb-list">
+        ${list.length===0?`<div class="tb-empty">Chưa có thông báo nào.</div>`:
+          list.map(n=>`<div class="tb-item${Number(n.ts||0)>seen?" tb-new":""}">
+            <div class="tb-item-top">
+              <b>${n.type==="giao_viec"?"📋 ":"📢 "}${tbEsc(n.title)}</b>
+              ${isAdmin?`<span class="tb-del" data-id="${tbEsc(n.id)}">✕</span>`:""}
+            </div>
+            ${n.body?`<div class="tb-body">${tbEsc(n.body)}</div>`:""}
+            <div class="tb-meta">${tbEsc(n.from||"")} · ${tbTimeAgo(n.ts)}</div>
+          </div>`).join("")}
+      </div>
+    </div>`:""}
+  </div>`;
+}
+function renderTbModal(){
+  return `<div class="modal-overlay" id="tbOverlay">
+    <div style="background:#fff;border-radius:14px;padding:20px;width:440px;max-width:92vw">
+      <h3 style="margin:0 0 14px;color:#1A1A2E">📢 Đăng thông báo chung</h3>
+      <input id="tb_title" placeholder="Tiêu đề (vd: Họp giao ban 8h sáng)" value="${tbEsc(state.tb_title||"")}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;box-sizing:border-box;font-size:13px"/>
+      <textarea id="tb_body" placeholder="Nội dung nhắc việc cho cả nhóm..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;min-height:90px;box-sizing:border-box;font-size:13px">${tbEsc(state.tb_body||"")}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+        <button class="btn-sm" id="btnTbCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
+        <button class="btn-sm btn-gold" id="btnTbSend" style="padding:8px 14px">Gửi thông báo</button>
+      </div>
+    </div>
+  </div>`;
+}
 function attachEvents(){
   // LOGIN
   document.getElementById("inp-u")?.addEventListener("input",e=>state.uname=e.target.value);
@@ -2366,6 +2487,15 @@ function attachEvents(){
   document.getElementById("inp-p")?.addEventListener("keydown",e=>e.key==="Enter"&&doLogin());
   document.getElementById("btn-login")?.addEventListener("click",doLogin);
   document.getElementById("btnLogout")?.addEventListener("click",logout);
+  // Thông báo chung
+  document.getElementById("btnBell")?.addEventListener("click",e=>{e.stopPropagation();toggleThongBao();});
+  document.getElementById("btnTbNew")?.addEventListener("click",()=>setState({showTbModal:true,showThongBao:false}));
+  document.querySelectorAll(".tb-del").forEach(b=>b.addEventListener("click",()=>deleteThongBao(b.dataset.id)));
+  document.getElementById("btnTbCancel")?.addEventListener("click",()=>setState({showTbModal:false}));
+  document.getElementById("tbOverlay")?.addEventListener("click",e=>{if(e.target.id==="tbOverlay")setState({showTbModal:false});});
+  document.getElementById("btnTbSend")?.addEventListener("click",sendThongBao);
+  document.getElementById("tb_title")?.addEventListener("input",e=>state.tb_title=e.target.value);
+  document.getElementById("tb_body")?.addEventListener("input",e=>state.tb_body=e.target.value);
   // Làm mới tab hiện tại + thu gọn OKR
   document.getElementById("btnRefreshTab")?.addEventListener("click",refreshCurrentTab);
   document.getElementById("btnMigrateFB")?.addEventListener("click",migrateOKRToFirebase);
