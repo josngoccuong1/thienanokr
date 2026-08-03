@@ -338,7 +338,7 @@ let state={
   screen:"login",user:null,tab:"okr",
   quarter:currentQuarter(),month:currentMonth(),
   // Thông báo chung realtime
-  thongbao:[],showThongBao:false,showTbModal:false,tb_title:"",tb_body:"",
+  thongbao:[],showThongBao:false,showTbModal:false,tb_title:"",tb_body:"",tb_source:"plan",tb_ref:"",
   // Bảo hành
   bh_data:[],bh_search:"",bh_filter:"all",
   showBhModal:false,bh_edit:null,
@@ -2435,7 +2435,7 @@ async function pushThongBao(o){
       id:id, title:(o.title||""), body:(o.body||""),
       from:(o.from||(state.user&&state.user.name)||"Hệ thống"),
       type:(o.type||"nhac_viec"), ts:Date.now(), date:new Date().toISOString(),
-      planId:(o.planId||"")
+      planId:(o.ref||o.planId||""), source:(o.source||""), ref:(o.ref||"")
     });
   }catch(e){ console.error("pushThongBao",e); }
 }
@@ -2448,11 +2448,30 @@ function toggleThongBao(){
   if(open) tbSetSeen(Date.now()); // mở ra là coi như đã xem
   setState({showThongBao:open});
 }
+function tbRefItems(src){
+  if(src==="plan") return (state.plans||[]).map(p=>({id:String(p.id), label:(p.title||"(không tên)")+(p.month?" · "+p.month:"")+(p.owner?" · "+p.owner:"")}));
+  if(src==="okr") return OBJECTIVES.flatMap(o=>(o.krs||[]).map(k=>({id:String(k.id), label:o.title+" — "+(k.text||"")+(k.ownerRole?" · "+k.ownerRole:"")})));
+  if(src==="baohanh") return (state.bh_data||[]).map(r=>({id:String(r.id), label:(r.khach||"(khách)")+(r.serial?" · SN "+r.serial:"")+(r.loai?" · "+r.loai:"")}));
+  return [];
+}
+function tbTitleFromRef(src,refId){
+  if(src==="plan"){ const p=(state.plans||[]).find(x=>String(x.id)===String(refId)); return p?("Giao việc: "+(p.title||"")):""; }
+  if(src==="okr"){ for(const o of OBJECTIVES){ const k=(o.krs||[]).find(x=>String(x.id)===String(refId)); if(k) return "Giao việc (OKR): "+(k.text||""); } return ""; }
+  if(src==="baohanh"){ const r=(state.bh_data||[]).find(x=>String(x.id)===String(refId)); return r?("Bảo dưỡng/sửa: "+(r.khach||"")+(r.serial?" · SN "+r.serial:"")):""; }
+  return "";
+}
 function sendThongBao(){
-  const t=(state.tb_title||"").trim();
-  if(!t){ alert("Nhập tiêu đề thông báo."); return; }
-  pushThongBao({title:t, body:(state.tb_body||"").trim(), type:"nhac_viec"});
-  setState({showTbModal:false,showThongBao:true,tb_title:"",tb_body:""});
+  const src=state.tb_source||"tuy";
+  let title=(state.tb_title||"").trim();
+  const ref=state.tb_ref||"";
+  if(src!=="tuy"){
+    if(!ref){ alert("Chọn mục cần giao (kế hoạch / OKR / bảo hành)."); return; }
+    if(!title) title=tbTitleFromRef(src,ref);
+  }
+  if(!title){ alert("Nhập tiêu đề thông báo."); return; }
+  const typeMap={plan:"giao_viec",okr:"giao_viec",baohanh:"baohanh",tuy:"nhac_viec"};
+  pushThongBao({title:title, body:(state.tb_body||"").trim(), type:(typeMap[src]||"nhac_viec"), source:src, ref:ref});
+  setState({showTbModal:false,showThongBao:true,tb_title:"",tb_body:"",tb_source:"plan",tb_ref:""});
 }
 function renderBell(){
   const unread=tbUnread();
@@ -2468,7 +2487,7 @@ function renderBell(){
         ${list.length===0?`<div class="tb-empty">Chưa có thông báo nào.</div>`:
           list.map(n=>`<div class="tb-item${Number(n.ts||0)>seen?" tb-new":""}">
             <div class="tb-item-top">
-              <b>${n.type==="giao_viec"?"📋 ":"📢 "}${tbEsc(n.title)}</b>
+              <b>${n.type==="giao_viec"?"📋 ":(n.type==="baohanh"?"🛠 ":"📢 ")}${tbEsc(n.title)}</b>
               ${isAdmin?`<span class="tb-del" data-id="${tbEsc(n.id)}">✕</span>`:""}
             </div>
             ${n.body?`<div class="tb-body">${tbEsc(n.body)}</div>`:""}
@@ -2479,12 +2498,28 @@ function renderBell(){
   </div>`;
 }
 function renderTbModal(){
+  const src=state.tb_source||"tuy";
+  const items = src!=="tuy" ? tbRefItems(src) : [];
+  const srcLabel={plan:"🗓 Từ Kế hoạch",okr:"📊 Từ OKR",baohanh:"🛠 Từ Bảo hành",tuy:"✍️ Tự ghi (việc khác)"};
+  const pick={plan:"kế hoạch",okr:"chỉ số OKR",baohanh:"hồ sơ bảo hành"};
   return `<div class="modal-overlay" id="tbOverlay">
-    <div style="background:#fff;border-radius:14px;padding:20px;width:440px;max-width:92vw">
-      <h3 style="margin:0 0 14px;color:#1A1A2E">📢 Đăng thông báo chung</h3>
-      <input id="tb_title" placeholder="Tiêu đề (vd: Họp giao ban 8h sáng)" value="${tbEsc(state.tb_title||"")}" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;box-sizing:border-box;font-size:13px"/>
-      <textarea id="tb_body" placeholder="Nội dung nhắc việc cho cả nhóm..." style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;min-height:90px;box-sizing:border-box;font-size:13px">${tbEsc(state.tb_body||"")}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+    <div style="background:#fff;border-radius:14px;padding:20px;width:460px;max-width:94vw;max-height:88vh;overflow:auto">
+      <h3 style="margin:0 0 14px;color:#1A1A2E">📢 Đăng thông báo / giao việc</h3>
+      <div class="form-label">Nguồn giao việc</div>
+      <select id="tb_source" class="form-select" style="margin-bottom:10px">
+        ${["plan","okr","baohanh","tuy"].map(s=>`<option value="${s}"${src===s?" selected":""}>${srcLabel[s]}</option>`).join("")}
+      </select>
+      ${src!=="tuy"?`<div class="form-label">Chọn mục</div>
+        <select id="tb_ref" class="form-select" style="margin-bottom:10px">
+          <option value="">— Chọn ${pick[src]} —</option>
+          ${items.map(it=>`<option value="${tbEsc(it.id)}"${String(state.tb_ref)===String(it.id)?" selected":""}>${tbEsc(it.label)}</option>`).join("")}
+        </select>
+        ${items.length===0?`<div style="font-size:11px;color:#E67E22;margin:-4px 0 10px">Chưa có dữ liệu — mở tab tương ứng để nạp trước, rồi mở lại.</div>`:""}`:""}
+      <div class="form-label">Tiêu đề${src!=="tuy"?" (tự điền, sửa được)":" *"}</div>
+      <input id="tb_title" value="${tbEsc(state.tb_title||"")}" placeholder="VD: Họp giao ban 8h sáng" class="bh-inp" style="margin-bottom:10px"/>
+      <div class="form-label">Nội dung / ghi chú thêm</div>
+      <textarea id="tb_body" class="bh-inp" style="min-height:80px" placeholder="Chi tiết nhắc việc cho cả nhóm...">${tbEsc(state.tb_body||"")}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn-sm" id="btnTbCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
         <button class="btn-sm btn-gold" id="btnTbSend" style="padding:8px 14px">Gửi thông báo</button>
       </div>
@@ -2665,7 +2700,14 @@ function attachEvents(){
   document.getElementById("btnLogout")?.addEventListener("click",logout);
   // Thông báo chung
   document.getElementById("btnBell")?.addEventListener("click",e=>{e.stopPropagation();toggleThongBao();});
-  document.getElementById("btnTbNew")?.addEventListener("click",()=>setState({showTbModal:true,showThongBao:false}));
+  document.getElementById("btnTbNew")?.addEventListener("click",()=>{
+    setState({showTbModal:true,showThongBao:false,tb_source:"plan",tb_ref:"",tb_title:"",tb_body:""});
+    try{ loadPlansFromSheets(); }catch(e){}
+    try{ loadBaoHanhData(); }catch(e){}
+    try{ loadObjectivesFromSheets(); }catch(e){}
+  });
+  document.getElementById("tb_source")?.addEventListener("change",e=>setState({tb_source:e.target.value,tb_ref:"",tb_title:""}));
+  document.getElementById("tb_ref")?.addEventListener("change",e=>setState({tb_ref:e.target.value,tb_title:tbTitleFromRef(state.tb_source,e.target.value)}));
   document.querySelectorAll(".tb-del").forEach(b=>b.addEventListener("click",()=>deleteThongBao(b.dataset.id)));
   document.getElementById("btnTbCancel")?.addEventListener("click",()=>setState({showTbModal:false}));
   document.getElementById("tbOverlay")?.addEventListener("click",e=>{if(e.target.id==="tbOverlay")setState({showTbModal:false});});
