@@ -220,7 +220,7 @@ window.FS = {
         regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
-        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau,
+        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"",
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
         checkin: v.checkin||"", done: v.done||"",
         session: String(v.session||"").trim()
@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v8 · SĐT + tiết mục hòa tấu</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v9 · Gọn 1 dòng · Hòa tấu có thành viên</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -746,6 +746,7 @@ async function post(payload){
       if(payload.piece    != null) data.piece    = payload.piece;
       if(payload.category != null) data.category = payload.category;
       if(payload.unit     != null) data.unit     = payload.unit;
+      if(payload.members  != null) data.members  = payload.members;
       await window.FS.update(row, data);
       const c = DATA.contestants.find(x=>String(x.row)===String(row));
       if(c) Object.assign(c, data);
@@ -849,6 +850,8 @@ function openEditInfo(row){
         <input id="ei_piece" value="${esc(c.piece||"")}" placeholder="Tên bài — tác giả" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Bảng dự thi</label>
         <select id="ei_cat" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px">${catOpts}</select>
+        ${c.hoatau?`<label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">🎼 Thành viên biểu diễn</label>
+        <input id="ei_mem" value="${esc(c.members||"")}" placeholder="VD: Nguyễn An, Trần Bình, Lê Cường" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>`:""}
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Đơn vị / Trung tâm</label>
         <select id="ei_unit" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:8px">${dvOpts}</select>
         <input id="ei_unit_moi" placeholder="Gõ tên đơn vị mới" value="" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px;display:none"/>
@@ -878,9 +881,12 @@ function openEditInfo(row){
     if(!name){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">Tên không được để trống</span>'; return; }
     const btn = ov.querySelector("#ei_save"); btn.disabled=true; btn.textContent="Đang lưu…";
     try{
-      const d = await post({action:"editinfo", row, name, piece, category, unit});
+      const memInp = ov.querySelector("#ei_mem");
+      const members = memInp ? memInp.value.trim() : null;
+      const d = await post({action:"editinfo", row, name, piece, category, unit, members});
       if(d.ok){
         c.name=name; c.piece=piece; c.category=category; c.unit=unit;
+        if(members!==null) c.members=members;
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
     }catch(e){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ Lỗi kết nối</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
@@ -926,14 +932,17 @@ function renderCheckin(){
           <div class="sbd" title="Số thứ tự">${stt}</div>
           <div class="info">
             <div class="nm">${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}${c.sbd?` <span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""}</div>
-            <div class="sub">${esc(c.category)} · ${esc(c.unit)}</div>
-            ${c.phone?`<div class="sub"><a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">📞 ${esc(c.phone)}</a>${c.contact?` <span style="color:var(--muted)">· ${esc(c.contact)}</span>`:""}</div>`:""}
-            ${noPiece
-              ? `<div class="sub" style="color:#C0202A;font-weight:700">⚠️ Chưa có tác phẩm</div>`
-              : `<div class="sub" style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</div>`}
-            <div style="margin-top:4px;display:flex;gap:5px;flex-wrap:wrap">
-              ${done?`<span class="badge b-green">✓ ${esc(c.checkin)}</span>`:`<span class="badge b-gray">Chưa đến</span>`}
-              ${feeOk?`<span class="badge b-green">✓ Đã đóng phí</span>`:`<span class="badge b-amber">Phí: chờ duyệt</span>`}
+            <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${esc(String(c.category||"").split("—")[0].trim()||"—")}
+              <span style="color:#C9CEDA">|</span> ${esc(c.unit||"Cá nhân")}
+              ${c.phone?`<span style="color:#C9CEDA">|</span> <a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">📞${esc(c.phone)}</a>`:""}
+              <span style="color:#C9CEDA">|</span> ${noPiece
+                ? `<span style="color:#C0202A;font-weight:700">⚠️ chưa có tác phẩm</span>`
+                : `<span style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</span>`}
+              ${c.minutes?`<span style="color:#C9CEDA">|</span> ⏱${esc(c.minutes)}`:""}
+              ${c.members?`<span style="color:#C9CEDA">|</span> 👥 ${esc(c.members)}`:""}
+              <span style="color:#C9CEDA">|</span> ${done?`<span style="color:var(--green);font-weight:700">✓ ${esc(c.checkin)}</span>`:`<span style="color:var(--muted)">chưa đến</span>`}
+              <span style="color:#C9CEDA">|</span> ${feeOk?`<span style="color:var(--green);font-weight:700">✓ phí</span>`:`<span style="color:var(--amber);font-weight:700">phí chờ duyệt</span>`}
             </div>
           </div>
           ${!canEdit()? `<span class="badge ${done?"b-green":"b-gray"}" style="padding:8px 12px">${done?"✓ Đã check-in":"Chưa đến"}</span>` :
@@ -1019,8 +1028,12 @@ function renderJudge(){
           <div class="sbd" title="Số thứ tự" ${tap}>${stt}</div>
           <div class="info" ${tap}>
             <div class="nm">${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)} ${c.sbd?`<span style="font-size:11px;color:var(--muted);font-weight:600">· SBD ${c.sbd}</span>`:""} ${done?'<span style="color:var(--green)">✓</span>':""}</div>
-            <div class="sub">${esc(c.category)}</div>
-            ${c.piece?`<div class="sub" style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</div>`:""}
+            <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${esc(String(c.category||"").split("—")[0].trim()||"—")}
+              <span style="color:#C9CEDA">|</span> ${esc(c.unit||"Cá nhân")}
+              ${c.piece?`<span style="color:#C9CEDA">|</span> <span style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</span>`:""}
+              ${c.minutes?`<span style="color:#C9CEDA">|</span> ⏱${esc(c.minutes)}`:""}
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:7px">
             ${!inned
@@ -1144,8 +1157,13 @@ function renderManage(){
         <div class="sbd" title="Thứ tự biểu diễn">${stt}</div>
         <div class="info">
           <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</div>
-          <div class="sub">${esc(c.category||"—")}${c.piece?" · "+esc(c.piece):""}</div>
-          ${c.phone?`<div class="sub"><a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">📞 ${esc(c.phone)}</a></div>`:""}
+          <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${esc(String(c.category||"").split("—")[0].trim()||"—")}
+            ${c.piece?`<span style="color:#C9CEDA">|</span> <span style="color:var(--gold-dark)">🎵 ${esc(c.piece)}</span>`:""}
+            ${c.minutes?`<span style="color:#C9CEDA">|</span> ⏱${esc(c.minutes)}`:""}
+            ${c.phone?`<span style="color:#C9CEDA">|</span> <a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">📞${esc(c.phone)}</a>`:""}
+            ${c.members?`<span style="color:#C9CEDA">|</span> 👥 ${esc(c.members)}`:""}
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:5px">
           ${(ed && mgTouch)?`<button class="btn-out" data-up="${c.row}" style="padding:6px 9px;font-size:13px">▲</button>
@@ -1349,6 +1367,8 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     + '<input id="ht_name" placeholder="VD: Hòa tấu Piano 4 tay — Lớp A" ' + ip + '/>'
     + '<label ' + lb + '>Tác phẩm</label>'
     + '<input id="ht_piece" placeholder="Tên bài — tác giả" ' + ip + '/>'
+    + '<label ' + lb + '>Thành viên biểu diễn</label>'
+    + '<input id="ht_mem" placeholder="VD: Nguyễn An, Trần Bình, Lê Cường" ' + ip + '/>'
     + '<label ' + lb + '>Nhóm / Ghi chú</label>'
     + '<input id="ht_unit" value="Hòa tấu" ' + ip + '/>'
     + '<label ' + lb + '>Số phút</label>'
@@ -1370,6 +1390,7 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     const piece = ov.querySelector("#ht_piece").value.trim();
     const unit  = ov.querySelector("#ht_unit").value.trim() || "Hòa tấu";
     const minutes = ov.querySelector("#ht_min").value.trim();
+    const members = ov.querySelector("#ht_mem").value.trim();
     const session = ov.querySelector("#ht_sess").value;
     let maxOrder = 0;
     DATA.contestants.forEach(x=>{ const o = Number(x.order)||0; if(o>maxOrder) maxOrder = o; });
@@ -1377,12 +1398,12 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     try{
       const id = await window.FS.addItem({
         order: maxOrder+1, hoatau: true, name: ten, piece: piece, unit: unit,
-        minutes: minutes, session: session, category: "", dob: "", gender: "",
+        minutes: minutes, session: session, members: members, category: "", dob: "", gender: "",
         teacher: "", phone: "", contact: "", feeStatus: "Miễn phí",
         sbd: null, checkin: "", done: "", createdAt: new Date().toISOString()
       });
       DATA.contestants.push({ row:id, order:maxOrder+1, hoatau:true, name:ten, piece:piece,
-        unit:unit, minutes:minutes, session:session, category:"", dob:"", gender:"",
+        unit:unit, minutes:minutes, session:session, members:members, category:"", dob:"", gender:"",
         teacher:"", phone:"", contact:"", fee:"Miễn phí", sbd:"", checkin:"", done:"" });
       DATA.contestants.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
       close(); renderManage();
