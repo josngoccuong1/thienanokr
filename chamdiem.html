@@ -220,7 +220,7 @@ window.FS = {
         regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
-        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"",
+        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
         checkin: v.checkin||"", done: v.done||"",
         session: String(v.session||"").trim()
@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v9 · Gọn 1 dòng · Hòa tấu có thành viên</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v10 · Chọn thí sinh vào hòa tấu</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -747,6 +747,7 @@ async function post(payload){
       if(payload.category != null) data.category = payload.category;
       if(payload.unit     != null) data.unit     = payload.unit;
       if(payload.members  != null) data.members  = payload.members;
+      if(payload.memberIds!= null) data.memberIds= payload.memberIds;
       await window.FS.update(row, data);
       const c = DATA.contestants.find(x=>String(x.row)===String(row));
       if(c) Object.assign(c, data);
@@ -851,7 +852,10 @@ function openEditInfo(row){
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Bảng dự thi</label>
         <select id="ei_cat" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px">${catOpts}</select>
         ${c.hoatau?`<label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">🎼 Thành viên biểu diễn</label>
-        <input id="ei_mem" value="${esc(c.members||"")}" placeholder="VD: Nguyễn An, Trần Bình, Lê Cường" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>`:""}
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <input id="ei_mem" value="${esc(c.members||"")}" placeholder="Gõ tay hoặc bấm Chọn →" style="flex:1;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px"/>
+          <button type="button" id="ei_pick" style="background:#1A1A2E;color:#fff;border:none;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap">👥 Chọn</button>
+        </div>`:""}
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Đơn vị / Trung tâm</label>
         <select id="ei_unit" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:8px">${dvOpts}</select>
         <input id="ei_unit_moi" placeholder="Gõ tên đơn vị mới" value="" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px;display:none"/>
@@ -866,6 +870,11 @@ function openEditInfo(row){
   document.body.appendChild(ov);
   const close = ()=>ov.remove();
   ov.querySelector("#ei_cancel").onclick = close;
+  let eiIds = Array.isArray(c.memberIds) ? c.memberIds.slice() : [];
+  const eiPick = ov.querySelector("#ei_pick");
+  if(eiPick) eiPick.onclick = ()=> chonThanhVien(eiIds, (ids, ten)=>{
+    eiIds = ids; ov.querySelector("#ei_mem").value = ten;
+  });
   ov.querySelector("#ei_unit").addEventListener("change", e=>{
     const moi = e.target.value === "__moi__";
     ov.querySelector("#ei_unit_moi").style.display = moi ? "block" : "none";
@@ -883,10 +892,11 @@ function openEditInfo(row){
     try{
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
-      const d = await post({action:"editinfo", row, name, piece, category, unit, members});
+      const memberIds = memInp ? eiIds : null;
+      const d = await post({action:"editinfo", row, name, piece, category, unit, members, memberIds});
       if(d.ok){
         c.name=name; c.piece=piece; c.category=category; c.unit=unit;
-        if(members!==null) c.members=members;
+        if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
     }catch(e){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ Lỗi kết nối</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
@@ -1173,6 +1183,8 @@ function renderManage(){
                   ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
                     `<option value="${i}"${ss===String(i)?" selected":""}>${tenBuoi(i)}</option>`).join("")}
                 </select>
+                ${c.hoatau?`<button class="btn-out" data-mem="${c.row}" title="Chọn thí sinh vào tiết mục này"
+                  style="padding:6px 9px;font-size:13px;border-color:#D4AF37;color:var(--gold-dark)">👥</button>`:""}
                 <button class="btn-out" data-del="${c.row}" title="Xóa thí sinh"
                   style="padding:6px 9px;font-size:13px;color:var(--red);border-color:#F3C9CC">🗑️</button>`
              :`<span class="badge ${ss?"b-green":"b-gray"}">${ss?tenBuoi(ss):"Chưa chia"}</span>`}
@@ -1348,6 +1360,133 @@ $("btnSortName").addEventListener("click", ()=>renumber(
   "Tên gọi (A-Z)"));
 $("mgSearch").addEventListener("input", ()=>renderManage());
 
+/* Bảng chọn thí sinh đưa vào tiết mục hòa tấu (chọn từ danh sách + vẫn gõ tay được) */
+function openMemberPicker(inputEl){
+  // tên đang có trong ô -> để tick sẵn
+  const dangCo = String(inputEl.value||"").split(",").map(s=>s.trim()).filter(Boolean);
+  const setCo = new Set(dangCo.map(s=>norm(s)));
+
+  // danh sách thí sinh thật (bỏ các tiết mục hòa tấu)
+  const ds = DATA.contestants.filter(c=>!c.hoatau)
+    .sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:14px";
+  ov.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:16px;max-width:520px;width:100%;max-height:88vh;display:flex;flex-direction:column">'
+    + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:6px">👥 Chọn thí sinh vào tiết mục</div>'
+    + '<div style="font-size:11px;color:#6B7280;margin-bottom:10px">Tick tên các em (mọi buổi đều chọn được). Em đã chọn vẫn giữ nguyên buổi thi của mình.</div>'
+    + '<input id="mp_search" placeholder="🔎 Tìm theo tên / đơn vị…" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:9px;font-size:14px;margin-bottom:8px"/>'
+    + '<div id="mp_count" style="font-size:11px;color:var(--gold-dark);font-weight:700;margin-bottom:6px"></div>'
+    + '<div id="mp_list" style="flex:1;overflow:auto;border:1px solid #EEF0F4;border-radius:10px;padding:4px"></div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    + '<button id="mp_ok" style="flex:1;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">✓ Xong</button>'
+    + '<button id="mp_cancel" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+
+  const chon = new Set(dangCo.filter(t=>ds.some(c=>norm(c.name)===norm(t))).map(t=>norm(t)));
+  // tên gõ tay (không khớp thí sinh nào) -> giữ lại
+  const goTay = dangCo.filter(t=>!ds.some(c=>norm(c.name)===norm(t)));
+
+  function ve(){
+    const q = norm(ov.querySelector("#mp_search").value||"");
+    const list = ds.filter(c=>!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
+    ov.querySelector("#mp_count").textContent = "Đã chọn " + chon.size + " thí sinh"
+      + (goTay.length ? " (+" + goTay.length + " tên gõ tay)" : "");
+    ov.querySelector("#mp_list").innerHTML = list.length===0
+      ? '<div style="padding:18px;text-align:center;color:#aaa">Không tìm thấy</div>'
+      : list.map(c=>{
+          const k = norm(c.name);
+          const tick = chon.has(k);
+          return '<label style="display:flex;align-items:center;gap:9px;padding:8px 7px;border-bottom:1px solid #F4F5F8;cursor:pointer;'
+            + (tick?'background:#FFFDF5':'') + '">'
+            + '<input type="checkbox" data-k="' + esc(k) + '"' + (tick?' checked':'') + ' style="width:17px;height:17px"/>'
+            + '<span style="flex:1;min-width:0">'
+            + '<span style="font-weight:700;font-size:13px">' + esc(c.name) + '</span>'
+            + '<span style="display:block;font-size:11px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            + esc(c.unit||"Cá nhân")
+            + (c.session ? ' <span style="color:#C9CEDA">|</span> ' + esc(tenBuoi(c.session)) : ' <span style="color:#C9CEDA">|</span> chưa chia buổi')
+            + '</span></span></label>';
+        }).join("");
+    ov.querySelectorAll('#mp_list input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        if(cb.checked) chon.add(cb.dataset.k); else chon.delete(cb.dataset.k);
+        ve();
+      });
+    });
+  }
+  ve();
+  ov.querySelector("#mp_search").addEventListener("input", ve);
+  ov.querySelector("#mp_cancel").onclick = ()=>ov.remove();
+  ov.querySelector("#mp_ok").onclick = ()=>{
+    // giữ đúng thứ tự biểu diễn cho tên chọn từ danh sách, rồi nối tên gõ tay
+    const ten = ds.filter(c=>chon.has(norm(c.name))).map(c=>c.name);
+    inputEl.value = ten.concat(goTay).join(", ");
+    ov.remove();
+  };
+}
+
+/* Bảng chọn thí sinh làm thành viên tiết mục hòa tấu */
+function chonThanhVien(idsDangChon, xong){
+  let sel = new Set(idsDangChon||[]);
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
+  ov.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:16px;max-width:520px;width:100%;max-height:88vh;display:flex;flex-direction:column">'
+    + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:6px">👥 Chọn thí sinh vào tiết mục</div>'
+    + '<input id="cv_search" placeholder="🔎 Tìm theo tên / đơn vị…" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:9px;font-size:14px;margin-bottom:8px"/>'
+    + '<div id="cv_count" style="font-size:12px;color:#6B7280;margin-bottom:6px"></div>'
+    + '<div id="cv_list" style="flex:1;overflow:auto;border:1px solid #EEF0F4;border-radius:10px"></div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px">'
+    + '<button id="cv_ok" style="flex:1;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">✔ Xong</button>'
+    + '<button id="cv_cancel" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  const close = ()=>ov.remove();
+
+  function ve(){
+    const q = norm(ov.querySelector("#cv_search").value||"");
+    const ds = DATA.contestants
+      .filter(c=>!c.hoatau)
+      .filter(c=>!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q))
+      .sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+    ov.querySelector("#cv_count").textContent = "Đã chọn " + sel.size + " thí sinh · hiện " + ds.length;
+    ov.querySelector("#cv_list").innerHTML = ds.length===0
+      ? '<div style="padding:20px;text-align:center;color:#aaa">Không tìm thấy</div>'
+      : ds.map(c=>{
+          const on = sel.has(String(c.row));
+          return '<label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #F3F4F6;cursor:pointer;'
+            + (on?'background:#FFFBEA':'') + '">'
+            + '<input type="checkbox" class="cv-tick" data-id="' + esc(String(c.row)) + '"' + (on?" checked":"") + ' style="width:17px;height:17px"/>'
+            + '<span style="flex:1;min-width:0">'
+            + '<span style="font-weight:700;font-size:13px">' + esc(c.name) + '</span>'
+            + '<span style="display:block;font-size:11px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+            + esc(c.unit||"Cá nhân")
+            + (c.session ? ' · ' + esc(tenBuoi(c.session)) : ' · chưa chia buổi')
+            + (c.piece ? ' · 🎵 ' + esc(c.piece) : '')
+            + '</span></span></label>';
+        }).join("");
+    ov.querySelectorAll(".cv-tick").forEach(t=>t.addEventListener("change", ()=>{
+      const id = t.dataset.id;
+      if(t.checked) sel.add(id); else sel.delete(id);
+      ve();
+    }));
+  }
+  ov.querySelector("#cv_search").addEventListener("input", ve);
+  ov.querySelector("#cv_cancel").onclick = close;
+  ov.querySelector("#cv_ok").onclick = ()=>{
+    const ids = [...sel];
+    const ten = ids.map(id=>{
+      const c = DATA.contestants.find(x=>String(x.row)===String(id));
+      return c ? c.name : "";
+    }).filter(Boolean);
+    close();
+    xong(ids, ten.join(", "));
+  };
+  ve();
+}
+
 /* Thêm tiết mục hòa tấu (biểu diễn nhóm, không phải thí sinh dự thi) */
 $("btnAddHoaTau").addEventListener("click", ()=>{
   if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới thêm được."); return; }
@@ -1368,7 +1507,10 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     + '<label ' + lb + '>Tác phẩm</label>'
     + '<input id="ht_piece" placeholder="Tên bài — tác giả" ' + ip + '/>'
     + '<label ' + lb + '>Thành viên biểu diễn</label>'
-    + '<input id="ht_mem" placeholder="VD: Nguyễn An, Trần Bình, Lê Cường" ' + ip + '/>'
+    + '<div style="display:flex;gap:6px;margin-bottom:10px">'
+    + '<input id="ht_mem" placeholder="Gõ tay hoặc bấm Chọn →" style="flex:1;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px"/>'
+    + '<button type="button" id="ht_pick" style="background:#1A1A2E;color:#fff;border:none;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap">👥 Chọn</button>'
+    + '</div>'
     + '<label ' + lb + '>Nhóm / Ghi chú</label>'
     + '<input id="ht_unit" value="Hòa tấu" ' + ip + '/>'
     + '<label ' + lb + '>Số phút</label>'
@@ -1384,6 +1526,10 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
   const close = ()=>ov.remove();
   ov.querySelector("#ht_cancel").onclick = close;
   ov.querySelector("#ht_name").focus();
+  let htIds = [];
+  ov.querySelector("#ht_pick").onclick = ()=> chonThanhVien(htIds, (ids, ten)=>{
+    htIds = ids; ov.querySelector("#ht_mem").value = ten;
+  });
   ov.querySelector("#ht_save").onclick = async ()=>{
     const ten = ov.querySelector("#ht_name").value.trim();
     if(!ten){ ov.querySelector("#ht_msg").innerHTML = '<span style="color:#C0202A">Chưa nhập tên tiết mục</span>'; return; }
@@ -1391,6 +1537,7 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     const unit  = ov.querySelector("#ht_unit").value.trim() || "Hòa tấu";
     const minutes = ov.querySelector("#ht_min").value.trim();
     const members = ov.querySelector("#ht_mem").value.trim();
+    const memberIds = htIds.slice();
     const session = ov.querySelector("#ht_sess").value;
     let maxOrder = 0;
     DATA.contestants.forEach(x=>{ const o = Number(x.order)||0; if(o>maxOrder) maxOrder = o; });
@@ -1398,12 +1545,12 @@ $("btnAddHoaTau").addEventListener("click", ()=>{
     try{
       const id = await window.FS.addItem({
         order: maxOrder+1, hoatau: true, name: ten, piece: piece, unit: unit,
-        minutes: minutes, session: session, members: members, category: "", dob: "", gender: "",
+        minutes: minutes, session: session, members: members, memberIds: memberIds, category: "", dob: "", gender: "",
         teacher: "", phone: "", contact: "", feeStatus: "Miễn phí",
         sbd: null, checkin: "", done: "", createdAt: new Date().toISOString()
       });
       DATA.contestants.push({ row:id, order:maxOrder+1, hoatau:true, name:ten, piece:piece,
-        unit:unit, minutes:minutes, session:session, members:members, category:"", dob:"", gender:"",
+        unit:unit, minutes:minutes, session:session, members:members, memberIds:memberIds, category:"", dob:"", gender:"",
         teacher:"", phone:"", contact:"", fee:"Miễn phí", sbd:"", checkin:"", done:"" });
       DATA.contestants.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
       close(); renderManage();
