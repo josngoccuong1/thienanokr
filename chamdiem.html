@@ -217,7 +217,7 @@ window.FS = {
       contestants.push({
         row: d.id,                                  // mã định danh (thay cho dòng sheet)
         order: Number(v.order) || 0,                // thứ tự biểu diễn
-        regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"",
+        regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
         minutes: v.minutes||"", billUrl: v.billUrl||"",
@@ -260,6 +260,21 @@ window.FS = {
     }
     return items.length;
   },
+  /* Đọc / ghi TÊN CÁC BUỔI (lưu chung để mọi máy thấy giống nhau) */
+  async getSessionNames(){
+    await ensureAuth();
+    try{
+      const snap = await getDocs(collection(db, "festival_config"));
+      let out = {};
+      snap.forEach(d=>{ if(d.id === "sessions") out = d.data() || {}; });
+      return out;
+    }catch(e){ return {}; }
+  },
+  async saveSessionNames(obj){
+    await ensureAuth();
+    await setDoc(doc(db, "festival_config", "sessions"), obj, { merge:false });
+  },
+
   /* Xóa thí sinh + toàn bộ điểm của thí sinh đó */
   async remove(row, judges){
     await ensureAuth();
@@ -310,7 +325,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v6 · 6 buổi + Gala</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v7 · Đổi tên buổi · Sắp theo tên gọi</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -374,7 +389,8 @@ ensureAuth();
         </div>
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
           <button class="btn btn-gold" id="btnSortUnit" style="padding:9px 13px;font-size:12px">🏫 Sắp theo Đơn vị → Tên</button>
-          <button class="btn btn-out" id="btnSortName" style="padding:9px 13px;font-size:12px">🔤 Sắp theo Tên (A-Z)</button>
+          <button class="btn btn-out" id="btnSortName" style="padding:9px 13px;font-size:12px">🔤 Sắp theo Tên gọi (A-Z)</button>
+          <button class="btn btn-out" id="btnRenameSess" style="padding:9px 13px;font-size:12px">🗓️ Đổi tên buổi</button>
         </div>
         <input id="mgSearch" placeholder="🔎 Tìm theo tên / đơn vị…"/>
         <div id="mgHint" style="margin-top:8px;font-size:11px;color:var(--muted);font-weight:600"></div>
@@ -595,9 +611,14 @@ function renderViewBar(){
 }
 
 /* Tên hiển thị của buổi: buổi cuối cùng gọi là "Gala" */
+let TEN_BUOI = {};   // tên buổi do thầy tự đặt, lưu trên Firestore
+function tenBuoiMacDinh(n){
+  return (CONFIG.GALA && Number(n) === CONFIG.GALA) ? "🌟 Gala" : ("Buổi " + n);
+}
 function tenBuoi(i){
   const n = Number(i);
-  return (CONFIG.GALA && n === CONFIG.GALA) ? "🌟 Gala" : ("Buổi " + n);
+  const t = TEN_BUOI && TEN_BUOI[String(n)];
+  return (t && String(t).trim()) ? String(t).trim() : tenBuoiMacDinh(n);
 }
 
 // Thanh chọn buổi: Tất cả / Buổi 1..5 / Gala
@@ -643,6 +664,7 @@ async function loadData(silent){
   try{
     if(!window.FS) throw new Error("Chưa kết nối được Firestore");
     const d = await window.FS.loadAll();
+    try{ TEN_BUOI = await window.FS.getSessionNames(); }catch(_){ }
     DATA.contestants = d.contestants || [];
     DATA.scores = d.scores || [];
     return true;
@@ -774,10 +796,14 @@ function exportGroupItems(items, groupName){
 }
 function exportCSV(rows, filename){
   if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
-  const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Giới tính","Check-in","Trạng thái phí","Buổi"];
+  const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Số phút","Giới tính","Ngày sinh",
+                "SĐT","Người phụ trách","Giáo viên HD","Check-in","Trạng thái phí","Buổi"];
   const line = a => a.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",");
   const body = rows.map((c,i)=>line([ i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
-    c.piece||"", c.gender||"", c.checkin?"Đã check-in":"Chưa", c.fee||"", c.session||"" ]));
+    c.piece||"", c.minutes||"", c.gender||"", c.dob||"",
+    // Số điện thoại: thêm dấu ' để Excel giữ nguyên số 0 đầu
+    c.phone?("'"+String(c.phone).trim()):"", c.contact||"", c.teacher||"",
+    c.checkin?"Đã check-in":"Chưa", c.fee||"", c.session?tenBuoi(c.session):"" ]));
   const csv = "\uFEFF" + [line(cols)].concat(body).join("\r\n");
   const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
@@ -1096,7 +1122,8 @@ function renderManage(){
       <span style="font-size:14px">🏫</span>
       <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(g.label)}</span>
       <span style="color:#D4AF37;font-weight:700;font-size:11px">${soTrongNhom} thí sinh</span>
-      ${ed?`<button class="btn-out" data-gup="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị lên trên">▲</button>
+      ${ed?`<button class="btn-out" data-gsort="${gi}" style="padding:4px 8px;font-size:12px" title="Sắp A-Z theo tên gọi, chỉ trong đơn vị này">🔤</button>
+            <button class="btn-out" data-gup="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị lên trên">▲</button>
             <button class="btn-out" data-gdn="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị xuống dưới">▼</button>`:""}
     </div>`;
     g.items.forEach(c=>{
@@ -1191,6 +1218,17 @@ function renderManage(){
     try{ await applyOrder(mgFlat(gs)); doneLoading("Đã chuyển ✓"); renderManage(); }
     catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
   };
+  // Sắp A-Z theo tên gọi CHỈ trong 1 đơn vị, không đụng các đơn vị khác
+  $("mgList").querySelectorAll("[data-gsort]").forEach(b=>b.addEventListener("click", async ()=>{
+    const gi = Number(b.dataset.gsort);
+    const gs = mgGroups(); const g = gs[gi];
+    if(!g) return;
+    if(!confirm(`Sắp xếp A-Z theo TÊN GỌI cho đơn vị "${g.label}" (${g.items.length} thí sinh)?\n\nCác đơn vị khác giữ nguyên.`)) return;
+    g.items.sort(cmpTen);
+    showLoading("Đang sắp xếp "+g.label+"…");
+    try{ await applyOrder(mgFlat(gs)); doneLoading("Đã sắp xếp ✓"); renderManage(); }
+    catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+  }));
   $("mgList").querySelectorAll("[data-gup]").forEach(b=>b.addEventListener("click",()=>moveGroup(Number(b.dataset.gup),-1)));
   $("mgList").querySelectorAll("[data-gdn]").forEach(b=>b.addEventListener("click",()=>moveGroup(Number(b.dataset.gdn),+1)));
 
@@ -1260,13 +1298,73 @@ async function renumber(cmp, tenCach){
   catch(e){ hideLoading(); alert("Lỗi khi sắp xếp: "+(e.message||e)); }
 }
 const _vi = s => norm(String(s||""));
+/* Tên gọi = chữ CUỐI trong họ tên (VD "Nguyễn Văn An" -> "An").
+   So sánh theo tên gọi trước, nếu trùng thì so tiếp phần họ đệm. */
+function tenGoi(full){
+  const p = String(full||"").trim().split(/\s+/).filter(Boolean);
+  return p.length ? _vi(p[p.length-1]) : "";
+}
+function hoDem(full){
+  const p = String(full||"").trim().split(/\s+/).filter(Boolean);
+  return _vi(p.slice(0,-1).join(" "));
+}
+function cmpTen(a,b){
+  return tenGoi(a.name).localeCompare(tenGoi(b.name), "vi")
+      || hoDem(a.name).localeCompare(hoDem(b.name), "vi");
+}
 $("btnSortUnit").addEventListener("click", ()=>renumber(
-  (a,b)=> _vi(a.unit||"Cá nhân").localeCompare(_vi(b.unit||"Cá nhân")) || _vi(a.name).localeCompare(_vi(b.name)),
+  (a,b)=> _vi(a.unit||"Cá nhân").localeCompare(_vi(b.unit||"Cá nhân"), "vi") || cmpTen(a,b),
   "Đơn vị → Tên"));
 $("btnSortName").addEventListener("click", ()=>renumber(
-  (a,b)=> _vi(a.name).localeCompare(_vi(b.name)),
-  "Tên (A-Z)"));
+  cmpTen,
+  "Tên gọi (A-Z)"));
 $("mgSearch").addEventListener("input", ()=>renderManage());
+
+/* Đổi tên các buổi (VD "Sáng 15/8", "Chiều 15/8", "Gala tối 16/8") */
+$("btnRenameSess").addEventListener("click", ()=>{
+  if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới đổi tên buổi được."); return; }
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto";
+  let rows = "";
+  for(let i=1;i<=CONFIG.SESSIONS;i++){
+    const dat = TEN_BUOI && TEN_BUOI[String(i)] ? String(TEN_BUOI[String(i)]) : "";
+    rows += `<div style="margin-bottom:9px">
+      <label style="font-size:11px;font-weight:700;color:#6B7280;display:block;margin-bottom:3px">Buổi ${i}</label>
+      <input class="rs-inp" data-i="${i}" value="${esc(dat)}" placeholder="${esc(tenBuoiMacDinh(i))}"
+        style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:9px;font-size:14px"/>
+    </div>`;
+  }
+  ov.innerHTML = `<div style="background:#fff;border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:90vh;overflow:auto">
+      <div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:4px">🗓️ Đổi tên các buổi</div>
+      <div style="font-size:11px;color:#6B7280;margin-bottom:12px">Để trống thì dùng tên mặc định. Tên này hiện trên mọi máy.</div>
+      ${rows}
+      <div id="rs_msg" style="font-size:12px;margin:6px 0"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="rs_save" style="flex:1;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">💾 Lưu</button>
+        <button id="rs_cancel" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const close = ()=>ov.remove();
+  ov.querySelector("#rs_cancel").onclick = close;
+  ov.querySelector("#rs_save").onclick = async ()=>{
+    const obj = {};
+    ov.querySelectorAll(".rs-inp").forEach(inp=>{
+      const v = inp.value.trim();
+      if(v) obj[inp.dataset.i] = v;
+    });
+    ov.querySelector("#rs_msg").innerHTML = '<span style="color:#6B7280">Đang lưu…</span>';
+    try{
+      await window.FS.saveSessionNames(obj);
+      TEN_BUOI = obj;
+      close();
+      renderSessionBar();
+      renderManage();
+    }catch(e){
+      ov.querySelector("#rs_msg").innerHTML = '<span style="color:#C0202A">Lỗi: '+esc(e.message||e)+'</span>';
+    }
+  };
+});
 
 function openScore(row){
   if(!canEdit()) return;   // xem chéo: không mở form chấm điểm
