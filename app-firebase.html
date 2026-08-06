@@ -45,7 +45,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 .tab.active{background:#fff;color:#1A1A2E}
 .tab:not(.active){background:rgba(255,255,255,0.1);color:#ddd}
 /* MAIN */
-.main{padding:14px;max-width:900px;margin:0 auto}
+.main{padding:18px 22px;max-width:1200px;margin:0 auto}
+@media(max-width:768px){.main{padding:14px}}
 /* CARD */
 .card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,0.08);margin-bottom:14px;overflow:hidden}
 .card-head{background:linear-gradient(135deg,#1A1A2E,#16213E);padding:12px 18px;display:flex;align-items:center;gap:8px}
@@ -319,7 +320,7 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 // STATE
 // ============================================================
 let state={
-  screen:"login",user:null,tab:"okr",
+  screen:"login",user:null,tab:"home",
   quarter:currentQuarter(),month:currentMonth(),
   txViewAll:false,txPage:1,
   loginError:"",uname:"",upass:"",
@@ -1398,6 +1399,7 @@ function renderLogin(){
 function renderApp(){
   const u=state.user;const ri=roleInfo(u.role);
   const tabs=[
+    {id:"home",label:"🏠 Trang chủ",show:true},
     {id:"okr",label:"📊 OKR",show:true},
     {id:"lotrinh",label:"🎹 Lộ trình",show:true},
     {id:"baohanh",label:"🛠 Bảo hành",show:true},
@@ -1424,6 +1426,7 @@ function renderApp(){
     </div>
   </div>
   <div class="main">
+    ${state.tab==="home"?renderHome():""}
     ${state.tab==="okr"?renderOKR():""}
     ${state.tab==="lotrinh"?renderLoTrinh():""}
     ${state.tab==="baohanh"?renderBaoHanh():""}
@@ -1445,6 +1448,66 @@ function renderApp(){
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
 }
+
+// ===== TRANG CHỦ (Dashboard) =====
+function renderHome(){
+  const u=state.user, ri=roleInfo(u.role);
+  const nv=Array.isArray(USERS)?USERS.length:0;
+  const bh=state.baohanh||[];
+  const bhSoon=bh.filter(r=>{try{return bhInfo(r).status.indexOf("Sắp hết")===0}catch(e){return false}}).length;
+  let ccNV=0; try{ ccNV=(ccDoc().rows||[]).length; }catch(e){}
+  const now=new Date(), ngay=now.getDate()+"/"+(now.getMonth()+1)+"/"+now.getFullYear();
+  const gio=now.getHours(), chao=gio<11?"Chào buổi sáng":gio<14?"Chào buổi trưa":gio<18?"Chào buổi chiều":"Chào buổi tối";
+  const stat=(icon,val,label,color)=>`<div style="flex:1;min-width:150px;background:#fff;border:1px solid #EEF1F8;border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(15,52,96,.05)">
+    <div style="font-size:22px">${icon}</div>
+    <div style="font-size:26px;font-weight:800;color:${color};margin-top:4px">${val}</div>
+    <div style="font-size:12px;color:#8a94a6;margin-top:2px">${label}</div></div>`;
+  const tiles=[
+    {id:"okr",icon:"📊",label:"OKR",desc:"Mục tiêu & kết quả then chốt",c:"#0F3460"},
+    {id:"chamcong",icon:"🕒",label:"Chấm công & Lương",desc:"Chấm công, tính lương Mẫu 02",c:"#16A085",admin:true},
+    {id:"luong",icon:"💵",label:"Lương",desc:"Bảng lương nhân viên",c:"#E67E22"},
+    {id:"baohanh",icon:"🛠",label:"Bảo hành",desc:"Bảo hành & sửa chữa đàn",c:"#8E44AD"},
+    {id:"plan",icon:"🗓",label:"Kế hoạch",desc:"Kế hoạch công việc",c:"#2980B9"},
+    {id:"lotrinh",icon:"🎹",label:"Lộ trình",desc:"Lộ trình đào tạo",c:"#C0392B"},
+    {id:"thuchi",icon:"💰",label:"Thu chi",desc:"Thu chi tài chính",c:"#27AE60",admin:true},
+    {id:"baocao",icon:"📈",label:"Báo cáo",desc:"Báo cáo doanh thu",c:"#B7950B",admin:true},
+    {id:"users",icon:"👥",label:"Nhân sự",desc:"Quản lý tài khoản",c:"#34495E",admin:true},
+  ].filter(t=>!t.admin||u.isAdmin);
+  return `
+  <div style="background:linear-gradient(135deg,#1A1A2E,#16213E 55%,#0F3460);border-radius:18px;padding:24px 26px;color:#fff;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;box-shadow:0 6px 24px rgba(15,52,96,.18)">
+    <div>
+      <div style="font-size:23px;font-weight:800">${chao}, ${u.name} 👋</div>
+      <div style="font-size:13px;color:#D4AF37;margin-top:5px">${ri.icon} ${ri.label} · Học viện Âm nhạc Thiên Ân</div>
+    </div>
+    <div style="text-align:right"><div style="font-size:12px;color:#aab3c5">Hôm nay</div><div style="font-size:17px;font-weight:700">${ngay}</div></div>
+  </div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+    ${stat("👥",nv,"Tài khoản nhân sự","#0F3460")}
+    ${stat("🕒",ccNV,"Đang chấm công tháng","#16A085")}
+    ${stat("🛠",bh.length,"Đàn đang bảo hành","#8E44AD")}
+    ${stat("⚠️",bhSoon,"Sắp hết bảo hành","#E67E22")}
+  </div>
+  <div style="font-size:15px;font-weight:800;color:#0F3460;margin-bottom:14px">Truy cập nhanh</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px">
+    ${tiles.map(t=>`<div onclick="goTab('${t.id}')" style="cursor:pointer;background:#fff;border:1px solid #EEF1F8;border-left:4px solid ${t.c};border-radius:14px;padding:18px 18px 16px;box-shadow:0 2px 10px rgba(15,52,96,.05);transition:box-shadow .15s,transform .15s" onmouseover="this.style.boxShadow='0 8px 22px rgba(15,52,96,.16)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(15,52,96,.05)';this.style.transform='none'">
+      <div style="font-size:27px">${t.icon}</div>
+      <div style="font-size:16px;font-weight:800;color:#1A1A2E;margin-top:9px">${t.label}</div>
+      <div style="font-size:12px;color:#8a94a6;margin-top:3px;line-height:1.4">${t.desc}</div>
+    </div>`).join("")}
+  </div>`;
+}
+window.goTab=function(id){
+  setState({tab:id});
+  try{
+    if(id==="okr"){loadActuals();loadObjectivesFromSheets();}
+    if(id==="thuchi"){loadThuChiFromSheets("");}
+    if(id==="luong"){loadLuongFromSheets(state.month);}
+    if(id==="plan"){loadPlansFromSheets();}
+    if(id==="lotrinh"){loadLoTrinhFromSheets();}
+    if(id==="baohanh"){loadBaoHanh();}
+    if(id==="chamcong"){loadChamCong();}
+  }catch(e){console.error("goTab",e);}
+};
 
 // ===== OKR =====
 function getKRTotal(krId){
@@ -2118,7 +2181,7 @@ async function loadBaoHanh(showToast){
   try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
     const s=await qldb.collection("ql_baohanh").get();
     state.baohanh=s.docs.map(d=>d.data());
-    if(state.tab==="baohanh"&&!state.showBHModal&&!state.showBHServiceModal) render();
+    if((state.tab==="baohanh"||state.tab==="home")&&!state.showBHModal&&!state.showBHServiceModal) render();
     if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
   }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadBaoHanh",e); }
 }
@@ -2708,7 +2771,7 @@ async function loadChamCong(ym,showToast){
   try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
     const d=await qldb.collection("ql_chamcong").doc(ym).get();
     state.ccData[ym]=d.exists?d.data():{month:ym,rows:[]};
-    if(state.tab==="chamcong"&&!state.showCCEmp) render();
+    if((state.tab==="chamcong"||state.tab==="home")&&!state.showCCEmp) render();
     if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
   }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadChamCong",e); }
 }
