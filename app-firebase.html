@@ -33,22 +33,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 /* HEADER */
 .header{background:linear-gradient(135deg,#1A1A2E 0%,#16213E 60%,#0F3460 100%);color:#fff;padding:12px 16px 0;position:sticky;top:0;z-index:50}
 .hrow1{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.tb-wrap{position:relative;display:inline-block}
-.tb-bell{position:relative;font-size:14px}
-.tb-badge{position:absolute;top:-6px;right:-6px;background:#E74C3C;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:8px;padding:0 3px}
-.tb-panel{position:absolute;top:34px;right:0;width:320px;max-width:88vw;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:200;overflow:hidden;color:#1A1A2E}
-.tb-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#1A1A2E;color:#fff;font-size:13px;font-weight:800}
-.tb-newbtn{background:#D4AF37;color:#1A1A2E;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:800;cursor:pointer}
-.tb-list{max-height:360px;overflow-y:auto}
-.tb-empty{padding:22px 12px;text-align:center;color:#999;font-size:12px}
-.tb-item{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:12px}
-.tb-item.tb-new{background:#FFF9E6}
-.tb-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
-.tb-item-top b{color:#1A1A2E;font-size:12.5px;line-height:1.35}
-.tb-del{color:#E74C3C;cursor:pointer;font-weight:800;font-size:12px;padding:0 2px}
-.tb-body{color:#555;margin-top:3px;line-height:1.4;white-space:pre-wrap}
-.tb-meta{color:#999;font-size:10.5px;margin-top:4px}
-.bh-inp{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:13px;box-sizing:border-box}
 .htitle h1{font-size:14px;font-weight:800}
 .htitle p{font-size:10px;color:#D4AF37;font-weight:600}
 .hright{margin-left:auto;display:flex;align-items:center;gap:6px}
@@ -337,16 +321,13 @@ function stInfo(p){if(p>=80)return{label:"Đạt",color:"#27AE60",bg:"#E8F8F0",i
 let state={
   screen:"login",user:null,tab:"okr",
   quarter:currentQuarter(),month:currentMonth(),
-  // Thông báo chung realtime
-  thongbao:[],showThongBao:false,showTbModal:false,tb_title:"",tb_body:"",tb_source:"plan",tb_ref:"",
-  // Bảo hành
-  bh_data:[],bh_search:"",bh_filter:"all",
-  showBhModal:false,bh_edit:null,
-  bh_khach:"",bh_sdt:"",bh_loai:"Piano cơ",bh_model:"",bh_serial:"",bh_ngayban:"",bh_hanbh:12,bh_ghichu:"",
-  showBhSvcModal:false,bh_svc_for:null,bh_svc_date:"",bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:"",
   txViewAll:false,txPage:1,
   loginError:"",uname:"",upass:"",
   actuals:{},
+  // Chấm công / Lương
+  ccYM:(()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0");})(),
+  ccView:"cham", ccData:{},
+  showCCEmp:false, cc_e_id:null, cc_e_name:"", cc_e_chucvu:"", cc_e_bophan:"BP Dạy học", cc_e_luongcb:4730000,
   // OKR
   editKR:null,editVal:"",saving:false,
   // OKR Editor
@@ -1171,8 +1152,8 @@ function enterApp(u){
   saveSession(u);
   render();
   loadActuals();
-  startThongBaoListener();
-  loadBaoHanhData();
+  loadBaoHanh();
+  loadChamCong();
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1269,13 +1250,6 @@ function savePlan(){
     month:item.month, target:item.target||"", actual:item.actual||"",
     owner:item.owner||"", status:item.status||"",
     okrObj:item.okrObj||"", okrKr:item.okrKr||""});
-  if(state.editPlan===null||state.editPlan===undefined){
-    pushThongBao({
-      title:"Giao việc mới: "+item.title,
-      body:(item.owner?("Phụ trách: "+item.owner+" · "):"")+"Tháng "+item.month+(item.target?(" · Chỉ tiêu: "+item.target):""),
-      type:"giao_viec", planId:String(item.id)
-    });
-  }
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
 function deletePlan(id){
@@ -1426,12 +1400,13 @@ function renderApp(){
   const tabs=[
     {id:"okr",label:"📊 OKR",show:true},
     {id:"lotrinh",label:"🎹 Lộ trình",show:true},
+    {id:"baohanh",label:"🛠 Bảo hành",show:true},
     {id:"plan",label:"🗓 Kế hoạch",show:true},
     {id:"luong",label:"💵 Lương",show:true},
+    {id:"chamcong",label:"🕒 Chấm công",show:u.isAdmin},
     {id:"thuchi",label:"💰 Thu chi",show:u.isAdmin},
     {id:"baocao",label:"📈 Báo cáo",show:u.isAdmin},
     {id:"users",label:"👥 Nhân sự",show:u.isAdmin},
-    {id:"baohanh",label:"🛠 Bảo hành",show:true},
   ].filter(t=>t.show);
 
   return`<div class="header">
@@ -1441,7 +1416,6 @@ function renderApp(){
       <div class="hright">
         <span style="font-size:11px;color:#ddd">${u.name}</span>
         ${u.isAdmin?`<button class="btn-sm btn-gold" id="btnImport">📥 Import</button>`:""}
-        ${renderBell()}
         <button class="btn-sm btn-ghost" id="btnLogout">Đăng xuất</button>
       </div>
     </div>
@@ -1452,20 +1426,21 @@ function renderApp(){
   <div class="main">
     ${state.tab==="okr"?renderOKR():""}
     ${state.tab==="lotrinh"?renderLoTrinh():""}
+    ${state.tab==="baohanh"?renderBaoHanh():""}
     ${state.tab==="plan"?renderPlan():""}
     ${state.tab==="luong"?renderLuong():""}
+    ${state.tab==="chamcong"?renderChamCong():""}
     ${state.tab==="thuchi"?renderThuChi():""}
     ${state.tab==="baocao"?renderBaoCao():""}
     ${state.tab==="users"?renderUsers():""}
-    ${state.tab==="baohanh"?renderBaoHanh():""}
   </div>
   ${state.showTxForm?renderTxModal():""}
   ${state.showPlanForm?renderPlanModal():""}
   ${state.showLuongModal?renderLuongModal():""}
   ${state.showLoTrinhModal?renderLoTrinhModal():""}
-  ${state.showTbModal?renderTbModal():""}
-  ${state.showBhModal?renderBhModal():""}
-  ${state.showBhSvcModal?renderBhSvcModal():""}
+  ${state.showBHModal?renderBHModal():""}
+  ${state.showBHServiceModal?renderBHServiceModal():""}
+  ${state.showCCEmp?renderCCEmpModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
@@ -2128,6 +2103,125 @@ function renderLoTrinh(){
   </div>`;
 }
 
+// ===== 🛠 BẢO HÀNH / SỬA CHỮA (Firestore: ql_baohanh) =====
+function bhDate(x){ if(!x) return "—"; const d=(x instanceof Date)?x:new Date(x); if(isNaN(d)) return String(x); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+function bhMoney(n){ return (Number(n)||0).toLocaleString('vi-VN')+"đ"; }
+function bhInfo(r){
+  if(!r.ngayBan||!r.hanBH) return {status:"—", color:"#888", bg:"#F0F0F0", expDate:null, days:null};
+  const d=new Date(r.ngayBan); d.setMonth(d.getMonth()+Number(r.hanBH));
+  const days=Math.ceil((d-new Date())/86400000);
+  if(days<0) return {status:"Hết hạn", color:"#E74C3C", bg:"#FDEDEC", expDate:d, days};
+  if(days<=30) return {status:"Sắp hết ("+days+" ngày)", color:"#E67E22", bg:"#FEF9E7", expDate:d, days};
+  return {status:"Còn BH", color:"#27AE60", bg:"#E8F8F0", expDate:d, days};
+}
+async function loadBaoHanh(showToast){
+  try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
+    const s=await qldb.collection("ql_baohanh").get();
+    state.baohanh=s.docs.map(d=>d.data());
+    if(state.tab==="baohanh"&&!state.showBHModal&&!state.showBHServiceModal) render();
+    if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
+  }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadBaoHanh",e); }
+}
+function renderBaoHanh(){
+  const admin=state.user&&state.user.isAdmin;
+  const list=(state.baohanh||[]).slice().sort((a,b)=>String(b.ngayBan||"").localeCompare(String(a.ngayBan||"")));
+  const filt=state.bh_filter||"all";
+  const shown=list.filter(r=>{ if(filt==="all") return true; const st=bhInfo(r).status;
+    if(filt==="con") return st==="Còn BH"; if(filt==="soon") return st.indexOf("Sắp hết")===0; if(filt==="het") return st==="Hết hạn"; return true; });
+  const soonCount=list.filter(r=>bhInfo(r).status.indexOf("Sắp hết")===0).length;
+  const fbtn=(id,label)=>`<button class="btn-sm" style="background:${filt===id?'#0F3460':'#EEF1F8'};color:${filt===id?'#fff':'#0F3460'};font-size:11px;padding:5px 10px" onclick="bhSetFilter('${id}')">${label}</button>`;
+  return`
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+    <input id="bhSearch" placeholder="🔍 Tìm theo tên / SĐT / serial" oninput="bhDoSearch(this.value)" style="flex:1;min-width:180px;border:2px solid #E5E7EB;border-radius:8px;padding:7px 10px;font-size:13px"/>
+    <button class="btn-success" style="font-size:12px;padding:6px 12px" onclick="bhOpenEdit('')">➕ Thêm đàn</button>
+    <button class="btn-sm btn-gold" style="font-size:11px;padding:5px 10px" onclick="loadBaoHanh(true)">🔄 Làm mới</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+    ${fbtn("all","Tất cả ("+list.length+")")}
+    ${fbtn("con","Còn hạn")}
+    ${fbtn("soon","Sắp hết"+(soonCount?" ("+soonCount+")":""))}
+    ${fbtn("het","Hết hạn")}
+  </div>
+  ${shown.length===0?`<div class="card" style="padding:28px;text-align:center;color:#aaa">Chưa có hồ sơ bảo hành phù hợp. Bấm ➕ Thêm đàn.</div>`:""}
+  ${shown.map(r=>{ const info=bhInfo(r); const ls=r.lichSu||[];
+    const searchStr=((r.khach||'')+' '+(r.sdt||'')+' '+(r.serial||'')).toLowerCase().replace(/"/g,'');
+    return`<div class="card bh-card" data-search="${searchStr}" style="padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1A1A2E">${r.khach||"(chưa có tên)"} ${r.sdt?`<span style="color:#0F3460;font-weight:600">· ${r.sdt}</span>`:""}</div>
+          <div style="font-size:12px;color:#555;margin-top:2px">${r.loai||""}${r.serial?` · Serial: <b>${r.serial}</b>`:""}</div>
+          <div style="font-size:12px;color:#777;margin-top:2px">Ngày bán: ${bhDate(r.ngayBan)} · Hạn: ${r.hanBH||0} tháng${info.expDate?` · Hết hạn: <b>${bhDate(info.expDate)}</b>`:""}</div>
+          ${r.ghiChu?`<div style="font-size:12px;color:#999;margin-top:2px">📝 ${r.ghiChu}</div>`:""}
+        </div>
+        <span class="badge" style="background:${info.bg};color:${info.color};font-size:11px;padding:3px 9px;white-space:nowrap">${info.status}</span>
+      </div>
+      <div style="margin-top:8px;border-top:1px dashed #eee;padding-top:8px">
+        <div style="font-size:12px;font-weight:700;color:#0F3460;margin-bottom:4px">🛠 Lịch sử sửa chữa / bảo dưỡng (${ls.length})</div>
+        ${ls.length===0?`<div style="font-size:12px;color:#bbb">Chưa có.</div>`:ls.slice().reverse().map(s=>`<div style="font-size:12px;color:#444;padding:3px 0;border-bottom:1px solid #FAFAFA">• ${bhDate(s.ngay)} — ${s.noiDung||""}${s.chiPhi?` <span style="color:#E74C3C;font-weight:600">(${bhMoney(s.chiPhi)})</span>`:""}${s.ktv?` · KTV: ${s.ktv}`:""}</div>`).join("")}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn-sm" style="background:#E8F8F0;color:#27AE60;font-size:11px;padding:5px 10px" onclick="bhOpenService('${r.id}')">🗓 Thêm dịch vụ</button>
+        <button class="btn-sm btn-edit" style="font-size:11px;padding:5px 10px" onclick="bhOpenEdit('${r.id}')">✏️ Sửa</button>
+        ${admin?`<button class="btn-sm btn-danger" style="font-size:11px;padding:5px 10px" onclick="bhDel('${r.id}')">🗑️ Xóa</button>`:""}
+      </div>
+    </div>`;
+  }).join("")}`;
+}
+function renderBHModal(){
+  const E=state.bh_edit||{};
+  const ea=s=>String(s==null?"":s).replace(/"/g,'&quot;');
+  const loais=["Piano cơ Nhật","Piano điện","Guitar","Organ","Trống","Khác"];
+  return`<div class="modal-overlay" id="bhOverlay" onclick="if(event.target.id==='bhOverlay')bhClose()">
+   <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">${E.id?"✏️ Sửa hồ sơ":"➕ Thêm đàn bảo hành"}</span><button class="btn-sm" style="background:#eee" onclick="bhClose()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Tên khách hàng *</div><input class="form-input" id="bh_khach" value="${ea(E.khach)}"/></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Số điện thoại</div><input class="form-input" id="bh_sdt" value="${ea(E.sdt)}"/></div>
+        <div class="form-group"><div class="form-label">Loại đàn</div><select class="form-input" id="bh_loai">${loais.map(l=>`<option${l===E.loai?" selected":""}>${l}</option>`).join("")}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Model / Serial</div><input class="form-input" id="bh_serial" value="${ea(E.serial)}"/></div>
+        <div class="form-group"><div class="form-label">Ngày bán</div><input class="form-input" type="date" id="bh_ngayBan" value="${ea(E.ngayBan)}"/></div>
+      </div>
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Hạn bảo hành (tháng)</div><input class="form-input" type="number" id="bh_hanBH" value="${E.hanBH!=null?E.hanBH:12}"/></div>
+      <div class="form-group" style="margin-bottom:12px"><div class="form-label">Ghi chú</div><input class="form-input" id="bh_ghiChu" value="${ea(E.ghiChu)}"/></div>
+      <button class="btn-primary" style="width:100%" onclick="bhSaveData()">💾 Lưu</button>
+    </div></div></div>`;
+}
+function renderBHServiceModal(){
+  const today=new Date().toISOString().slice(0,10);
+  return`<div class="modal-overlay" id="bhSvOverlay" onclick="if(event.target.id==='bhSvOverlay')bhClose()">
+   <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">🗓 Thêm lần sửa / bảo dưỡng</span><button class="btn-sm" style="background:#eee" onclick="bhClose()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Ngày</div><input class="form-input" type="date" id="sv_ngay" value="${today}"/></div>
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Nội dung (sửa gì / bảo dưỡng gì) *</div><input class="form-input" id="sv_noiDung"/></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Chi phí (đ)</div><input class="form-input" type="number" id="sv_chiPhi" value="0"/></div>
+        <div class="form-group"><div class="form-label">Kỹ thuật viên</div><input class="form-input" id="sv_ktv"/></div>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:6px" onclick="bhSaveService()">💾 Lưu</button>
+    </div></div></div>`;
+}
+window.bhSetFilter=function(f){ setState({bh_filter:f}); };
+window.bhDoSearch=function(q){ q=(q||"").toLowerCase().trim(); document.querySelectorAll(".bh-card").forEach(c=>{ c.style.display=(!q||(c.dataset.search||"").indexOf(q)>=0)?"":"none"; }); };
+window.bhOpenEdit=function(id){ const r=(state.baohanh||[]).find(x=>x.id===id); state.bh_edit=r?JSON.parse(JSON.stringify(r)):{}; setState({showBHModal:true}); };
+window.bhClose=function(){ setState({showBHModal:false,showBHServiceModal:false}); };
+window.bhSaveData=async function(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  const khach=g("bh_khach").trim(); if(!khach){ alert("Vui lòng nhập tên khách hàng"); return; }
+  const E=state.bh_edit||{};
+  const rec={ id:E.id||("BH"+Date.now()), khach, sdt:g("bh_sdt").trim(), loai:g("bh_loai"), serial:g("bh_serial").trim(), ngayBan:g("bh_ngayBan"), hanBH:Number(g("bh_hanBH"))||0, ghiChu:g("bh_ghiChu").trim(), lichSu:E.lichSu||[] };
+  try{ await qldb.collection("ql_baohanh").doc(rec.id).set(rec); const arr=(state.baohanh||[]).filter(x=>x.id!==rec.id); arr.push(rec); state.baohanh=arr; setState({showBHModal:false,bh_edit:null}); }catch(e){ alert("Lỗi lưu: "+(e&&e.message?e.message:e)); }
+};
+window.bhDel=async function(id){ if(!confirm("Xóa hồ sơ bảo hành này?")) return; try{ await qldb.collection("ql_baohanh").doc(id).delete(); state.baohanh=(state.baohanh||[]).filter(x=>x.id!==id); render(); }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); } };
+window.bhOpenService=function(id){ state.bh_serviceFor=id; setState({showBHServiceModal:true}); };
+window.bhSaveService=async function(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  const noiDung=g("sv_noiDung").trim(); if(!noiDung){ alert("Vui lòng nhập nội dung"); return; }
+  const r=(state.baohanh||[]).find(x=>x.id===state.bh_serviceFor); if(!r){ setState({showBHServiceModal:false}); return; }
+  r.lichSu=r.lichSu||[]; r.lichSu.push({ ngay:g("sv_ngay"), noiDung, chiPhi:Number(g("sv_chiPhi"))||0, ktv:g("sv_ktv").trim() });
+  try{ await qldb.collection("ql_baohanh").doc(r.id).set(r); setState({showBHServiceModal:false,bh_serviceFor:null}); }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); }
+};
 function ltEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function ltAttr(s){return ltEsc(s).replace(/"/g,"&quot;");}
 function renderLoTrinhModal(){
@@ -2397,300 +2491,6 @@ function renderUserModal(){
 // ============================================================
 // EVENTS
 // ============================================================
-// ============================================================
-// THÔNG BÁO CHUNG (realtime) — collection ql_thongbao
-// ============================================================
-var _tbUnsub=null;
-function tbEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function tbSeen(){ try{return Number(localStorage.getItem("ta_tb_seen")||0);}catch(e){return 0;} }
-function tbSetSeen(t){ try{localStorage.setItem("ta_tb_seen",String(t||Date.now()));}catch(e){} }
-function tbUnread(){ const s=tbSeen(); return (state.thongbao||[]).filter(n=>Number(n.ts||0)>s).length; }
-function tbTimeAgo(ts){
-  const sec=Math.floor((Date.now()-Number(ts||0))/1000);
-  if(sec<60)return "vừa xong";
-  const m=Math.floor(sec/60); if(m<60)return m+" phút trước";
-  const h=Math.floor(m/60); if(h<24)return h+" giờ trước";
-  return Math.floor(h/24)+" ngày trước";
-}
-function startThongBaoListener(){
-  try{
-    if(!window._tbDocBound){
-      window._tbDocBound=true;
-      document.addEventListener("click",function(e){
-        if(state.showThongBao && e.target && !e.target.closest(".tb-wrap")) setState({showThongBao:false});
-      });
-    }
-    if(_tbUnsub) return;
-    _tbUnsub = qldb.collection("ql_thongbao").orderBy("ts","desc").limit(50).onSnapshot(function(snap){
-      const arr=[]; snap.forEach(d=>arr.push(d.data()));
-      state.thongbao=arr;
-      if(state.screen==="app") render();
-    }, function(err){ console.error("thongbao listener",err); });
-  }catch(e){ console.error("startThongBaoListener",e); }
-}
-async function pushThongBao(o){
-  try{
-    const id="tb_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
-    await qldb.collection("ql_thongbao").doc(id).set({
-      id:id, title:(o.title||""), body:(o.body||""),
-      from:(o.from||(state.user&&state.user.name)||"Hệ thống"),
-      type:(o.type||"nhac_viec"), ts:Date.now(), date:new Date().toISOString(),
-      planId:(o.ref||o.planId||""), source:(o.source||""), ref:(o.ref||"")
-    });
-  }catch(e){ console.error("pushThongBao",e); }
-}
-async function deleteThongBao(id){
-  if(!confirm("Xóa thông báo này?"))return;
-  try{ await qldb.collection("ql_thongbao").doc(String(id)).delete(); }catch(e){ console.error("deleteThongBao",e); }
-}
-function toggleThongBao(){
-  const open=!state.showThongBao;
-  if(open) tbSetSeen(Date.now()); // mở ra là coi như đã xem
-  setState({showThongBao:open});
-}
-function tbRefItems(src){
-  if(src==="plan") return (state.plans||[]).map(p=>({id:String(p.id), label:(p.title||"(không tên)")+(p.month?" · "+p.month:"")+(p.owner?" · "+p.owner:"")}));
-  if(src==="okr") return OBJECTIVES.flatMap(o=>(o.krs||[]).map(k=>({id:String(k.id), label:o.title+" — "+(k.text||"")+(k.ownerRole?" · "+k.ownerRole:"")})));
-  if(src==="baohanh") return (state.bh_data||[]).map(r=>({id:String(r.id), label:(r.khach||"(khách)")+(r.serial?" · SN "+r.serial:"")+(r.loai?" · "+r.loai:"")}));
-  return [];
-}
-function tbTitleFromRef(src,refId){
-  if(src==="plan"){ const p=(state.plans||[]).find(x=>String(x.id)===String(refId)); return p?("Giao việc: "+(p.title||"")):""; }
-  if(src==="okr"){ for(const o of OBJECTIVES){ const k=(o.krs||[]).find(x=>String(x.id)===String(refId)); if(k) return "Giao việc (OKR): "+(k.text||""); } return ""; }
-  if(src==="baohanh"){ const r=(state.bh_data||[]).find(x=>String(x.id)===String(refId)); return r?("Bảo dưỡng/sửa: "+(r.khach||"")+(r.serial?" · SN "+r.serial:"")):""; }
-  return "";
-}
-function sendThongBao(){
-  const src=state.tb_source||"tuy";
-  let title=(state.tb_title||"").trim();
-  const ref=state.tb_ref||"";
-  if(src!=="tuy"){
-    if(!ref){ alert("Chọn mục cần giao (kế hoạch / OKR / bảo hành)."); return; }
-    if(!title) title=tbTitleFromRef(src,ref);
-  }
-  if(!title){ alert("Nhập tiêu đề thông báo."); return; }
-  const typeMap={plan:"giao_viec",okr:"giao_viec",baohanh:"baohanh",tuy:"nhac_viec"};
-  pushThongBao({title:title, body:(state.tb_body||"").trim(), type:(typeMap[src]||"nhac_viec"), source:src, ref:ref});
-  setState({showTbModal:false,showThongBao:true,tb_title:"",tb_body:"",tb_source:"plan",tb_ref:""});
-}
-function renderBell(){
-  const unread=tbUnread();
-  const list=state.thongbao||[];
-  const seen=tbSeen();
-  const isAdmin=state.user&&state.user.isAdmin;
-  return `<div class="tb-wrap">
-    <button class="btn-sm btn-ghost tb-bell" id="btnBell">🔔${unread>0?`<span class="tb-badge">${unread>9?"9+":unread}</span>`:""}</button>
-    ${state.showThongBao?`<div class="tb-panel" id="tbPanel">
-      <div class="tb-head"><span>🔔 Thông báo chung</span>
-        ${isAdmin?`<button class="tb-newbtn" id="btnTbNew">📢 Đăng</button>`:""}</div>
-      <div class="tb-list">
-        ${list.length===0?`<div class="tb-empty">Chưa có thông báo nào.</div>`:
-          list.map(n=>`<div class="tb-item${Number(n.ts||0)>seen?" tb-new":""}">
-            <div class="tb-item-top">
-              <b>${n.type==="giao_viec"?"📋 ":(n.type==="baohanh"?"🛠 ":"📢 ")}${tbEsc(n.title)}</b>
-              ${isAdmin?`<span class="tb-del" data-id="${tbEsc(n.id)}">✕</span>`:""}
-            </div>
-            ${n.body?`<div class="tb-body">${tbEsc(n.body)}</div>`:""}
-            <div class="tb-meta">${tbEsc(n.from||"")} · ${tbTimeAgo(n.ts)}</div>
-          </div>`).join("")}
-      </div>
-    </div>`:""}
-  </div>`;
-}
-function renderTbModal(){
-  const src=state.tb_source||"tuy";
-  const items = src!=="tuy" ? tbRefItems(src) : [];
-  const srcLabel={plan:"🗓 Từ Kế hoạch",okr:"📊 Từ OKR",baohanh:"🛠 Từ Bảo hành",tuy:"✍️ Tự ghi (việc khác)"};
-  const pick={plan:"kế hoạch",okr:"chỉ số OKR",baohanh:"hồ sơ bảo hành"};
-  return `<div class="modal-overlay" id="tbOverlay">
-    <div style="background:#fff;border-radius:14px;padding:20px;width:460px;max-width:94vw;max-height:88vh;overflow:auto">
-      <h3 style="margin:0 0 14px;color:#1A1A2E">📢 Đăng thông báo / giao việc</h3>
-      <div class="form-label">Nguồn giao việc</div>
-      <select id="tb_source" class="form-select" style="margin-bottom:10px">
-        ${["plan","okr","baohanh","tuy"].map(s=>`<option value="${s}"${src===s?" selected":""}>${srcLabel[s]}</option>`).join("")}
-      </select>
-      ${src!=="tuy"?`<div class="form-label">Chọn mục</div>
-        <select id="tb_ref" class="form-select" style="margin-bottom:10px">
-          <option value="">— Chọn ${pick[src]} —</option>
-          ${items.map(it=>`<option value="${tbEsc(it.id)}"${String(state.tb_ref)===String(it.id)?" selected":""}>${tbEsc(it.label)}</option>`).join("")}
-        </select>
-        ${items.length===0?`<div style="font-size:11px;color:#E67E22;margin:-4px 0 10px">Chưa có dữ liệu — mở tab tương ứng để nạp trước, rồi mở lại.</div>`:""}`:""}
-      <div class="form-label">Tiêu đề${src!=="tuy"?" (tự điền, sửa được)":" *"}</div>
-      <input id="tb_title" value="${tbEsc(state.tb_title||"")}" placeholder="VD: Họp giao ban 8h sáng" class="bh-inp" style="margin-bottom:10px"/>
-      <div class="form-label">Nội dung / ghi chú thêm</div>
-      <textarea id="tb_body" class="bh-inp" style="min-height:80px" placeholder="Chi tiết nhắc việc cho cả nhóm...">${tbEsc(state.tb_body||"")}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button class="btn-sm" id="btnTbCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
-        <button class="btn-sm btn-gold" id="btnTbSend" style="padding:8px 14px">Gửi thông báo</button>
-      </div>
-    </div>
-  </div>`;
-}
-// ============================================================
-// BẢO HÀNH — collection ql_baohanh (hồ sơ + sổ sửa chữa)
-// ============================================================
-async function loadBaoHanhData(){
-  try{
-    const snap=await qldb.collection("ql_baohanh").get();
-    const arr=[]; snap.forEach(d=>arr.push(d.data()));
-    arr.sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
-    state.bh_data=arr;
-    if(state.screen==="app") render();
-  }catch(e){ console.error("loadBaoHanhData",e); }
-}
-function bhFmt(s){ if(!s)return "—"; const p=String(s).split("-"); return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):s; }
-function bhEndDate(r){
-  if(!r.ngayban || !r.hanbh) return null;
-  const d=new Date(r.ngayban); if(isNaN(d.getTime())) return null;
-  d.setMonth(d.getMonth()+Number(r.hanbh||0));
-  return d;
-}
-function bhStatus(r){
-  const end=bhEndDate(r);
-  if(!end) return {key:"na",label:"—",color:"#888",bg:"#F1F1F1"};
-  const days=Math.floor((end.getTime()-new Date().setHours(0,0,0,0))/86400000);
-  if(days<0) return {key:"expired",label:"Hết hạn",color:"#E74C3C",bg:"#FDEDEC"};
-  if(days<=30) return {key:"soon",label:"Sắp hết ("+days+"n)",color:"#E67E22",bg:"#FEF9E7"};
-  return {key:"valid",label:"Còn BH",color:"#27AE60",bg:"#E8F8F0"};
-}
-function openBhAdd(){ setState({showBhModal:true,bh_edit:null,bh_khach:"",bh_sdt:"",bh_loai:"Piano cơ",bh_model:"",bh_serial:"",bh_ngayban:"",bh_hanbh:12,bh_ghichu:""}); }
-function openBhEdit(id){
-  const r=(state.bh_data||[]).find(x=>String(x.id)===String(id)); if(!r)return;
-  setState({showBhModal:true,bh_edit:r.id,bh_khach:r.khach||"",bh_sdt:r.sdt||"",bh_loai:r.loai||"Piano cơ",bh_model:r.model||"",bh_serial:r.serial||"",bh_ngayban:r.ngayban||"",bh_hanbh:r.hanbh||12,bh_ghichu:r.ghichu||""});
-}
-function openBhSvc(id){ setState({showBhSvcModal:true,bh_svc_for:id,bh_svc_date:new Date().toISOString().slice(0,10),bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:""}); }
-async function saveBaoHanh(){
-  const k=(state.bh_khach||"").trim();
-  if(!k){ alert("Nhập tên khách hàng."); return; }
-  const id = state.bh_edit ? String(state.bh_edit) : "bh_"+Date.now();
-  const ex=(state.bh_data||[]).find(x=>String(x.id)===id);
-  const rec={
-    id:id, khach:k, sdt:(state.bh_sdt||"").trim(),
-    loai:state.bh_loai||"", model:(state.bh_model||"").trim(), serial:(state.bh_serial||"").trim(),
-    ngayban:state.bh_ngayban||"", hanbh:Number(state.bh_hanbh)||0, ghichu:(state.bh_ghichu||"").trim(),
-    services: ex&&Array.isArray(ex.services)?ex.services:[],
-    ts: ex&&ex.ts?ex.ts:Date.now()
-  };
-  try{ await qldb.collection("ql_baohanh").doc(id).set(rec); }
-  catch(e){ console.error("saveBaoHanh",e); alert("Lưu lỗi — kiểm tra rule ql_baohanh đã Publish chưa."); return; }
-  setState({showBhModal:false,bh_edit:null});
-  loadBaoHanhData();
-}
-async function deleteBaoHanh(id){
-  if(!(state.user&&state.user.isAdmin)){ alert("Chỉ Quản trị mới xóa được hồ sơ."); return; }
-  if(!confirm("Xóa hồ sơ bảo hành này?"))return;
-  try{ await qldb.collection("ql_baohanh").doc(String(id)).delete(); }catch(e){ console.error(e); }
-  loadBaoHanhData();
-}
-async function saveBhService(){
-  const id=String(state.bh_svc_for||"");
-  const rec=(state.bh_data||[]).find(x=>String(x.id)===id);
-  if(!rec){ setState({showBhSvcModal:false}); return; }
-  const nd=(state.bh_svc_noidung||"").trim();
-  if(!nd){ alert("Nhập nội dung dịch vụ."); return; }
-  const services=Array.isArray(rec.services)?rec.services.slice():[];
-  services.unshift({ date:state.bh_svc_date||new Date().toISOString().slice(0,10), noidung:nd, chiphi:Number(state.bh_svc_chiphi)||0, kythuat:(state.bh_svc_kythuat||"").trim() });
-  try{ await qldb.collection("ql_baohanh").doc(id).update({services:services}); }
-  catch(e){ console.error(e); alert("Lưu dịch vụ lỗi."); return; }
-  setState({showBhSvcModal:false,bh_svc_for:null,bh_svc_date:"",bh_svc_noidung:"",bh_svc_chiphi:"",bh_svc_kythuat:""});
-  loadBaoHanhData();
-}
-function renderBaoHanh(){
-  const all=state.bh_data||[];
-  const q=(state.bh_search||"").trim().toLowerCase();
-  const counts={all:all.length,valid:0,soon:0,expired:0};
-  all.forEach(r=>{ const k=bhStatus(r).key; if(counts[k]!==undefined) counts[k]++; });
-  const list=all.filter(r=>{
-    if(state.bh_filter!=="all" && bhStatus(r).key!==state.bh_filter) return false;
-    if(!q) return true;
-    return [r.khach,r.sdt,r.serial,r.model].some(v=>String(v||"").toLowerCase().includes(q));
-  });
-  const fbtn=(f,lb)=>`<button class="btn-sm bh-filter" data-f="${f}" style="background:${state.bh_filter===f?'#1A1A2E':'#eee'};color:${state.bh_filter===f?'#fff':'#333'}">${lb}${counts[f]!==undefined?" ("+counts[f]+")":""}</button>`;
-  return `<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-    <button class="btn-sm btn-gold" id="btnBhAdd" style="padding:8px 12px">+ Thêm hồ sơ</button>
-    <input id="bh-search" placeholder="🔍 Tìm tên / SĐT / serial..." value="${tbEsc(state.bh_search||"")}" style="flex:1;min-width:180px;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:13px"/>
-  </div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-    ${fbtn("all","Tất cả")}${fbtn("valid","Còn hạn")}${fbtn("soon","Sắp hết")}${fbtn("expired","Hết hạn")}
-  </div>
-  ${list.length===0?`<div class="card" style="padding:24px;text-align:center;color:#999">Không có hồ sơ nào.</div>`:
-    list.map(r=>{
-      const st=bhStatus(r); const end=bhEndDate(r);
-      const svc=Array.isArray(r.services)?r.services:[];
-      return `<div class="card" style="padding:14px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div>
-            <div style="font-weight:800;font-size:15px;color:#1A1A2E">${tbEsc(r.khach||"—")}${r.sdt?` <span style="font-weight:500;color:#666;font-size:12px">· ${tbEsc(r.sdt)}</span>`:""}</div>
-            <div style="font-size:12px;color:#666;margin-top:2px">${tbEsc(r.loai||"")}${r.model?" · "+tbEsc(r.model):""}${r.serial?" · SN: "+tbEsc(r.serial):""}</div>
-          </div>
-          <span class="badge" style="background:${st.bg};color:${st.color};white-space:nowrap">${st.label}</span>
-        </div>
-        <div style="font-size:12px;color:#555;margin-top:8px;display:flex;flex-wrap:wrap;gap:14px">
-          <span>📅 Bán: <b>${bhFmt(r.ngayban)}</b></span>
-          <span>⏳ BH: <b>${r.hanbh?r.hanbh+" tháng":"—"}</b></span>
-          <span>🔚 Hết hạn: <b>${end?bhFmt(end.toISOString().slice(0,10)):"—"}</b></span>
-        </div>
-        ${r.ghichu?`<div style="font-size:12px;color:#777;margin-top:6px">📝 ${tbEsc(r.ghichu)}</div>`:""}
-        ${svc.length?`<div style="margin-top:10px;border-top:1px dashed #eee;padding-top:8px">
-          <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:4px">🗓 Lịch sử sửa chữa / bảo dưỡng</div>
-          ${svc.map(s=>`<div style="font-size:12px;color:#555;padding:3px 0;border-bottom:1px solid #f5f5f5">
-            <b>${bhFmt(s.date)}</b> — ${tbEsc(s.noidung||"")}${s.chiphi?" · "+Number(s.chiphi).toLocaleString("vi-VN")+"đ":""}${s.kythuat?" · KTV: "+tbEsc(s.kythuat):""}
-          </div>`).join("")}
-        </div>`:""}
-        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-sm bh-svc" data-id="${tbEsc(r.id)}" style="background:#EAF2FF;color:#1D4ED8">🗓 Thêm dịch vụ</button>
-          <button class="btn-sm bh-edit" data-id="${tbEsc(r.id)}" style="background:#eee;color:#333">✏️ Sửa</button>
-          ${state.user&&state.user.isAdmin?`<button class="btn-sm bh-del" data-id="${tbEsc(r.id)}" style="background:#FDEDEC;color:#E74C3C">🗑 Xóa</button>`:""}
-        </div>
-      </div>`;
-    }).join("")}`;
-}
-function renderBhModal(){
-  const loais=["Piano cơ","Piano điện","Guitar","Organ","Violin","Trống","Khác"];
-  return `<div class="modal-overlay" id="bhOverlay">
-    <div style="background:#fff;border-radius:14px;padding:20px;width:480px;max-width:94vw;max-height:88vh;overflow:auto">
-      <h3 style="margin:0 0 14px;color:#1A1A2E">${state.bh_edit?"✏️ Sửa hồ sơ bảo hành":"🛠 Thêm hồ sơ bảo hành"}</h3>
-      <div style="display:flex;flex-wrap:wrap;gap:10px">
-        <div style="flex:1;min-width:180px"><div class="form-label">Tên khách *</div><input id="bh_khach" value="${tbEsc(state.bh_khach||"")}" class="bh-inp"/></div>
-        <div style="flex:1;min-width:140px"><div class="form-label">SĐT</div><input id="bh_sdt" value="${tbEsc(state.bh_sdt||"")}" class="bh-inp"/></div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
-        <div style="flex:1;min-width:140px"><div class="form-label">Loại đàn</div>
-          <select id="bh_loai" class="form-select">${loais.map(l=>`<option${state.bh_loai===l?" selected":""}>${l}</option>`).join("")}</select></div>
-        <div style="flex:1;min-width:140px"><div class="form-label">Model</div><input id="bh_model" value="${tbEsc(state.bh_model||"")}" class="bh-inp"/></div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
-        <div style="flex:1;min-width:140px"><div class="form-label">Serial / SN</div><input id="bh_serial" value="${tbEsc(state.bh_serial||"")}" class="bh-inp"/></div>
-        <div style="flex:1;min-width:120px"><div class="form-label">Ngày bán</div><input id="bh_ngayban" type="date" value="${tbEsc(state.bh_ngayban||"")}" class="bh-inp"/></div>
-        <div style="flex:1;min-width:100px"><div class="form-label">Hạn BH (tháng)</div><input id="bh_hanbh" type="number" value="${tbEsc(String(state.bh_hanbh||""))}" class="bh-inp"/></div>
-      </div>
-      <div style="margin-top:10px"><div class="form-label">Ghi chú</div><textarea id="bh_ghichu" class="bh-inp" style="min-height:60px">${tbEsc(state.bh_ghichu||"")}</textarea></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button class="btn-sm" id="btnBhCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
-        <button class="btn-sm btn-gold" id="btnBhSave" style="padding:8px 14px">Lưu hồ sơ</button>
-      </div>
-    </div>
-  </div>`;
-}
-function renderBhSvcModal(){
-  const r=(state.bh_data||[]).find(x=>String(x.id)===String(state.bh_svc_for));
-  return `<div class="modal-overlay" id="bhSvcOverlay">
-    <div style="background:#fff;border-radius:14px;padding:20px;width:420px;max-width:94vw">
-      <h3 style="margin:0 0 4px;color:#1A1A2E">🗓 Thêm dịch vụ / bảo dưỡng</h3>
-      <div style="font-size:12px;color:#888;margin-bottom:12px">${r?tbEsc(r.khach||""):""}${r&&r.serial?" · SN "+tbEsc(r.serial):""}</div>
-      <div class="form-label">Ngày</div><input id="bh_svc_date" type="date" value="${tbEsc(state.bh_svc_date||"")}" class="bh-inp" style="margin-bottom:10px"/>
-      <div class="form-label">Nội dung *</div><textarea id="bh_svc_noidung" class="bh-inp" style="min-height:60px;margin-bottom:10px">${tbEsc(state.bh_svc_noidung||"")}</textarea>
-      <div style="display:flex;gap:10px">
-        <div style="flex:1"><div class="form-label">Chi phí (đ)</div><input id="bh_svc_chiphi" type="number" value="${tbEsc(String(state.bh_svc_chiphi||""))}" class="bh-inp"/></div>
-        <div style="flex:1"><div class="form-label">Kỹ thuật viên</div><input id="bh_svc_kythuat" value="${tbEsc(state.bh_svc_kythuat||"")}" class="bh-inp"/></div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-        <button class="btn-sm" id="btnBhSvcCancel" style="background:#eee;color:#333;padding:8px 14px">Hủy</button>
-        <button class="btn-sm btn-gold" id="btnBhSvcSave" style="padding:8px 14px">Lưu dịch vụ</button>
-      </div>
-    </div>
-  </div>`;
-}
 function attachEvents(){
   // LOGIN
   document.getElementById("inp-u")?.addEventListener("input",e=>state.uname=e.target.value);
@@ -2698,44 +2498,6 @@ function attachEvents(){
   document.getElementById("inp-p")?.addEventListener("keydown",e=>e.key==="Enter"&&doLogin());
   document.getElementById("btn-login")?.addEventListener("click",doLogin);
   document.getElementById("btnLogout")?.addEventListener("click",logout);
-  // Thông báo chung
-  document.getElementById("btnBell")?.addEventListener("click",e=>{e.stopPropagation();toggleThongBao();});
-  document.getElementById("btnTbNew")?.addEventListener("click",()=>{
-    setState({showTbModal:true,showThongBao:false,tb_source:"plan",tb_ref:"",tb_title:"",tb_body:""});
-    try{ loadPlansFromSheets(); }catch(e){}
-    try{ loadBaoHanhData(); }catch(e){}
-    try{ loadObjectivesFromSheets(); }catch(e){}
-  });
-  document.getElementById("tb_source")?.addEventListener("change",e=>setState({tb_source:e.target.value,tb_ref:"",tb_title:""}));
-  document.getElementById("tb_ref")?.addEventListener("change",e=>setState({tb_ref:e.target.value,tb_title:tbTitleFromRef(state.tb_source,e.target.value)}));
-  document.querySelectorAll(".tb-del").forEach(b=>b.addEventListener("click",()=>deleteThongBao(b.dataset.id)));
-  document.getElementById("btnTbCancel")?.addEventListener("click",()=>setState({showTbModal:false}));
-  document.getElementById("tbOverlay")?.addEventListener("click",e=>{if(e.target.id==="tbOverlay")setState({showTbModal:false});});
-  document.getElementById("btnTbSend")?.addEventListener("click",sendThongBao);
-  document.getElementById("tb_title")?.addEventListener("input",e=>state.tb_title=e.target.value);
-  document.getElementById("tb_body")?.addEventListener("input",e=>state.tb_body=e.target.value);
-  // Bảo hành
-  document.getElementById("btnBhAdd")?.addEventListener("click",openBhAdd);
-  document.getElementById("bh-search")?.addEventListener("input",e=>{
-    const v=e.target.value; const pos=e.target.selectionStart;
-    setState({bh_search:v});
-    const el=document.getElementById("bh-search");
-    if(el){ el.focus(); try{el.setSelectionRange(pos,pos);}catch(_){} }
-  });
-  document.querySelectorAll(".bh-filter").forEach(b=>b.addEventListener("click",()=>setState({bh_filter:b.dataset.f})));
-  document.querySelectorAll(".bh-edit").forEach(b=>b.addEventListener("click",()=>openBhEdit(b.dataset.id)));
-  document.querySelectorAll(".bh-del").forEach(b=>b.addEventListener("click",()=>deleteBaoHanh(b.dataset.id)));
-  document.querySelectorAll(".bh-svc").forEach(b=>b.addEventListener("click",()=>openBhSvc(b.dataset.id)));
-  document.getElementById("btnBhCancel")?.addEventListener("click",()=>setState({showBhModal:false,bh_edit:null}));
-  document.getElementById("bhOverlay")?.addEventListener("click",e=>{if(e.target.id==="bhOverlay")setState({showBhModal:false,bh_edit:null});});
-  document.getElementById("btnBhSave")?.addEventListener("click",saveBaoHanh);
-  ["khach","sdt","model","serial","ngayban","ghichu"].forEach(f=>document.getElementById("bh_"+f)?.addEventListener("input",e=>state["bh_"+f]=e.target.value));
-  document.getElementById("bh_loai")?.addEventListener("change",e=>state.bh_loai=e.target.value);
-  document.getElementById("bh_hanbh")?.addEventListener("input",e=>state.bh_hanbh=e.target.value);
-  document.getElementById("btnBhSvcCancel")?.addEventListener("click",()=>setState({showBhSvcModal:false}));
-  document.getElementById("bhSvcOverlay")?.addEventListener("click",e=>{if(e.target.id==="bhSvcOverlay")setState({showBhSvcModal:false});});
-  document.getElementById("btnBhSvcSave")?.addEventListener("click",saveBhService);
-  ["date","noidung","chiphi","kythuat"].forEach(f=>document.getElementById("bh_svc_"+f)?.addEventListener("input",e=>state["bh_svc_"+f]=e.target.value));
   // Làm mới tab hiện tại + thu gọn OKR
   document.getElementById("btnRefreshTab")?.addEventListener("click",refreshCurrentTab);
   document.getElementById("btnMigrateFB")?.addEventListener("click",migrateOKRToFirebase);
@@ -2766,7 +2528,8 @@ function attachEvents(){
     if(b.dataset.tab==="luong"){ loadLuongFromSheets(state.month); }
     if(b.dataset.tab==="plan"){ loadPlansFromSheets(); }
     if(b.dataset.tab==="lotrinh"){ loadLoTrinhFromSheets(); }
-    if(b.dataset.tab==="baohanh"){ loadBaoHanhData(); }
+    if(b.dataset.tab==="baohanh"){ loadBaoHanh(); }
+    if(b.dataset.tab==="chamcong"){ loadChamCong(); }
   }));
 
   // OKR
@@ -2921,6 +2684,259 @@ function attachEvents(){
   // Tải sẵn danh sách tài khoản từ Sheets để giáo viên đăng nhập được ngay trên máy mới
   try{ loadUsersFromSheets().catch(()=>{}); }catch(e){}
 })();
+
+/* ============================================================
+   MODULE: CHẤM CÔNG & BẢNG LƯƠNG (Mẫu 02-LĐTL) — ql_chamcong
+   ============================================================ */
+const CC_BOPHAN=["BP Dạy học","BP Quản lý"];
+const CC_STATUS={X:{lb:"X",bg:"#2E7D32",fg:"#fff",cong:1},N:{lb:"",bg:"#F3F4F6",fg:"#999",cong:0},NT:{lb:"NT",bg:"#29B6F6",fg:"#fff",cong:0},P:{lb:"P",bg:"#FFB300",fg:"#fff",cong:0}};
+const CC_CYCLE=["X","N","NT","P"];
+function ccDaysInMonth(ym){const p=ym.split("-").map(Number);return new Date(p[0],p[1],0).getDate();}
+function ccPrevYM(ym){let p=ym.split("-").map(Number);p[1]--;if(p[1]<1){p[1]=12;p[0]--;}return p[0]+"-"+String(p[1]).padStart(2,"0");}
+function ccNextYM(ym){let p=ym.split("-").map(Number);p[1]++;if(p[1]>12){p[1]=1;p[0]++;}return p[0]+"-"+String(p[1]).padStart(2,"0");}
+function ccMonthLabel(ym){const p=ym.split("-");return "Tháng "+String(Number(p[1])).padStart(2,"0")+" năm "+p[0];}
+function ccMoney(n){return (Math.round(Number(n)||0)).toLocaleString("vi-VN");}
+function ccRound1k(n){return Math.round((Number(n)||0)/1000)*1000;}
+function ccDow(ym,day){const p=ym.split("-").map(Number);return new Date(p[0],p[1]-1,day).getDay();} // 0=CN
+function ccDefaultDays(ym){const nd=ccDaysInMonth(ym),o={};for(let d=1;d<=nd;d++)o[d]=(ccDow(ym,d)===0)?"N":"X";return o;}
+function ccDoc(ym){ym=ym||state.ccYM;return state.ccData[ym]||{month:ym,rows:[]};}
+function ccNgayCong(row){let c=0;const days=row.days||{};for(const k in days){if((CC_STATUS[days[k]]||{}).cong)c++;}return c;}
+function ccUID(){return "e"+Date.now()+Math.floor(Math.random()*900+100);}
+
+async function loadChamCong(ym,showToast){
+  ym=ym||state.ccYM;
+  try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
+    const d=await qldb.collection("ql_chamcong").doc(ym).get();
+    state.ccData[ym]=d.exists?d.data():{month:ym,rows:[]};
+    if(state.tab==="chamcong"&&!state.showCCEmp) render();
+    if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
+  }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadChamCong",e); }
+}
+async function ccSave(ym){
+  ym=ym||state.ccYM; const doc=ccDoc(ym); doc.month=ym; state.ccData[ym]=doc;
+  try{ await qldb.collection("ql_chamcong").doc(ym).set(JSON.parse(JSON.stringify(doc))); }
+  catch(e){ console.error("ccSave",e); alert("Lỗi lưu chấm công: "+e.message); }
+}
+
+/* ---------- RENDER: khung + chuyển view + điều hướng tháng ---------- */
+function renderChamCong(){
+  const ym=state.ccYM;
+  if(!state.ccData[ym]){ loadChamCong(ym); return `<div style="padding:24px;text-align:center;color:#999">Đang tải chấm công…</div>`; }
+  const v=state.ccView||"cham";
+  const tb=(id,label)=>`<button class="btn-sm" style="background:${v===id?'#0F3460':'#EEF1F8'};color:${v===id?'#fff':'#0F3460'};font-weight:700;font-size:12px;padding:7px 14px" onclick="ccSetView('${id}')">${label}</button>`;
+  return `
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    ${tb("cham","🕒 Chấm công")} ${tb("luong","💵 Bảng lương")}
+    <div style="flex:1"></div>
+    <button class="btn-sm" style="background:#EEF1F8;color:#0F3460;font-weight:700;padding:7px 10px" onclick="ccGoMonth(-1)">◀</button>
+    <div style="font-weight:800;color:#0F3460;min-width:150px;text-align:center">${ccMonthLabel(ym)}</div>
+    <button class="btn-sm" style="background:#EEF1F8;color:#0F3460;font-weight:700;padding:7px 10px" onclick="ccGoMonth(1)">▶</button>
+    <button class="btn-sm btn-gold" style="font-size:11px;padding:6px 10px" onclick="loadChamCong(state.ccYM,true)">🔄</button>
+  </div>
+  ${v==="cham"?renderCCcham():renderCCluong()}`;
+}
+
+/* ---------- VIEW 1: BẢNG CHẤM CÔNG (lưới) ---------- */
+function renderCCcham(){
+  const ym=state.ccYM, doc=ccDoc(ym), rows=doc.rows||[], nd=ccDaysInMonth(ym);
+  const head=[];for(let d=1;d<=nd;d++){const cn=ccDow(ym,d)===0;head.push(`<th style="min-width:22px;padding:4px 2px;font-size:10px;background:${cn?'#E3F2FD':'#0F3460'};color:${cn?'#0F3460':'#fff'}">${d}</th>`);}
+  const dayTot=[];for(let d=1;d<=nd;d++){let c=0;rows.forEach(r=>{if((CC_STATUS[(r.days||{})[d]]||{}).cong)c++;});dayTot.push(c);}
+  const grand=rows.reduce((s,r)=>s+ccNgayCong(r),0);
+  const cell=(r,d)=>{const st=(r.days||{})[d]||"N",c=CC_STATUS[st]||CC_STATUS.N;return `<td onclick="ccToggleDay('${r.id}',${d})" style="cursor:pointer;text-align:center;font-size:10px;font-weight:700;padding:5px 2px;background:${c.bg};color:${c.fg};border:1px solid #fff">${c.lb}</td>`;};
+  const body=rows.length?rows.map((r,i)=>`<tr>
+      <td style="padding:5px 6px;text-align:center;background:#fff">${i+1}</td>
+      <td style="padding:5px 8px;white-space:nowrap;background:#fff;font-weight:600">${r.name||""}</td>
+      <td style="padding:5px 8px;white-space:nowrap;background:#fff;color:#666;font-size:11px">${r.chucvu||""}</td>
+      ${Array.from({length:nd},(_,k)=>cell(r,k+1)).join("")}
+      <td style="padding:5px 6px;text-align:center;background:#FFF9E6;font-weight:800;color:#0F3460">${ccNgayCong(r)}</td>
+      <td style="padding:5px 6px;text-align:center;background:#fff"><button onclick="ccFillRow('${r.id}')" title="Điền X (T2–T7)" style="border:none;background:#E8F5E9;color:#2E7D32;border-radius:5px;cursor:pointer;font-size:11px;padding:3px 6px">✓đủ</button> <button onclick="ccDelEmp('${r.id}')" style="border:none;background:#FFEBEE;color:#E53935;border-radius:5px;cursor:pointer;font-size:11px;padding:3px 6px">✕</button></td>
+    </tr>`).join(""):`<tr><td colspan="${nd+5}" style="padding:24px;text-align:center;color:#999;background:#fff">Chưa có nhân viên. Bấm <b>➕ Thêm nhân viên</b> hoặc <b>📋 Copy tháng trước</b>.</td></tr>`;
+  return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+    <button class="btn-success" style="font-size:12px;padding:7px 12px" onclick="ccOpenEmp('')">➕ Thêm nhân viên</button>
+    <button class="btn-sm" style="background:#0F3460;color:#fff;font-size:12px;padding:7px 12px" onclick="ccCopyPrev()">📋 Copy tháng trước</button>
+    <div style="flex:1"></div>
+    <div style="font-size:11px;color:#666;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="background:#2E7D32;color:#fff;padding:2px 7px;border-radius:4px">X đi làm</span>
+      <span style="background:#F3F4F6;color:#999;padding:2px 7px;border-radius:4px;border:1px solid #ddd">trống nghỉ</span>
+      <span style="background:#29B6F6;color:#fff;padding:2px 7px;border-radius:4px">NT nghỉ lễ</span>
+      <span style="background:#FFB300;color:#fff;padding:2px 7px;border-radius:4px">P phép</span>
+      <i>(bấm ô để đổi)</i>
+    </div>
+  </div>
+  <div style="overflow-x:auto;border:1px solid #E5E7EB;border-radius:10px">
+    <table style="border-collapse:collapse;width:100%;font-size:12px">
+      <thead><tr>
+        <th style="padding:6px;background:#0F3460;color:#fff">STT</th>
+        <th style="padding:6px;background:#0F3460;color:#fff;text-align:left">Họ và tên</th>
+        <th style="padding:6px;background:#0F3460;color:#fff;text-align:left">Chức vụ</th>
+        ${head.join("")}
+        <th style="padding:6px;background:#D4AF37;color:#1A1A2E">Công</th>
+        <th style="padding:6px;background:#0F3460;color:#fff"></th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr>
+        <td colspan="3" style="padding:6px 8px;text-align:right;font-weight:800;background:#EEF1F8;color:#0F3460">TỔNG</td>
+        ${dayTot.map(c=>`<td style="text-align:center;font-weight:700;font-size:10px;padding:5px 2px;background:#EEF1F8;color:${c?'#0F3460':'#bbb'}">${c}</td>`).join("")}
+        <td style="text-align:center;font-weight:900;background:#D4AF37;color:#1A1A2E">${grand}</td>
+        <td style="background:#EEF1F8"></td>
+      </tr></tfoot>
+    </table>
+  </div>
+  <div style="font-size:11px;color:#999;margin-top:8px">Ngày công = số ô <b>X</b>. Chủ nhật tô xanh nhạt (mặc định nghỉ). Nút <b>✓đủ</b> điền X cả tháng trừ Chủ nhật.</div>`;
+}
+
+/* ---------- VIEW 2: BẢNG LƯƠNG (Mẫu 02-LĐTL) ---------- */
+function ccCalcRow(r){
+  const cong=ccNgayCong(r);
+  const cb=Number(r.luongcb)||0;
+  const tt=cb; // Lương thực tế = Lương cơ bản (giữ nguyên theo bảng của Thầy)
+  const bhxh=tt*0.08, bhyt=tt*0.015, bhtn=tt*0.01;
+  const thue=Number(r.thue)||0;
+  const congkt=bhxh+bhyt+bhtn+thue;
+  const linh=ccRound1k(tt-congkt);
+  return {cong,cb,tt,bhxh,bhyt,bhtn,thue,congkt,linh};
+}
+function renderCCluong(){
+  const ym=state.ccYM, doc=ccDoc(ym), rows=doc.rows||[];
+  if(!rows.length) return `<div style="padding:24px;text-align:center;color:#999;border:1px solid #E5E7EB;border-radius:10px">Chưa có dữ liệu. Sang tab <b>🕒 Chấm công</b> để thêm nhân viên trước.</div>`;
+  const groups={}; CC_BOPHAN.forEach(b=>groups[b]=[]);
+  rows.forEach(r=>{const b=r.bophan||"BP Quản lý"; (groups[b]=groups[b]||[]).push(r);});
+  const th=(t,w)=>`<th style="padding:6px 5px;background:#0F3460;color:#fff;font-size:11px;${w||''}">${t}</th>`;
+  const num=n=>`<td style="text-align:right;padding:5px 6px;font-size:12px">${n?ccMoney(n):'<span style=color:#bbb>-</span>'}</td>`;
+  let stt=0, gr={cb:0,tt:0,bhxh:0,bhyt:0,bhtn:0,thue:0,congkt:0,linh:0,cong:0};
+  let bodies="";
+  Object.keys(groups).forEach(bp=>{
+    const grp=groups[bp]; if(!grp.length) return;
+    const sub={cb:0,tt:0,bhxh:0,bhyt:0,bhtn:0,thue:0,congkt:0,linh:0,cong:0};
+    const trs=grp.map(r=>{const c=ccCalcRow(r); ["cb","tt","bhxh","bhyt","bhtn","thue","congkt","linh","cong"].forEach(k=>{sub[k]+=c[k];gr[k]+=c[k];}); stt++;
+      return `<tr>
+        <td style="text-align:center;padding:5px">${String(stt).padStart(2,"0")}</td>
+        <td style="padding:5px 8px;white-space:nowrap;font-weight:600">${r.name||""}</td>
+        <td style="padding:5px 8px;white-space:nowrap;color:#666;font-size:11px">${r.chucvu||""}</td>
+        <td style="text-align:center;padding:5px;font-weight:700;color:#0F3460">${c.cong}</td>
+        <td style="text-align:right;padding:3px 4px"><input value="${ccMoney(c.cb)}" onchange="ccSetCB('${r.id}',this.value)" style="width:88px;text-align:right;border:1px solid #E5E7EB;border-radius:5px;padding:3px 5px;font-size:12px"/></td>
+        ${num(c.tt)}${num(c.bhxh)}${num(c.bhyt)}${num(c.bhtn)}
+        <td style="text-align:right;padding:3px 4px"><input value="${c.thue?ccMoney(c.thue):''}" placeholder="-" onchange="ccSetThue('${r.id}',this.value)" style="width:70px;text-align:right;border:1px solid #E5E7EB;border-radius:5px;padding:3px 5px;font-size:12px"/></td>
+        ${num(c.congkt)}
+        <td style="text-align:right;padding:5px 6px;font-weight:800;color:#1B5E20">${ccMoney(c.linh)}</td>
+      </tr>`;}).join("");
+    bodies+=`<tr style="background:#8BC34A;color:#1A1A2E;font-weight:800">
+        <td colspan="3" style="padding:6px 8px">${bp.toUpperCase()}</td>
+        <td style="text-align:center;padding:6px">${sub.cong}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.cb)}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.tt)}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.bhxh)}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.bhyt)}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.bhtn)}</td>
+        <td style="text-align:right;padding:6px">${sub.thue?ccMoney(sub.thue):'-'}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.congkt)}</td>
+        <td style="text-align:right;padding:6px">${ccMoney(sub.linh)}</td>
+      </tr>${trs}`;
+  });
+  return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <div style="font-weight:800;color:#0F3460">BẢNG THANH TOÁN TIỀN LƯƠNG — ${ccMonthLabel(ym)}</div>
+    <div style="flex:1"></div>
+    <button class="btn-sm" style="background:#0F3460;color:#fff;font-size:12px;padding:7px 12px" onclick="ccPrintLuong()">🖨 In / Xuất</button>
+  </div>
+  <div style="overflow-x:auto;border:1px solid #E5E7EB;border-radius:10px">
+    <table style="border-collapse:collapse;width:100%;min-width:820px;font-size:12px">
+      <thead><tr>
+        ${th("STT")}${th("Họ và tên","text-align:left")}${th("Chức vụ","text-align:left")}${th("Ngày công")}${th("Lương cơ bản")}${th("Lương thực tế")}${th("BHXH 8%")}${th("BHYT 1,5%")}${th("BHTN 1%")}${th("Thuế TNCN")}${th("Cộng khấu trừ")}${th("Thực lĩnh")}
+      </tr></thead>
+      <tbody>${bodies}</tbody>
+      <tfoot><tr style="background:#D4AF37;color:#1A1A2E;font-weight:900">
+        <td colspan="3" style="padding:7px 8px;text-align:right">TỔNG CỘNG</td>
+        <td style="text-align:center;padding:7px">${gr.cong}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.cb)}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.tt)}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.bhxh)}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.bhyt)}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.bhtn)}</td>
+        <td style="text-align:right;padding:7px">${gr.thue?ccMoney(gr.thue):'-'}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.congkt)}</td>
+        <td style="text-align:right;padding:7px">${ccMoney(gr.linh)}</td>
+      </tr></tfoot>
+    </table>
+  </div>
+  <div style="font-size:11px;color:#999;margin-top:8px">Sửa <b>Lương cơ bản</b> và <b>Thuế TNCN</b> trực tiếp trên bảng (tự lưu). BHXH/BHYT/BHTN và Thực lĩnh tự tính. Ngày công lấy từ tab Chấm công.</div>`;
+}
+
+/* ---------- MODAL: thêm/sửa nhân viên ---------- */
+function renderCCEmpModal(){
+  const opts=CC_BOPHAN.map(b=>`<option value="${b}" ${state.cc_e_bophan===b?'selected':''}>${b}</option>`).join("");
+  return `<div class="modal-bg" onclick="if(event.target===this)ccCloseEmp()">
+    <div class="modal" style="max-width:420px">
+      <h3 style="margin:0 0 14px">${state.cc_e_id?'✏️ Sửa nhân viên':'➕ Thêm nhân viên'}</h3>
+      <label style="font-size:12px;font-weight:700;color:#555">Họ và tên</label>
+      <input id="cceName" value="${(state.cc_e_name||'').replace(/"/g,'&quot;')}" style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin:4px 0 10px"/>
+      <label style="font-size:12px;font-weight:700;color:#555">Chức vụ</label>
+      <input id="cceChucvu" value="${(state.cc_e_chucvu||'').replace(/"/g,'&quot;')}" placeholder="VD: Giáo viên, NV hành chính…" style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin:4px 0 10px"/>
+      <label style="font-size:12px;font-weight:700;color:#555">Bộ phận</label>
+      <select id="cceBophan" style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin:4px 0 10px">${opts}</select>
+      <label style="font-size:12px;font-weight:700;color:#555">Lương cơ bản (₫)</label>
+      <input id="cceLuong" value="${ccMoney(state.cc_e_luongcb||0)}" style="width:100%;border:2px solid #E5E7EB;border-radius:8px;padding:8px 10px;margin:4px 0 14px;text-align:right"/>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-sm" style="background:#EEF1F8;color:#333;padding:8px 16px" onclick="ccCloseEmp()">Hủy</button>
+        <button class="btn-success" style="padding:8px 18px" onclick="ccSaveEmp()">Lưu</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- WINDOW HANDLERS ---------- */
+window.ccSetView=function(v){setState({ccView:v});};
+window.ccGoMonth=function(dir){const ym=dir>0?ccNextYM(state.ccYM):ccPrevYM(state.ccYM);state.ccYM=ym;if(!state.ccData[ym]){loadChamCong(ym);}render();};
+window.ccToggleDay=function(id,d){const doc=ccDoc(state.ccYM);const r=(doc.rows||[]).find(x=>x.id===id);if(!r)return;r.days=r.days||{};const cur=r.days[d]||"N";const i=CC_CYCLE.indexOf(cur);r.days[d]=CC_CYCLE[(i+1)%CC_CYCLE.length];state.ccData[state.ccYM]=doc;render();ccSave(state.ccYM);};
+window.ccFillRow=function(id){const ym=state.ccYM,doc=ccDoc(ym),r=(doc.rows||[]).find(x=>x.id===id);if(!r)return;r.days=ccDefaultDays(ym);state.ccData[ym]=doc;render();ccSave(ym);};
+window.ccOpenEmp=function(id){const doc=ccDoc(state.ccYM);const r=id?(doc.rows||[]).find(x=>x.id===id):null;setState({showCCEmp:true,cc_e_id:id||null,cc_e_name:r?r.name:"",cc_e_chucvu:r?r.chucvu:"",cc_e_bophan:r?(r.bophan||"BP Dạy học"):"BP Dạy học",cc_e_luongcb:r?r.luongcb:4730000});};
+window.ccCloseEmp=function(){setState({showCCEmp:false,cc_e_id:null});};
+window.ccSaveEmp=function(){
+  const name=(document.getElementById("cceName").value||"").trim();
+  const chucvu=(document.getElementById("cceChucvu").value||"").trim();
+  const bophan=document.getElementById("cceBophan").value;
+  const luongcb=Number((document.getElementById("cceLuong").value||"").replace(/[^\d]/g,""))||0;
+  if(!name){alert("Nhập họ tên");return;}
+  const ym=state.ccYM,doc=ccDoc(ym);doc.rows=doc.rows||[];
+  if(state.cc_e_id){const r=doc.rows.find(x=>x.id===state.cc_e_id);if(r){r.name=name;r.chucvu=chucvu;r.bophan=bophan;r.luongcb=luongcb;}}
+  else{doc.rows.push({id:ccUID(),name,chucvu,bophan,luongcb,thue:0,days:ccDefaultDays(ym)});}
+  state.ccData[ym]=doc;setState({showCCEmp:false,cc_e_id:null});ccSave(ym);
+};
+window.ccDelEmp=function(id){const doc=ccDoc(state.ccYM);const r=(doc.rows||[]).find(x=>x.id===id);if(!confirm("Xóa nhân viên "+((r&&r.name)||"")+" khỏi tháng này?"))return;doc.rows=(doc.rows||[]).filter(x=>x.id!==id);state.ccData[state.ccYM]=doc;render();ccSave(state.ccYM);};
+window.ccSetCB=function(id,val){const doc=ccDoc(state.ccYM);const r=(doc.rows||[]).find(x=>x.id===id);if(!r)return;r.luongcb=Number(String(val).replace(/[^\d]/g,""))||0;state.ccData[state.ccYM]=doc;render();ccSave(state.ccYM);};
+window.ccSetThue=function(id,val){const doc=ccDoc(state.ccYM);const r=(doc.rows||[]).find(x=>x.id===id);if(!r)return;r.thue=Number(String(val).replace(/[^\d]/g,""))||0;state.ccData[state.ccYM]=doc;render();ccSave(state.ccYM);};
+window.ccCopyPrev=function(){
+  const ym=state.ccYM,prev=ccPrevYM(ym);
+  const go=(prevDoc)=>{const rows=(prevDoc&&prevDoc.rows)||[];if(!rows.length){alert("Tháng trước ("+ccMonthLabel(prev)+") chưa có dữ liệu.");return;}
+    if((ccDoc(ym).rows||[]).length && !confirm("Tháng này đã có dữ liệu. Ghi đè bằng danh sách nhân viên tháng trước?"))return;
+    const doc={month:ym,rows:rows.map(r=>({id:ccUID(),name:r.name,chucvu:r.chucvu,bophan:r.bophan,luongcb:r.luongcb,thue:0,days:ccDefaultDays(ym)}))};
+    state.ccData[ym]=doc;render();ccSave(ym);};
+  if(state.ccData[prev]){go(state.ccData[prev]);}
+  else{qldb.collection("ql_chamcong").doc(prev).get().then(d=>{state.ccData[prev]=d.exists?d.data():{month:prev,rows:[]};go(state.ccData[prev]);}).catch(e=>alert("Lỗi tải tháng trước: "+e.message));}
+};
+window.ccPrintLuong=function(){
+  const ym=state.ccYM,doc=ccDoc(ym),rows=doc.rows||[];
+  const groups={};CC_BOPHAN.forEach(b=>groups[b]=[]);rows.forEach(r=>{(groups[r.bophan||"BP Quản lý"]=groups[r.bophan||"BP Quản lý"]||[]).push(r);});
+  let stt=0,gr={cb:0,tt:0,bhxh:0,bhyt:0,bhtn:0,thue:0,congkt:0,linh:0,cong:0},body="";
+  const m=n=>n?ccMoney(n):"-";
+  Object.keys(groups).forEach(bp=>{const grp=groups[bp];if(!grp.length)return;const sub={cb:0,tt:0,bhxh:0,bhyt:0,bhtn:0,thue:0,congkt:0,linh:0,cong:0};
+    let tr="";grp.forEach(r=>{const c=ccCalcRow(r);["cb","tt","bhxh","bhyt","bhtn","thue","congkt","linh","cong"].forEach(k=>{sub[k]+=c[k];gr[k]+=c[k];});stt++;
+      tr+=`<tr><td class=c>${String(stt).padStart(2,"0")}</td><td>${r.name||""}</td><td>${r.chucvu||""}</td><td class=c>${c.cong}</td><td class=r>${ccMoney(c.cb)}</td><td class=r>${ccMoney(c.tt)}</td><td class=r>${ccMoney(c.bhxh)}</td><td class=r>${ccMoney(c.bhyt)}</td><td class=r>${ccMoney(c.bhtn)}</td><td class=r>${m(c.thue)}</td><td class=r>${ccMoney(c.congkt)}</td><td class=r>${ccMoney(c.linh)}</td></tr>`;});
+    body+=`<tr class=g><td colspan=3>${bp.toUpperCase()}</td><td class=c>${sub.cong}</td><td class=r>${ccMoney(sub.cb)}</td><td class=r>${ccMoney(sub.tt)}</td><td class=r>${ccMoney(sub.bhxh)}</td><td class=r>${ccMoney(sub.bhyt)}</td><td class=r>${ccMoney(sub.bhtn)}</td><td class=r>${m(sub.thue)}</td><td class=r>${ccMoney(sub.congkt)}</td><td class=r>${ccMoney(sub.linh)}</td></tr>`+tr;});
+  const html=`<html><head><meta charset=utf-8><title>Bảng lương ${ccMonthLabel(ym)}</title>
+    <style>body{font-family:'Times New Roman',serif;padding:24px;color:#000}h2,h3,p{text-align:center;margin:2px}table{border-collapse:collapse;width:100%;font-size:13px;margin-top:12px}th,td{border:1px solid #333;padding:4px 6px}th{background:#eee}.c{text-align:center}.r{text-align:right}.g{background:#c8e6a0;font-weight:bold}tfoot td{background:#f4d03f;font-weight:bold}
+    .sign{display:flex;justify-content:space-around;margin-top:40px;font-style:italic}</style></head><body>
+    <p style="text-align:left;font-size:12px">CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN<br>Số 424 đường Bà Triệu, Phường Hạc Thành, Tỉnh Thanh Hoá</p>
+    <p style="text-align:right;font-style:italic;font-size:12px">Mẫu số: 02-LĐTL</p>
+    <h2>BẢNG THANH TOÁN TIỀN LƯƠNG</h2><h3><i>${ccMonthLabel(ym)}</i></h3><p style="text-align:right;font-style:italic">Đơn vị tính: Việt Nam Đồng</p>
+    <table><thead><tr><th>STT</th><th>Họ và tên</th><th>Chức vụ</th><th>Ngày công</th><th>Lương cơ bản</th><th>Lương thực tế</th><th>BHXH 8%</th><th>BHYT 1,5%</th><th>BHTN 1%</th><th>Thuế TNCN</th><th>Cộng</th><th>Thực lĩnh</th></tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><td colspan=3 class=r>TỔNG CỘNG</td><td class=c>${gr.cong}</td><td class=r>${ccMoney(gr.cb)}</td><td class=r>${ccMoney(gr.tt)}</td><td class=r>${ccMoney(gr.bhxh)}</td><td class=r>${ccMoney(gr.bhyt)}</td><td class=r>${ccMoney(gr.bhtn)}</td><td class=r>${m(gr.thue)}</td><td class=r>${ccMoney(gr.congkt)}</td><td class=r>${ccMoney(gr.linh)}</td></tr></tfoot></table>
+    <div class=sign><div>Người lập</div><div>Giám đốc</div></div>
+    <script>window.onload=function(){window.print();}<\/script></body></html>`;
+  const w=window.open("","_blank");if(!w){alert("Trình duyệt chặn cửa sổ in. Cho phép popup rồi thử lại.");return;}w.document.write(html);w.document.close();
+};
 </script>
 <!-- PWA: đăng ký service worker + nút cài đặt -->
 <script>
