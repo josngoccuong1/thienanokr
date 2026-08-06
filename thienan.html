@@ -44,6 +44,22 @@ nav{background:#fff;border-bottom:1px solid var(--vien);display:flex;overflow-x:
 nav button{background:none;border-radius:0;padding:13px 20px;color:var(--chu-mo);
   font-weight:600;white-space:nowrap;border-bottom:3px solid transparent}
 nav button.chon{color:var(--navy);border-bottom-color:var(--gold)}
+.chaoMung{background:linear-gradient(120deg,#12294d,#1c3a63);color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 6px 20px rgba(18,41,77,.18)}
+.chaoMung .cmChao{font-size:22px;font-weight:700}
+.chaoMung .cmChao span{color:var(--gold)}
+.chaoMung .cmPhu{opacity:.85;margin-top:4px;font-size:14px}
+.chaoMung .cmNgay{font-size:14px;opacity:.9;text-align:right}
+.luoiThe{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.theSo{background:#fff;border:1px solid var(--vien);border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.theSo .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.theSo .nhan{font-size:13px;color:var(--chu-mo);font-weight:600}
+.theSo .so{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
+.theSo .phu{font-size:12px;color:#9ca3af;margin-top:6px}
+.theSo .phu b{color:#0f7a4d}
+.luoiDoi{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tieuMuc{font-weight:700;color:#12294d;margin-bottom:10px;font-size:15px}
+@media(max-width:900px){.luoiThe{grid-template-columns:repeat(2,1fr)}.luoiDoi{grid-template-columns:1fr}}
+@media(max-width:520px){.luoiThe{grid-template-columns:1fr}}
 
 main{flex:1;padding:18px;max-width:1200px;width:100%;margin:0 auto}
 .thanhCong{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
@@ -205,7 +221,8 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   </header>
 
   <nav>
-    <button id="tab-hocvien" class="chon" onclick="doiTab('hocvien')">Học viên</button>
+    <button id="tab-trangchu" class="chon" onclick="doiTab('trangchu')">🏠 Trang chủ</button>
+    <button id="tab-hocvien" onclick="doiTab('hocvien')">Học viên</button>
     <button id="tab-lop" onclick="doiTab('lop')">Lớp học</button>
     <button id="tab-khoahoc" onclick="doiTab('khoahoc')">Khóa học</button>
     <button id="tab-diemdanh" onclick="doiTab('diemdanh')">Điểm danh</button>
@@ -215,8 +232,30 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   </nav>
 
   <main>
+    <!-- TAB TRANG CHỦ (Dashboard) -->
+    <section id="vung-trangchu">
+      <div class="chaoMung">
+        <div class="cmTrai">
+          <div class="cmChao">Chào mừng trở lại, <span id="cmTen">Admin</span> 👋</div>
+          <div class="cmPhu">Học viện Âm nhạc Thiên Ân · Bảng điều hành</div>
+        </div>
+        <div class="cmNgay" id="cmNgay"></div>
+      </div>
+      <div id="theTongQuan" class="luoiThe"></div>
+      <div class="luoiDoi">
+        <div class="the" style="padding:16px">
+          <div class="tieuMuc">⚠️ Cần chú ý</div>
+          <div id="dashCanChuY"><div class="dangTai">Đang tải...</div></div>
+        </div>
+        <div class="the" style="padding:16px">
+          <div class="tieuMuc">⏰ Việc cần làm hôm nay</div>
+          <div id="dashViec"><div class="dangTai">Đang tải...</div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- TAB HỌC VIÊN -->
-    <section id="vung-hocvien">
+    <section id="vung-hocvien" class="an">
       <div class="thanhCong">
         <input type="search" id="oTim" placeholder="Tìm theo tên, mã, số điện thoại..." oninput="timTre()">
         <select id="locCoSo" onchange="taiHocVien(1)"><option value="">Tất cả cơ sở</option></select>
@@ -227,6 +266,7 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
         <button class="nutChinh" onclick="moHocVien()">Thêm học viên</button>
         <button class="nutPhu" onclick="chonFileNhap('hocvien')">⬆ Nhập Excel</button>
         <button class="nutPhu" onclick="xuatDL('hocvien')">⬇ Tải xuống</button>
+        <button class="nutPhu" onclick="xuatDayDu()">⬇ Tải đầy đủ (kèm điểm danh)</button>
         <button class="nutPhu" onclick="taiMau('hocvien')">File mẫu</button>
       </div>
       <div class="the">
@@ -510,6 +550,7 @@ async function goi(hanhDong, dl){
     case 'baoCaoDoanhThu':   return await fbBaoCaoDoanhThu(dl);
     case 'doanhThuNgay':     return await fbDoanhThuNgay(dl);
     case 'doiTrangThaiHV':   return await fbDoiTrangThaiHV(dl);
+    case 'tongQuan':         return await fbTongQuan(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
     case 'chuyenHV':         return await fbChuyenHV(dl);
@@ -802,8 +843,26 @@ async function fbSapHetKhoa(dl){
 }
 
 /* ---------- Báo cáo doanh thu + tăng trưởng theo tháng/quý ---------- */
-async function fbDoiTrangThaiHV(dl){
-  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
+async function fbTongQuan(dl){
+  var n=new Date();
+  var thangNay=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
+  var namNay=String(n.getFullYear());
+  var pt=await docsCol('phieuthu');
+  var dtThang=0, dtNam=0;
+  pt.forEach(function(r){
+    var t=r.ThangThu || _thangCuaNgay(r.NgayThuISO) || _thangCuaNgay(r.NgayThu); if(!t) return;
+    var st=soTienJS(r.SoTien);
+    if(t===thangNay) dtThang+=st;
+    if(t.slice(0,4)===namNay) dtNam+=st;
+  });
+  // Còn nợ (gộp học phí)
+  var hp=await docsCol('hocphi');
+  var no={}; hp.forEach(function(r){ var m=r.MaHV; if(!no[m]) no[m]={p:0,d:0}; no[m].p+=soTienJS(r.PhaiThu); no[m].d+=soTienJS(r.DaThu); });
+  var soConNo=0, tongConNo=0;
+  Object.keys(no).forEach(function(m){ var c=no[m].p-no[m].d; if(c>0){soConNo++;tongConNo+=c;} });
+  return { doanhThuThang:dtThang, doanhThuNam:dtNam, soConNo:soConNo, tongConNo:tongConNo, thangNay:thangNay };
+}
+async function fbDoiTrangThaiHV(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
   await FB.setDoc(FB.doc(FB.db,'hocvien',maHV), {TrangThai:dl.trangThai||'Đang học', NgayCapNhat:new Date().toLocaleString('vi-VN')}, {merge:true});
   return true;
 }
@@ -1061,8 +1120,41 @@ async function nhapDL(loai, rows){
   }catch(e){ bao('Lỗi khi nhập: '+e.message, true); }
 }
 
-/* ---------- NHẬP / XUẤT ĐIỂM DANH ---------- */
-function _isoTuNgay(v){
+/* ---------- XUẤT ĐẦY ĐỦ: học viên + chi tiết điểm danh (nhiều sheet) ---------- */
+async function xuatDayDu(){
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel.', true); return; }
+  bao('Đang chuẩn bị (tải dữ liệu điểm danh)...');
+  try{
+    var dd = await docsCol('diemdanh');
+    var sum={};
+    dd.forEach(function(r){ var m=String(r.MaHV); if(!sum[m]) sum[m]={coMat:0,vang:0,coPhep:0,cuoi:''};
+      if(r.TrangThai==='Có mặt')sum[m].coMat++; else if(r.TrangThai==='Vắng')sum[m].vang++; else if(r.TrangThai==='Có phép')sum[m].coPhep++;
+      var iso=String(r.NgayISO||''); if(iso>sum[m].cuoi) sum[m].cuoi=iso; });
+    var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]=k; });
+    var rowsHV = TatCaHV.map(function(h){
+      var s=sum[h.MaHV]||{coMat:0,vang:0,coPhep:0,cuoi:''};
+      var soBuoi=soTienJS(h.SoBuoiKhoa), daHoc=soTienJS(h.DaHocKhoa); var kh=khMap[h.MaKhoa]||{};
+      return {'Mã HV':h.MaHV,'Họ tên':h.HoTen,'SĐT phụ huynh':String(h.SDT_PhuHuynh||''),'Cơ sở':h.CoSo||'',
+        'Khóa học':h.TenKhoa||'','Ngày học':h.NgayHoc||'','Trạng thái':h.TrangThai||'',
+        'Số buổi khóa':soBuoi||'','Đã học':(h.MaKhoa?daHoc:''),'Còn lại':(h.MaKhoa?(soBuoi-daHoc):''),
+        'Có mặt':s.coMat,'Vắng':s.vang,'Có phép':s.coPhep,
+        'Buổi học cuối':(s.cuoi?s.cuoi.split('-').reverse().join('/'):''),
+        'Học phí khóa':kh.GiaTien||'','Ngày nhập học':h.NgayNhapHoc||''};
+    });
+    var rowsDD = dd.map(function(r){ return {'Ngày':r.Ngay||'','Lớp':r.TenLop||'','Mã HV':r.MaHV||'','Họ tên':r.HoTen||'','Trạng thái':r.TrangThai||'','Người điểm danh':r.NguoiDiemDanh||'','Ghi chú':r.GhiChu||'','_iso':r.NgayISO||''}; })
+      .sort(function(a,b){ var c=String(a._iso).localeCompare(String(b._iso)); return c!==0?c:String(a['Họ tên']).localeCompare(String(b['Họ tên']),'vi'); });
+    rowsDD.forEach(function(r){ delete r._iso; });
+    if(!rowsHV.length) rowsHV=[{'Mã HV':'','Họ tên':''}];
+    if(!rowsDD.length) rowsDD=[{'Ngày':'','Lớp':'','Mã HV':'','Họ tên':'','Trạng thái':''}];
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsHV), 'Học viên');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsDD), 'Điểm danh chi tiết');
+    XLSX.writeFile(wb, 'ThienAn_HocVien_DayDu_'+ngayFile()+'.xlsx');
+    bao('✓ Đã tải: '+rowsHV.length+' học viên + '+rowsDD.length+' dòng điểm danh');
+  }catch(e){ bao('Lỗi: '+e.message, true); }
+}
+
+/* ---------- NHẬP / XUẤT ĐIỂM DANH ---------- */function _isoTuNgay(v){
   if(v instanceof Date && !isNaN(v)) return v.getFullYear()+'-'+('0'+(v.getMonth()+1)).slice(-2)+'-'+('0'+v.getDate()).slice(-2);
   if(typeof v==='number' && v>1){ var d=new Date(Math.round((v-25569)*86400*1000)); return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2); }
   var s=String(v||'').trim(); if(!s) return null;
@@ -1156,7 +1248,7 @@ function apDungDuLieu(bd, renderDanhSach){
     sel.innerHTML = '<option value="">Tất cả cơ sở</option>'
       + (DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>';}).join('');
   }
-  if(renderDanhSach){ taiHocVien(TrangHV||1); lamMoiDsHocVien(); }
+  if(renderDanhSach){ taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu(); }
 }
 
 /* ---------- Đăng nhập (Firebase) ---------- */
@@ -1195,10 +1287,11 @@ window.onFbReady = function(){
 
 /* ---------- Tab ---------- */
 function doiTab(ten){
-  ['hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
+  if(ten==='trangchu') napTrangChu();
   if(ten==='hocvien') lamMoiDsHocVien();
   if(ten==='lop') taiLop();
   if(ten==='khoahoc') taiKhoaHoc();
@@ -2127,9 +2220,73 @@ function luuKhoaHoc(dong, ma){
 }
 
 /* ---------- BÁO CÁO ---------- */
+/* ================= TRANG CHỦ (Dashboard) ================= */
+function napTrangChu(){
+  var n=new Date();
+  var thu=['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+  var elT=document.getElementById('cmTen'); if(elT) elT.textContent = NguoiDung?NguoiDung.hoTen:'Admin';
+  var elN=document.getElementById('cmNgay'); if(elN) elN.textContent = thu[n.getDay()]+', '+n.toLocaleDateString('vi-VN');
+  // Thống kê tức thì từ bộ nhớ
+  var thangNay=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
+  var dangHoc=0, daNghi=0, baoLuu=0, hsMoiThang=0, sapHet=0;
+  TatCaHV.forEach(function(h){
+    var tt=h.TrangThai||'Đang học';
+    if(tt==='Đã nghỉ')daNghi++; else if(tt==='Bảo lưu')baoLuu++; else dangHoc++;
+    if((h.ThangTao||_thangCuaNgay(h.NgayNhapHoc))===thangNay) hsMoiThang++;
+    if(String(h.MaKhoa||'').trim() && soTienJS(h.SoBuoiKhoa)>0){
+      var conLai=soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa);
+      if(tt!=='Đã nghỉ' && conLai<=3) sapHet++;
+    }
+  });
+  // Thẻ số (doanh thu điền sau khi query)
+  var the=document.getElementById('theTongQuan');
+  the.innerHTML =
+      theSo('#eef2ff','#4f46e5','🎓','Học viên đang học', dangHoc, 'Mới tháng này: <b>+'+hsMoiThang+'</b>')
+    + theSo('#ecfdf5','#059669','💰','Doanh thu tháng này', '<span id="dashDTThang">…</span>', 'Cả năm: <b id="dashDTNam">…</b>')
+    + theSo('#fff7ed','#d97706','⏳','Sắp hết khóa', sapHet, 'Học viên cần gia hạn')
+    + theSo('#fef2f2','#dc2626','💸','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>');
+  // Query doanh thu + còn nợ
+  goi('tongQuan').then(function(d){
+    var e;
+    if(e=document.getElementById('dashDTThang')) e.textContent=tien(d.doanhThuThang)+' đ';
+    if(e=document.getElementById('dashDTNam')) e.textContent=tien(d.doanhThuNam)+' đ';
+    if(e=document.getElementById('dashSoNo')) e.textContent=d.soConNo;
+    if(e=document.getElementById('dashTongNo')) e.textContent=tien(d.tongConNo)+' đ';
+  }).catch(function(){});
+  // Cần chú ý: danh sách sắp hết khóa (top 5)
+  var canBox=document.getElementById('dashCanChuY');
+  var dsSap=TatCaHV.filter(function(h){ if((h.TrangThai||'')==='Đã nghỉ')return false; if(!String(h.MaKhoa||'').trim()||soTienJS(h.SoBuoiKhoa)<=0)return false; return (soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa))<=3; })
+    .map(function(h){return {HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),conLai:soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa),TenKhoa:h.TenKhoa};})
+    .sort(function(a,b){return a.conLai-b.conLai;}).slice(0,6);
+  canBox.innerHTML = dsSap.length ? dsSap.map(function(r){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f3f5"><div><strong>'+esc(r.HoTen)+'</strong> <span class="ma">'+esc(r.TenKhoa)+'</span></div><div><span class="nhan no">còn '+r.conLai+' buổi</span> <a href="tel:'+esc(r.SDT)+'" class="ma">'+esc(r.SDT)+'</a></div></div>'; }).join('')
+      + '<div style="margin-top:10px"><button class="nutPhu" onclick="doiTab(\'saphetkhoa\')">Xem tất cả →</button></div>'
+    : '<div class="trong" style="padding:12px">Không có học viên nào sắp hết khóa. 👍</div>';
+  // Việc hôm nay (nếu CRM đã tải)
+  napViecDashboard();
+}
+function napViecDashboard(){
+  var box=document.getElementById('dashViec'); if(!box) return;
+  if(!DsKH.length && !DsCS.length){
+    // tải nhanh CRM cho dashboard
+    Promise.all([goi('layKhachHang'),goi('layChamSoc')]).then(function(r){ DsKH=r[0]||[]; DsCS=r[1]||[]; veViecDashboard(); }).catch(function(){ box.innerHTML='<div class="trong" style="padding:12px">—</div>'; });
+  } else veViecDashboard();
+}
+function veViecDashboard(){
+  var box=document.getElementById('dashViec'); if(!box) return;
+  var viec=[];
+  DsKH.forEach(function(k){ if(k.NgayHenLai && canhBaoNgay(k.NgayHenLai) && k.TrangThai!=='Đăng ký' && k.TrangThai!=='Từ chối') viec.push({ten:k.HoTenPH||k.TenHocSinh,sdt:k.SDT,loai:'Khách'}); });
+  DsCS.forEach(function(c){ if(c.NgayHen && !c.DaXong && canhBaoNgay(c.NgayHen)) viec.push({ten:c.TenDoiTuong,sdt:c.SDT,loai:c.DoiTuong==='HV'?'HV':'Khách'}); });
+  box.innerHTML = viec.length ? viec.slice(0,8).map(function(v){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f3f5"><div><span class="nhan bao">'+v.loai+'</span> <strong>'+esc(v.ten)+'</strong></div><a href="tel:'+esc(v.sdt)+'" class="ma">'+esc(v.sdt)+'</a></div>'; }).join('')
+      + '<div style="margin-top:10px"><button class="nutPhu" onclick="doiTab(\'crm\');doiCrm(\'chamsoc\')">Mở CRM →</button></div>'
+    : '<div class="trong" style="padding:12px">Không có việc nào cần làm hôm nay. 👍</div>';
+}
+function theSo(bgIcon, mauIcon, icon, nhan, so, phu){
+  return '<div class="theSo"><div class="icon" style="background:'+bgIcon+';color:'+mauIcon+'">'+icon+'</div>'
+    + '<div class="nhan">'+nhan+'</div><div class="so">'+so+'</div><div class="phu">'+phu+'</div></div>';
+}
+
 function napThangBaoCao(){
-  napTinhTrangHV();
-  var el = document.getElementById('bcThang');
+  napTinhTrangHV();  var el = document.getElementById('bcThang');
   if(el && !el.value){
     var n = new Date();
     el.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
