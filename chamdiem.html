@@ -1452,62 +1452,95 @@ function dsThanhVien(c){
 
 /* Bảng chọn thí sinh làm thành viên tiết mục hòa tấu */
 function chonThanhVien(idsDangChon, xong){
-  let sel = new Set(idsDangChon||[]);
+  // Giữ THỨ TỰ chọn -> đây cũng là thứ tự biểu diễn trong tiết mục
+  let sel = (idsDangChon||[]).map(String);
   const ov = document.createElement("div");
   ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px";
   ov.innerHTML =
-    '<div style="background:#fff;border-radius:16px;padding:16px;max-width:520px;width:100%;max-height:88vh;display:flex;flex-direction:column">'
-    + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:6px">👥 Chọn thí sinh vào tiết mục</div>'
-    + '<input id="cv_search" placeholder="🔎 Tìm theo tên / đơn vị…" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:9px;font-size:14px;margin-bottom:8px"/>'
-    + '<div id="cv_count" style="font-size:12px;color:#6B7280;margin-bottom:6px"></div>'
-    + '<div id="cv_list" style="flex:1;overflow:auto;border:1px solid #EEF0F4;border-radius:10px"></div>'
+    '<div style="background:#fff;border-radius:16px;padding:16px;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column">'
+    + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:6px">👥 Thành viên tiết mục</div>'
+    + '<div id="cv_chon" style="margin-bottom:10px"></div>'
+    + '<input id="cv_search" placeholder="🔎 Tìm thí sinh để thêm…" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:9px;font-size:14px;margin-bottom:6px"/>'
+    + '<div id="cv_list" style="flex:1;overflow:auto;border:1px solid #EEF0F4;border-radius:10px;min-height:120px"></div>'
     + '<div style="display:flex;gap:8px;margin-top:10px">'
     + '<button id="cv_ok" style="flex:1;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">✔ Xong</button>'
     + '<button id="cv_cancel" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>'
     + '</div></div>';
   document.body.appendChild(ov);
   const close = ()=>ov.remove();
+  const tenCua = id => { const c = DATA.contestants.find(x=>String(x.row)===String(id)); return c ? c.name : ""; };
+  const donViCua = id => { const c = DATA.contestants.find(x=>String(x.row)===String(id)); return c ? (c.unit||"Cá nhân") : ""; };
 
-  function ve(){
+  function veDaChon(){
+    const box = ov.querySelector("#cv_chon");
+    if(!sel.length){
+      box.innerHTML = '<div style="padding:10px;background:#FFF7E0;border:1px solid #F0DFA8;border-radius:9px;font-size:12px;color:#8A6D00;font-weight:700">Chưa chọn ai. Tìm và bấm thí sinh bên dưới để thêm.</div>';
+      return;
+    }
+    box.innerHTML =
+      '<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:4px">Thứ tự biểu diễn — ' + sel.length + ' thành viên</div>'
+      + '<div style="max-height:190px;overflow:auto;border:1px solid #EEF0F4;border-radius:9px">'
+      + sel.map((id,i)=>
+          '<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid #F3F4F6">'
+          + '<span style="min-width:22px;color:var(--gold-dark);font-weight:800;font-size:12px">' + (i+1) + '.</span>'
+          + '<span style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+          + esc(tenCua(id)) + ' <span style="color:var(--muted);font-weight:500;font-size:11px">· ' + esc(donViCua(id)) + '</span></span>'
+          + '<button data-up="' + i + '" title="Lên trên" style="border:1px solid #E5E7EB;background:#fff;border-radius:7px;padding:3px 7px;cursor:pointer;font-size:12px">▲</button>'
+          + '<button data-dn="' + i + '" title="Xuống dưới" style="border:1px solid #E5E7EB;background:#fff;border-radius:7px;padding:3px 7px;cursor:pointer;font-size:12px">▼</button>'
+          + '<button data-rm="' + i + '" title="Bỏ khỏi tiết mục" style="border:1px solid #F3C9CC;background:#fff;color:#C0202A;border-radius:7px;padding:3px 7px;cursor:pointer;font-size:12px">✕</button>'
+          + '</div>').join("")
+      + '</div>';
+    box.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>{
+      const i = Number(b.dataset.up); if(i<=0) return;
+      [sel[i-1], sel[i]] = [sel[i], sel[i-1]]; veDaChon();
+    });
+    box.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>{
+      const i = Number(b.dataset.dn); if(i>=sel.length-1) return;
+      [sel[i+1], sel[i]] = [sel[i], sel[i+1]]; veDaChon();
+    });
+    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
+      sel.splice(Number(b.dataset.rm),1); veDaChon(); veDS();
+    });
+  }
+
+  function veDS(){
     const q = norm(ov.querySelector("#cv_search").value||"");
     const ds = DATA.contestants
       .filter(c=>!c.hoatau)
       .filter(c=>!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q))
       .sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
-    ov.querySelector("#cv_count").textContent = "Đã chọn " + sel.size + " thí sinh · hiện " + ds.length;
     ov.querySelector("#cv_list").innerHTML = ds.length===0
-      ? '<div style="padding:20px;text-align:center;color:#aaa">Không tìm thấy</div>'
+      ? '<div style="padding:18px;text-align:center;color:#aaa">Không tìm thấy</div>'
       : ds.map(c=>{
-          const on = sel.has(String(c.row));
-          return '<label style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-bottom:1px solid #F3F4F6;cursor:pointer;'
-            + (on?'background:#FFFBEA':'') + '">'
-            + '<input type="checkbox" class="cv-tick" data-id="' + esc(String(c.row)) + '"' + (on?" checked":"") + ' style="width:17px;height:17px"/>'
+          const on = sel.includes(String(c.row));
+          return '<div data-add="' + esc(String(c.row)) + '" style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-bottom:1px solid #F3F4F6;cursor:pointer;'
+            + (on?'background:#F3F5F8;opacity:.55':'') + '">'
+            + '<span style="min-width:18px;color:' + (on?'#27AE60':'#C9CEDA') + ';font-weight:800">' + (on?'✓':'+') + '</span>'
             + '<span style="flex:1;min-width:0">'
             + '<span style="font-weight:700;font-size:13px">' + esc(c.name) + '</span>'
             + '<span style="display:block;font-size:11px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
             + esc(c.unit||"Cá nhân")
             + (c.session ? ' · ' + esc(tenBuoi(c.session)) : ' · chưa chia buổi')
             + (c.piece ? ' · 🎵 ' + esc(c.piece) : '')
-            + '</span></span></label>';
+            + '</span></span></div>';
         }).join("");
-    ov.querySelectorAll(".cv-tick").forEach(t=>t.addEventListener("change", ()=>{
-      const id = t.dataset.id;
-      if(t.checked) sel.add(id); else sel.delete(id);
-      ve();
-    }));
+    ov.querySelectorAll("[data-add]").forEach(el=>el.onclick=()=>{
+      const id = String(el.dataset.add);
+      const i = sel.indexOf(id);
+      if(i>=0) sel.splice(i,1); else sel.push(id);   // thêm vào CUỐI danh sách
+      veDaChon(); veDS();
+    });
   }
-  ov.querySelector("#cv_search").addEventListener("input", ve);
+
+  ov.querySelector("#cv_search").addEventListener("input", veDS);
   ov.querySelector("#cv_cancel").onclick = close;
   ov.querySelector("#cv_ok").onclick = ()=>{
-    const ids = [...sel];
-    const ten = ids.map(id=>{
-      const c = DATA.contestants.find(x=>String(x.row)===String(id));
-      return c ? c.name : "";
-    }).filter(Boolean);
+    const ids = sel.slice();
+    const ten = ids.map(tenCua).filter(Boolean);
     close();
     xong(ids, ten.join(", "));
   };
-  ve();
+  veDaChon(); veDS();
 }
 
 /* Thêm tiết mục hòa tấu (biểu diễn nhóm, không phải thí sinh dự thi) */
