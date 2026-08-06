@@ -821,12 +821,25 @@ async function exportCSV(rows, filename){
   if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
   const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Số phút","Giới tính","Ngày sinh",
                 "SĐT","Người phụ trách","Giáo viên HD","Thành viên hòa tấu","Check-in","Trạng thái phí","Buổi"];
-  const data = rows.map((c,i)=>[
-    i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
-    c.piece||"", c.minutes||"", c.gender||"", c.dob||"",
-    c.phone?String(c.phone).trim():"", c.contact||"", c.teacher||"",
-    c.members||"", c.checkin?"Đã check-in":"Chưa", c.fee||"",
-    c.session?tenBuoi(c.session):"" ]);
+  // Chia mục theo ĐƠN VỊ giống trong app; trong mỗi mục giữ đúng thứ tự biểu diễn
+  // (em đăng ký sau có order lớn nên tự nằm CUỐI mục của mình -> dễ soát).
+  const nhom = groupByUnit(rows);
+  const data = [];
+  const dongTieuDe = [];          // ghi lại vị trí dòng tiêu đề để tô đậm
+  let stt = 0;
+  nhom.forEach((g, gi)=>{
+    if(gi > 0) data.push(new Array(16).fill(""));            // 1 dòng trống ngăn cách
+    dongTieuDe.push(data.length);
+    data.push(["🏫 " + g.label, g.items.length + " thí sinh", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
+    g.items.forEach(c=>{
+      stt++;
+      data.push([ stt, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
+        c.piece||"", c.minutes||"", c.gender||"", c.dob||"",
+        c.phone?String(c.phone).trim():"", c.contact||"", c.teacher||"",
+        c.members||"", c.checkin?"Đã check-in":"Chưa", c.fee||"",
+        c.session?tenBuoi(c.session):"" ]);
+    });
+  });
 
   const ten = String(filename||"DanhSach").replace(/\.(csv|xlsx)$/i,"");
   showLoading("Đang tạo file Excel…");
@@ -835,9 +848,14 @@ async function exportCSV(rows, filename){
   if(ok){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
-      // SĐT để dạng CHỮ -> giữ nguyên số 0 đầu
+      const setTieuDe = new Set(dongTieuDe);
       data.forEach((r,i)=>{
-        const o = XLSX.utils.encode_cell({c:9, r:i+1});
+        if(setTieuDe.has(i)){                                  // dòng tên đơn vị -> in đậm
+          const o = XLSX.utils.encode_cell({c:0, r:i+1});
+          if(ws[o]) ws[o].s = { font:{ bold:true, sz:12 } };
+          return;
+        }
+        const o = XLSX.utils.encode_cell({c:9, r:i+1});          // SĐT giữ dạng chữ
         if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
       });
       ws["!cols"] = [{wch:5},{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:9},{wch:8},{wch:12},
