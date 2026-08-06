@@ -395,8 +395,6 @@ ensureAuth();
           Thí sinh đăng ký sau tự xếp cuối — sắp lại bằng nút bên dưới.
         </div>
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="btn btn-gold" id="btnSortUnit" style="padding:9px 13px;font-size:12px">🏫 Sắp theo Đơn vị → Tên</button>
-          <button class="btn btn-out" id="btnSortName" style="padding:9px 13px;font-size:12px">🔤 Sắp theo Tên gọi (A-Z)</button>
           <button class="btn btn-out" id="btnRenameSess" style="padding:9px 13px;font-size:12px">🗓️ Đổi tên buổi</button>
           <button class="btn btn-out" id="btnAddHoaTau" style="padding:9px 13px;font-size:12px">🎼 Thêm tiết mục hòa tấu</button>
         </div>
@@ -1310,8 +1308,16 @@ function renderManage(){
     const gi = Number(b.dataset.gsort);
     const gs = mgGroups(); const g = gs[gi];
     if(!g) return;
-    if(!confirm(`Sắp xếp A-Z theo TÊN GỌI cho đơn vị "${g.label}" (${g.items.length} thí sinh)?\n\nCác đơn vị khác giữ nguyên.`)) return;
-    g.items.sort(cmpTen);
+    // CHỈ sắp những em đang hiển thị (đúng buổi đang lọc). Các em cùng đơn vị
+    // nhưng ở buổi khác GIỮ NGUYÊN vị trí -> không phá thứ tự buổi đã sắp xong.
+    const viTri = [], canSap = [];
+    g.items.forEach((c,i)=>{ if(hop(c)){ viTri.push(i); canSap.push(c); } });
+    if(canSap.length < 2){ alert("Đơn vị này chỉ có "+canSap.length+" thí sinh trong mục đang xem — không cần sắp."); return; }
+    const pham = mgSess==="" ? "toàn bộ danh sách"
+               : (mgSess==="0" ? "nhóm Chưa chia buổi" : tenBuoi(mgSess));
+    if(!confirm(`Sắp A-Z theo TÊN GỌI cho "${g.label}" — ${canSap.length} thí sinh trong ${pham}.\n\nCác buổi khác và đơn vị khác GIỮ NGUYÊN.`)) return;
+    canSap.sort(cmpTen);
+    viTri.forEach((p,k)=>{ g.items[p] = canSap[k]; });
     showLoading("Đang sắp xếp "+g.label+"…");
     try{ await applyOrder(mgFlat(gs)); doneLoading("Đã sắp xếp ✓"); renderManage(); }
     catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
@@ -1375,15 +1381,6 @@ function renderManage(){
   });
 }
 
-/* Đánh số lại toàn bộ thứ tự biểu diễn */
-async function renumber(cmp, tenCach){
-  if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới sắp xếp được."); return; }
-  if(!confirm("Sắp xếp lại toàn bộ thứ tự biểu diễn theo "+tenCach+"?\n(Không ảnh hưởng check-in, điểm số)")) return;
-  const arr = [...DATA.contestants].sort(cmp);
-  showLoading("Đang sắp xếp "+arr.length+" thí sinh…");
-  try{ await applyOrder(arr); doneLoading("Đã sắp xếp ✓"); renderManage(); }
-  catch(e){ hideLoading(); alert("Lỗi khi sắp xếp: "+(e.message||e)); }
-}
 const _vi = s => norm(String(s||""));
 /* Tên gọi = chữ CUỐI trong họ tên (VD "Nguyễn Văn An" -> "An").
    So sánh theo tên gọi trước, nếu trùng thì so tiếp phần họ đệm. */
@@ -1399,12 +1396,6 @@ function cmpTen(a,b){
   return tenGoi(a.name).localeCompare(tenGoi(b.name), "vi")
       || hoDem(a.name).localeCompare(hoDem(b.name), "vi");
 }
-$("btnSortUnit").addEventListener("click", ()=>renumber(
-  (a,b)=> _vi(a.unit||"Cá nhân").localeCompare(_vi(b.unit||"Cá nhân"), "vi") || cmpTen(a,b),
-  "Đơn vị → Tên"));
-$("btnSortName").addEventListener("click", ()=>renumber(
-  cmpTen,
-  "Tên gọi (A-Z)"));
 $("mgSearch").addEventListener("input", ()=>renderManage());
 
 /* Bảng chọn thí sinh đưa vào tiết mục hòa tấu (chọn từ danh sách + vẫn gõ tay được) */
