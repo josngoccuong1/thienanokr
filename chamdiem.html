@@ -805,20 +805,60 @@ function exportGroupItems(items, groupName){
   const safe = String(groupName||"nhom").replace(/[^\p{L}\p{N}]+/gu,"_").slice(0,40);
   exportCSV(items, "DS_"+safe+".csv");
 }
-function exportCSV(rows, filename){
+/* Nạp thư viện Excel khi cần (chỉ 1 lần) */
+function napThuVienExcel(){
+  if(window.XLSX) return Promise.resolve(true);
+  return new Promise(res=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=()=>res(!!window.XLSX);
+    s.onerror=()=>res(false);
+    document.head.appendChild(s);
+  });
+}
+
+/* Xuất danh sách ra Excel (.xlsx) — không bao giờ lỗi font trên mọi máy.
+   Nếu không tải được thư viện thì tự chuyển về CSV có BOM. */
+async function exportCSV(rows, filename){
   if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
   const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Số phút","Giới tính","Ngày sinh",
-                "SĐT","Người phụ trách","Giáo viên HD","Check-in","Trạng thái phí","Buổi"];
-  const line = a => a.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",");
-  const body = rows.map((c,i)=>line([ i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
+                "SĐT","Người phụ trách","Giáo viên HD","Thành viên hòa tấu","Check-in","Trạng thái phí","Buổi"];
+  const data = rows.map((c,i)=>[
+    i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
     c.piece||"", c.minutes||"", c.gender||"", c.dob||"",
-    // Số điện thoại: thêm dấu ' để Excel giữ nguyên số 0 đầu
-    c.phone?("'"+String(c.phone).trim()):"", c.contact||"", c.teacher||"",
-    c.checkin?"Đã check-in":"Chưa", c.fee||"", c.session?tenBuoi(c.session):"" ]));
-  const csv = "\uFEFF" + [line(cols)].concat(body).join("\r\n");
+    c.phone?String(c.phone).trim():"", c.contact||"", c.teacher||"",
+    c.members||"", c.checkin?"Đã check-in":"Chưa", c.fee||"",
+    c.session?tenBuoi(c.session):"" ]);
+
+  const ten = String(filename||"DanhSach").replace(/\.(csv|xlsx)$/i,"");
+  showLoading("Đang tạo file Excel…");
+  const ok = await napThuVienExcel();
+
+  if(ok){
+    try{
+      const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
+      // SĐT để dạng CHỮ -> giữ nguyên số 0 đầu
+      data.forEach((r,i)=>{
+        const o = XLSX.utils.encode_cell({c:9, r:i+1});
+        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
+      });
+      ws["!cols"] = [{wch:5},{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:9},{wch:8},{wch:12},
+                     {wch:13},{wch:18},{wch:16},{wch:40},{wch:16},{wch:14},{wch:12}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Danh sách");
+      XLSX.writeFile(wb, ten + ".xlsx");
+      doneLoading("Đã tải ✓");
+      return;
+    }catch(e){ /* lỗi thì rơi xuống CSV */ }
+  }
+
+  // Dự phòng: CSV kèm BOM
+  const line = a => a.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",");
+  const csv = "\uFEFF" + [line(cols)].concat(data.map(r=>line(r))).join("\r\n");
   const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download=filename||"DanhSach.csv"; document.body.appendChild(a); a.click(); a.remove();
+  a.download=ten+".csv"; document.body.appendChild(a); a.click(); a.remove();
+  doneLoading("Đã tải ✓");
 }
 
 function catChips(sel, cur){
@@ -1809,16 +1849,39 @@ $("btnPrintAll").addEventListener("click", ()=>{
   if(!list.length){ alert("Chưa có thí sinh nào được chấm điểm."); return; }
   if(confirm("In "+list.length+" bằng khen?")) printCerts(list);
 });
-$("btnCsv").addEventListener("click", ()=>{
+$("btnCsv").addEventListener("click", async ()=>{
   const list = computeResults();
   if(!list.length){ alert("Chưa có dữ liệu"); return; }
-  const cols = ["SBD","Họ tên","Đơn vị","Bảng dự thi","Số GK chấm","Điểm TB","Huy chương","Giải","Hạng bảng"];
-  const csv = [cols.join(",")].concat(list.map(r=>[
-    r.sbd||"", r.name, r.unit, r.category, r.judgeCount||0,
-    r.avg!=null?r.avg.toFixed(2):"", r.medal||"", r.prize||"", r.rank||""
-  ].map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(","))).join("\r\n");
-  const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="KetQua_Festival_Piano.csv"; a.click();
+  const cols = ["SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","SĐT","Buổi",
+                "Số GK chấm","Điểm TB","Huy chương","Giải","Hạng bảng"];
+  const data = list.map(r=>[
+    r.sbd||"", r.name||"", r.unit||"", r.category||"", r.piece||"",
+    r.phone?String(r.phone).trim():"", r.session?tenBuoi(r.session):"",
+    r.judgeCount||0, r.avg!=null?Number(r.avg.toFixed(2)):"", r.medal||"", r.prize||"", r.rank||""
+  ]);
+  showLoading("Đang tạo file Excel…");
+  const ok = await napThuVienExcel();
+  if(ok){
+    try{
+      const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
+      data.forEach((r,i)=>{                       // SĐT giữ dạng chữ
+        const o = XLSX.utils.encode_cell({c:5, r:i+1});
+        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
+      });
+      ws["!cols"]=[{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:13},{wch:12},
+                   {wch:10},{wch:9},{wch:12},{wch:12},{wch:10}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kết quả");
+      XLSX.writeFile(wb, "KetQua_MusicFestival2026.xlsx");
+      doneLoading("Đã tải ✓"); return;
+    }catch(e){}
+  }
+  const line = a => a.map(v=>`"${String(v==null?"":v).replace(/"/g,'""')}"`).join(",");
+  const csv = "\uFEFF" + [line(cols)].concat(data.map(r=>line(r))).join("\r\n");
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="KetQua_MusicFestival2026.csv"; a.click();
+  doneLoading("Đã tải ✓");
 });
 
 /* ================= IN BẰNG KHEN ================= */
