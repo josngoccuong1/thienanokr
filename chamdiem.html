@@ -746,6 +746,7 @@ async function post(payload){
       if(payload.piece    != null) data.piece    = payload.piece;
       if(payload.category != null) data.category = payload.category;
       if(payload.unit     != null) data.unit     = payload.unit;
+      if(payload.phone    != null) data.phone    = payload.phone;
       if(payload.members  != null) data.members  = payload.members;
       if(payload.memberIds!= null) data.memberIds= payload.memberIds;
       await window.FS.update(row, data);
@@ -856,6 +857,8 @@ function openEditInfo(row){
           <input id="ei_mem" value="${esc(c.members||"")}" placeholder="Gõ tay hoặc bấm Chọn →" style="flex:1;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px"/>
           <button type="button" id="ei_pick" style="background:#1A1A2E;color:#fff;border:none;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap">👥 Chọn</button>
         </div>`:""}
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">📞 Số điện thoại</label>
+        <input id="ei_phone" type="tel" value="${esc(c.phone||"")}" placeholder="VD: 0912345678" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Đơn vị / Trung tâm</label>
         <select id="ei_unit" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:8px">${dvOpts}</select>
         <input id="ei_unit_moi" placeholder="Gõ tên đơn vị mới" value="" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px;display:none"/>
@@ -890,12 +893,13 @@ function openEditInfo(row){
     if(!name){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">Tên không được để trống</span>'; return; }
     const btn = ov.querySelector("#ei_save"); btn.disabled=true; btn.textContent="Đang lưu…";
     try{
+      const phone = ov.querySelector("#ei_phone").value.trim();
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
       const memberIds = memInp ? eiIds : null;
-      const d = await post({action:"editinfo", row, name, piece, category, unit, members, memberIds});
+      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds});
       if(d.ok){
-        c.name=name; c.piece=piece; c.category=category; c.unit=unit;
+        c.name=name; c.piece=piece; c.category=category; c.unit=unit; c.phone=phone;
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
@@ -1439,12 +1443,11 @@ function dsThanhVien(c){
     '<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px dashed #EEF0F4">'
     + '<span style="min-width:20px;color:var(--gold-dark);font-weight:800;font-size:11px">' + (i+1) + '.</span>'
     + '<span style="font-size:12px;font-weight:600">' + esc(t) + '</span></div>').join("");
-  return '<details style="margin-top:5px">'
-    + '<summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--navy);outline:none">'
-    + '👥 ' + ten.length + ' thành viên <span style="color:var(--muted);font-weight:600">(bấm để xem)</span></summary>'
-    + '<div style="margin-top:5px;padding:7px 10px;background:#FAFBFC;border-radius:8px;border:1px solid #EEF0F4;'
+  return '<div style="margin-top:5px">'
+    + '<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:3px">👥 ' + ten.length + ' thành viên</div>'
+    + '<div style="padding:7px 10px;background:#FAFBFC;border-radius:8px;border:1px solid #EEF0F4;'
     + 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0 12px">'
-    + cot + '</div></details>';
+    + cot + '</div></div>';
 }
 
 /* Bảng chọn thí sinh làm thành viên tiết mục hòa tấu */
