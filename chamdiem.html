@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v23 · Kéo thí sinh sang đơn vị khác</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v25 · Mật khẩu khi vào mục Sắp xếp</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -522,6 +522,12 @@ document.querySelectorAll('.keys').forEach(buildKeys);
 let ROLE = null, JUDGE = null;
 let VIEW = null;   // mục ĐANG XEM (có thể khác ROLE khi xem chéo để kiểm soát)
 // Chỉ được thao tác khi đang ở đúng mục của mình. Kết quả & In bằng dùng chung 1 màn hình.
+function canEdit0(muc){
+  if(muc === "manage") return ["checkin","result","print"].includes(ROLE);
+  if(muc === ROLE) return true;
+  const g = ["result","print"];
+  return g.includes(muc) && g.includes(ROLE);
+}
 function canEdit(){
   // Check-in là nơi chốt danh sách gốc -> được sắp xếp. Điểm danh chỉ bám theo nên chỉ xem.
   if(VIEW === "manage") return ["checkin","result","print"].includes(ROLE);
@@ -609,7 +615,15 @@ function renderViewBar(){
     </button>`;
   }).join("");
   $("viewChips").querySelectorAll("[data-vw]").forEach(b=>b.addEventListener("click",()=>{
-    VIEW = b.dataset.vw;
+    const muc = b.dataset.vw;
+    // Vào mục Sắp xếp phải nhập mật khẩu; rời khỏi mục thì khóa lại
+    if(muc === "manage"){
+      if(!canEdit0("manage")){ alert("Chỉ mục Check-in / Kết quả / In bằng mới vào được."); return; }
+      if(!xinMatKhauSapXep()) return;
+    } else {
+      daMoKhoaSapXep = false;
+    }
+    VIEW = muc;
     if(!$("scoreView").classList.contains("hidden")) $("scoreView").classList.add("hidden");
     showRole();
     window.scrollTo({top:0,behavior:"smooth"});
@@ -645,7 +659,7 @@ function renderSessionBar(){
   }));
 }
 $("btnLogout").addEventListener("click", ()=>{
-  ROLE=null; JUDGE=null; VIEW=null; scoring=null; SESSION="";
+  ROLE=null; JUDGE=null; VIEW=null; scoring=null; SESSION=""; daMoKhoaSapXep=false;
   ["checkinView","judgeView","scoreView","resultView","sessionBar","viewBar"].forEach(v=>$(v).classList.add("hidden"));
   $("bottomBar").classList.add("hidden");
   $("loginView").classList.remove("hidden");
@@ -785,16 +799,20 @@ function allCats(){ return [...new Set(DATA.contestants.map(c=>c.category).filte
 function unitKeyOf(c){ return norm((c.unit||"Cá nhân").trim()); }
 function unitLabelOf(c){ const u=(c.unit||"").trim(); return u || "Cá nhân"; }
 function groupByUnit(list){
+  // Thứ tự các ĐƠN VỊ luôn tính trên TOÀN BỘ danh sách, không phụ thuộc đang lọc buổi nào
+  // -> mọi màn hình (Check-in, Điểm danh, Sắp xếp) đều hiện CÙNG một thứ tự đơn vị.
+  const mocDonVi = {};
+  (DATA.contestants||[]).forEach(c=>{
+    const k = unitKeyOf(c), o = Number(c.order)||999999;
+    if(!(k in mocDonVi) || o < mocDonVi[k]) mocDonVi[k] = o;
+  });
   const map={};
   list.forEach(c=>{
     const k=unitKeyOf(c);   // "Cá nhân" và "Cá Nhân" gộp làm 1
-    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow:Number(c.order)||999999}; }
+    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow: (k in mocDonVi ? mocDonVi[k] : (Number(c.order)||999999))}; }
     map[k].items.push(c);
-    map[k].minRow=Math.min(map[k].minRow, Number(c.order)||999999);
   });
   const groups=Object.values(map);
-  // Đơn vị xếp theo THỨ TỰ BIỂU DIỄN thầy đã sắp (kể cả nhóm "Cá nhân" —
-  // trước đây bị ép luôn xuống cuối nên không kéo lên được).
   groups.sort((a,b)=>a.minRow-b.minRow);
   // Trong mỗi nhóm cũng theo thứ tự biểu diễn
   groups.forEach(g=>g.items.sort((x,y)=>(Number(x.order)||999999)-(Number(y.order)||999999)));
@@ -1166,6 +1184,21 @@ $("jvExport").addEventListener("click", ()=>{
 let mgSess = "";
 let mgDrag = null;                      // {row, gi} thí sinh đang kéo
 const mgTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* KHÓA SẮP XẾP: phải nhập mật khẩu mới được đổi thứ tự.
+   Mở khóa 1 lần dùng cho cả phiên, thoát ra là khóa lại. */
+let daMoKhoaSapXep = false;
+function xinMatKhauSapXep(){
+  if(daMoKhoaSapXep) return true;
+  const pw = prompt("🔒 MỤC SẮP XẾP\n\nMục này thay đổi thứ tự biểu diễn.\nNhập mật khẩu để vào:");
+  if(pw === null) return false;
+  if(String(pw).trim() !== CONFIG.ADMIN_PASSWORD){
+    alert("❌ Sai mật khẩu — không vào được mục Sắp xếp.");
+    return false;
+  }
+  daMoKhoaSapXep = true;
+  return true;
+}
 
 /* Ghi lại thứ tự mới — chỉ cập nhật những em thực sự đổi chỗ */
 async function applyOrder(flat){
