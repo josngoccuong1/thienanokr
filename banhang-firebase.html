@@ -456,7 +456,45 @@ function prodRow(p){
   const st=p.trangThai||'Active',min=Number(p.tonKhoToiThieu)||0,cur=Number(p.tonKho)||0,low=min>0&&cur<=min;
   const stChip=st==='Active'?'<span class="chip ok">● Đang bán</span>':'<span class="chip off">Ngừng bán</span>';
   const stockChip=low?`<span class="chip low">${money(cur)}</span>`:`<b>${money(cur)}</b>`;
-  return `<tr><td class="t-code">${esc(p.maSP||'')}</td><td class="t-name">${esc(p.tenSP||'—')}${p.donVi?`<small>ĐVT: ${esc(p.donVi)}</small>`:''}</td><td>${p.danhMuc?`<span class="chip cat">${esc(p.danhMuc)}</span>`:'<span style="color:var(--muted-2)">—</span>'}</td><td class="t-num">${money(p.giaNhap)}</td><td class="t-num t-price">${money(p.giaBan)}</td><td class="t-num">${stockChip}</td><td>${stChip}</td><td><div class="row-act"><button class="icon-btn" title="Sửa" onclick="openProductForm('${esc(p._id)}')">✎</button><button class="icon-btn del" title="Xóa" onclick="deleteProduct('${esc(p._id)}')">🗑</button></div></td></tr>`;
+  return `<tr style="cursor:pointer" onclick="openProductDetail('${esc(p._id)}')"><td class="t-code">${esc(p.maSP||'')}</td><td class="t-name">${esc(p.tenSP||'—')}${p.donVi?`<small>ĐVT: ${esc(p.donVi)}</small>`:''}</td><td>${p.danhMuc?`<span class="chip cat">${esc(p.danhMuc)}</span>`:'<span style="color:var(--muted-2)">—</span>'}</td><td class="t-num">${money(p.giaNhap)}</td><td class="t-num t-price">${money(p.giaBan)}</td><td class="t-num">${stockChip}</td><td>${stChip}</td><td><div class="row-act"><button class="icon-btn" title="Xem chi tiết" onclick="event.stopPropagation();openProductDetail('${esc(p._id)}')">👁</button><button class="icon-btn" title="Sửa" onclick="event.stopPropagation();openProductForm('${esc(p._id)}')">✎</button><button class="icon-btn del" title="Xóa" onclick="event.stopPropagation();deleteProduct('${esc(p._id)}')">🗑</button></div></td></tr>`;
+}
+function openProductDetail(id){
+  const p=PRODUCTS.find(x=>x._id===id);if(!p)return;
+  const st=p.trangThai||'Active',min=Number(p.tonKhoToiThieu)||0,cur=Number(p.tonKho)||0,low=min>0&&cur<=min;
+  const margin=(Number(p.giaBan)||0)-(Number(p.giaNhap)||0);
+  const stChip=st==='Active'?'<span class="chip ok">● Đang bán</span>':'<span class="chip off">Ngừng bán</span>';
+  const warn=low?`<div style="background:var(--danger-bg);color:var(--danger);padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:16px">⚠ Sản phẩm sắp hết / đã hết hàng (tồn tối thiểu: ${money(min)})</div>`:'';
+  const info=(lbl,val)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f2f6"><span style="color:var(--muted);font-size:13px">${lbl}</span><span style="font-weight:600;font-size:13.5px;text-align:right">${val||'<span style=\"color:var(--muted-2);font-weight:400\">—</span>'}</span></div>`;
+  const badges=[];if(p.laDichVu)badges.push('<span class="chip cn">Dịch vụ</span>');if(p.noiBat)badges.push('<span class="chip vip">★ Nổi bật</span>');
+  openModal(`
+    <div class="modal-head"><h3>Chi tiết sản phẩm</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      ${warn}
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:18px">
+        <div style="flex:1"><div style="font-family:ui-monospace,monospace;color:var(--muted);font-size:12.5px;font-weight:700">${esc(p.maSP||'')}</div><div style="font-size:18px;font-weight:800;margin-top:2px">${esc(p.tenSP||'')}</div><div style="margin-top:7px;display:flex;gap:6px">${badges.join('')}</div></div>
+        ${stChip}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px">
+        <div style="background:var(--gold-soft);border-radius:11px;padding:14px"><div style="font-size:11px;color:var(--gold-2);font-weight:700;margin-bottom:5px">GIÁ BÁN</div><div style="font-size:18px;font-weight:800;color:var(--ink-2)">${money(p.giaBan)}<span style="font-size:12px;font-weight:600">₫</span></div></div>
+        <div style="background:#f0f4f9;border-radius:11px;padding:14px"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px">GIÁ NHẬP</div><div style="font-size:18px;font-weight:800;color:var(--ink-2)">${money(p.giaNhap)}<span style="font-size:12px;font-weight:600">₫</span></div></div>
+        <div style="background:${low?'var(--danger-bg)':'var(--ok-bg)'};border-radius:11px;padding:14px"><div style="font-size:11px;color:${low?'var(--danger)':'var(--ok)'};font-weight:700;margin-bottom:5px">TỒN KHO</div><div style="font-size:18px;font-weight:800;color:${low?'var(--danger)':'var(--ink-2)'}">${money(cur)}<span style="font-size:12px;font-weight:600"> ${esc(p.donVi||'')}</span></div></div>
+      </div>
+      <div>
+        ${info('Danh mục', p.danhMuc?`<span class="chip cat">${esc(p.danhMuc)}</span>`:'')}
+        ${info('Lãi gộp (bán − nhập)', `<span style="color:${margin>=0?'var(--ok)':'var(--danger)'}">${money(margin)}₫</span>`)}
+        ${info('Giá VIP', p.giaVIP?money(p.giaVIP)+'₫':'')}
+        ${info('Giá bán buôn', p.giaBanBuon?money(p.giaBanBuon)+'₫':'')}
+        ${info('Tồn tối thiểu', min?money(min)+' '+esc(p.donVi||''):'')}
+        ${info('VAT', (p.vatPercent!==undefined&&p.vatPercent!=='')?(Number(p.vatPercent)||0)+'%':'')}
+        ${info('Barcode', p.barcode?esc(p.barcode):'')}
+        ${info('Nhà cung cấp', p.maNCC?esc(p.maNCC):'')}
+        ${info('Thương hiệu', p.thuongHieu?esc(p.thuongHieu):'')}
+        ${info('Tags', p.tags?esc(p.tags):'')}
+        ${p.moTa?`<div style="padding:12px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:6px">Mô tả</div><div style="font-size:13.5px;line-height:1.6;background:#fafbfc;border-radius:9px;padding:11px 13px">${esc(p.moTa)}</div></div>`:''}
+      </div>
+      <div style="margin-top:12px;padding:12px 14px;background:#f7f9fc;border-radius:10px;color:var(--muted-2);font-size:12.5px;line-height:1.6">📦 <b>Lô hàng / HSD</b> và 📜 <b>Lịch sử bán</b> sẽ hiển thị tại đây khi hoàn thành module Nhập kho & Đơn hàng.</div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-primary" onclick="openProductForm('${esc(id)}')">✎ Sửa sản phẩm</button></div>`);
 }
 function openProductForm(id){
   const p=id?PRODUCTS.find(x=>x._id===id):{},edit=!!id;
@@ -477,6 +515,9 @@ function openProductForm(id){
       <div class="field"><label>Barcode</label><input id="fBarcode" value="${esc(p.barcode||'')}" placeholder="Mã vạch"></div>
       <div class="field"><label>Nhà cung cấp</label><input id="fNcc" value="${esc(p.maNCC||'')}" placeholder="Nhà CC"></div>
       <div class="field"><label>Trạng thái</label><select id="fStatus"><option value="Active" ${(p.trangThai||'Active')==='Active'?'selected':''}>Đang bán</option><option value="Ngừng" ${p.trangThai==='Ngừng'?'selected':''}>Ngừng bán</option></select></div>
+      <div class="field"><label>Thương hiệu</label><input id="fBrand" value="${esc(p.thuongHieu||'')}" placeholder="VD: Yamaha"></div>
+      <div class="field"><label>Tags</label><input id="fTags" value="${esc(p.tags||'')}" placeholder="hot, mới, bán chạy"></div>
+      <div class="field full" style="display:flex;gap:26px;align-items:center;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;color:var(--txt)"><input type="checkbox" id="fService" ${p.laDichVu?'checked':''} style="width:17px;height:17px;padding:0;accent-color:var(--gold)"> Là dịch vụ <span style="color:var(--muted-2);font-size:12px">(không quản lý tồn)</span></label><label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-weight:500;color:var(--txt)"><input type="checkbox" id="fFeatured" ${p.noiBat?'checked':''} style="width:17px;height:17px;padding:0;accent-color:var(--gold)"> Sản phẩm nổi bật</label></div>
       <div class="field full"><label>Mô tả</label><textarea id="fMoTa" rows="2" placeholder="Ghi chú, mô tả">${esc(p.moTa||'')}</textarea></div>
     </div></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveProdBtn" onclick="saveProduct('${edit?esc(id):''}')">${edit?'Lưu thay đổi':'Thêm sản phẩm'}</button></div>`);
@@ -484,7 +525,7 @@ function openProductForm(id){
 async function saveProduct(id){
   const ma=$('fMa').value.trim(),ten=$('fTen').value.trim();
   if(!ma){toast('Nhập Mã SP','warn');return;}if(!ten){toast('Nhập tên sản phẩm','warn');return;}
-  const data={maSP:ma,tenSP:ten,danhMuc:$('fCat').value.trim(),giaNhap:Number($('fGiaNhap').value)||0,giaBan:Number($('fGiaBan').value)||0,giaVIP:Number($('fGiaVip').value)||0,giaBanBuon:Number($('fGiaBuon').value)||0,tonKho:Number($('fTon').value)||0,tonKhoToiThieu:Number($('fTonMin').value)||0,donVi:$('fDvt').value.trim(),vatPercent:Number($('fVat').value)||0,barcode:$('fBarcode').value.trim(),maNCC:$('fNcc').value.trim(),trangThai:$('fStatus').value,moTa:$('fMoTa').value.trim(),updatedAt:new Date().toISOString()};
+  const data={maSP:ma,tenSP:ten,danhMuc:$('fCat').value.trim(),giaNhap:Number($('fGiaNhap').value)||0,giaBan:Number($('fGiaBan').value)||0,giaVIP:Number($('fGiaVip').value)||0,giaBanBuon:Number($('fGiaBuon').value)||0,tonKho:Number($('fTon').value)||0,tonKhoToiThieu:Number($('fTonMin').value)||0,donVi:$('fDvt').value.trim(),vatPercent:Number($('fVat').value)||0,barcode:$('fBarcode').value.trim(),maNCC:$('fNcc').value.trim(),thuongHieu:$('fBrand').value.trim(),tags:$('fTags').value.trim(),laDichVu:$('fService').checked,noiBat:$('fFeatured').checked,trangThai:$('fStatus').value,moTa:$('fMoTa').value.trim(),updatedAt:new Date().toISOString()};
   const btn=$('saveProdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
     if(id){await db.collection(COL.products).doc(id).set(data,{merge:true});toast('Đã cập nhật sản phẩm','ok');}
@@ -605,7 +646,33 @@ function custRow(c){
   const tags=[];if(c.nhom)tags.push(`<span class="chip vip">${esc(c.nhom)}</span>`);if(c.hang)tags.push(`<span style="color:var(--muted);font-size:12px">${esc(c.hang)}</span>`);
   const debtCell=debt>0?`<span style="color:var(--danger);font-weight:700">${money(debt)}</span>`:'<span style="color:var(--muted-2)">—</span>';
   const contact=[c.dienThoai?esc(c.dienThoai):'',c.email?`<small style="display:block;color:var(--muted-2)">${esc(c.email)}</small>`:''].join('');
-  return `<tr><td class="t-code">${esc(c.maKH||'')}</td><td class="t-name">${esc(c.ten||'—')}${c.congTy?`<small>${esc(c.congTy)}</small>`:''}</td><td>${contact||'<span style="color:var(--muted-2)">—</span>'}</td><td>${loaiChip}</td><td>${tags.join(' ')||'<span style="color:var(--muted-2)">—</span>'}</td><td class="t-num">${debtCell}</td><td><div class="row-act"><button class="icon-btn" title="Sửa" onclick="openCustomerForm('${esc(c._id)}')">✎</button><button class="icon-btn del" title="Xóa" onclick="deleteCustomer('${esc(c._id)}')">🗑</button></div></td></tr>`;
+  return `<tr style="cursor:pointer" onclick="openCustomerDetail('${esc(c._id)}')"><td class="t-code">${esc(c.maKH||'')}</td><td class="t-name">${esc(c.ten||'—')}${c.congTy?`<small>${esc(c.congTy)}</small>`:''}</td><td>${contact||'<span style="color:var(--muted-2)">—</span>'}</td><td>${loaiChip}</td><td>${tags.join(' ')||'<span style="color:var(--muted-2)">—</span>'}</td><td class="t-num">${debtCell}</td><td><div class="row-act"><button class="icon-btn" title="Xem chi tiết" onclick="event.stopPropagation();openCustomerDetail('${esc(c._id)}')">👁</button><button class="icon-btn" title="Sửa" onclick="event.stopPropagation();openCustomerForm('${esc(c._id)}')">✎</button><button class="icon-btn del" title="Xóa" onclick="event.stopPropagation();deleteCustomer('${esc(c._id)}')">🗑</button></div></td></tr>`;
+}
+function openCustomerDetail(id){
+  const c=CUSTOMERS.find(x=>x._id===id);if(!c)return;
+  const debt=Number(c.congNo)||0;
+  const loaiChip=c.loai==='Doanh nghiệp'?'<span class="chip dn">Doanh nghiệp</span>':'<span class="chip cn">Cá nhân</span>';
+  const info=(lbl,val)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f2f6"><span style="color:var(--muted);font-size:13px">${lbl}</span><span style="font-weight:600;font-size:13.5px;text-align:right">${val||'<span style=\"color:var(--muted-2);font-weight:400\">—</span>'}</span></div>`;
+  openModal(`
+    <div class="modal-head"><h3>Chi tiết khách hàng</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:18px">
+        <div style="width:48px;height:48px;border-radius:12px;background:var(--gold-soft);color:var(--gold-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px">${esc((c.ten||'?').trim().charAt(0).toUpperCase())}</div>
+        <div style="flex:1"><div style="font-family:ui-monospace,monospace;color:var(--muted);font-size:12.5px;font-weight:700">${esc(c.maKH||'')}</div><div style="font-size:18px;font-weight:800;margin-top:2px">${esc(c.ten||'')}</div><div style="margin-top:7px">${loaiChip} ${c.nhom?`<span class="chip vip">${esc(c.nhom)}</span>`:''}</div></div>
+      </div>
+      ${debt>0?`<div style="background:var(--danger-bg);border-radius:11px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center"><span style="color:var(--danger);font-weight:600;font-size:13px">Công nợ hiện tại</span><span style="color:var(--danger);font-weight:800;font-size:20px">${money(debt)}₫</span></div>`:`<div style="background:var(--ok-bg);border-radius:11px;padding:12px 16px;margin-bottom:16px;color:var(--ok);font-weight:600;font-size:13px;text-align:center">✓ Không có công nợ</div>`}
+      <div>
+        ${info('Số điện thoại', c.dienThoai?esc(c.dienThoai):'')}
+        ${info('Email', c.email?esc(c.email):'')}
+        ${info('Địa chỉ', c.diaChi?esc(c.diaChi):'')}
+        ${info('Hạng', c.hang?esc(c.hang):'')}
+        ${info('Công ty', c.congTy?esc(c.congTy):'')}
+        ${info('Mã số thuế', c.maSoThue?esc(c.maSoThue):'')}
+        ${c.ghiChu?`<div style="padding:12px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:6px">Ghi chú</div><div style="font-size:13.5px;line-height:1.6;background:#fafbfc;border-radius:9px;padding:11px 13px">${esc(c.ghiChu)}</div></div>`:''}
+      </div>
+      <div style="margin-top:12px;padding:12px 14px;background:#f7f9fc;border-radius:10px;color:var(--muted-2);font-size:12.5px;line-height:1.6">🧾 <b>Lịch sử mua hàng</b> và 💳 <b>Lịch sử thanh toán</b> sẽ hiển thị tại đây khi hoàn thành module Đơn hàng.</div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-primary" onclick="openCustomerForm('${esc(id)}')">✎ Sửa khách hàng</button></div>`);
 }
 function openCustomerForm(id){
   const c=id?CUSTOMERS.find(x=>x._id===id):{},edit=!!id;
