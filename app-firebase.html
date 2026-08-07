@@ -1459,7 +1459,7 @@ function renderHome(){
   const bhSoon=bh.filter(r=>{try{return bhInfo(r).status.indexOf("Sắp hết")===0}catch(e){return false}}).length;
   let ccNV=0; try{ ccNV=(ccDoc().rows||[]).length; }catch(e){}
   const now=new Date(), ngay=now.getDate()+"/"+(now.getMonth()+1)+"/"+now.getFullYear();
-  const thu=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][now.getDay()];
+  const dow=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][now.getDay()];
   const gio=now.getHours(), chao=gio<11?"Chào buổi sáng":gio<14?"Chào buổi trưa":gio<18?"Chào buổi chiều":"Chào buổi tối";
   const mon=state.month;
   const txs=(state.transactions||[]).filter(t=>t.month===mon);
@@ -1508,7 +1508,7 @@ function renderHome(){
         <div style="font-size:13px;color:#E8C766;margin-top:7px;font-weight:600">${ri.icon} ${ri.label} · Học viện Âm nhạc Thiên Ân</div>
       </div>
       <div style="text-align:center;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:11px 20px">
-        <div style="font-size:11px;color:#aab3c5;text-transform:uppercase;letter-spacing:1px">${thu}</div>
+        <div style="font-size:11px;color:#aab3c5;text-transform:uppercase;letter-spacing:1px">${dow}</div>
         <div style="font-size:19px;font-weight:800;margin-top:2px">${ngay}</div>
       </div>
     </div>
