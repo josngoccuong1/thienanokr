@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v25 · Mật khẩu khi vào mục Sắp xếp</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v26 · Cắt & dán thí sinh</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1182,7 +1182,8 @@ $("jvExport").addEventListener("click", ()=>{
 
 /* ================= SẮP XẾP & CHIA BUỔI ================= */
 let mgSess = "";
-let mgDrag = null;                      // {row, gi} thí sinh đang kéo
+let mgDrag = null;
+let mgCut  = null;                      // mã thí sinh đang được "cắt" chờ dán                      // {row, gi} thí sinh đang kéo
 const mgTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
 /* KHÓA SẮP XẾP: phải nhập mật khẩu mới được đổi thứ tự.
@@ -1260,6 +1261,8 @@ function renderManage(){
       <span style="font-size:14px">🏫</span>
       <span style="color:#fff;font-weight:800;font-size:13px;flex:1">${esc(g.label)}</span>
       <span style="color:#D4AF37;font-weight:700;font-size:11px">${soTrongNhom} thí sinh</span>
+      ${ed && mgCut?`<button class="btn-out" data-pastend="${gi}" title="Dán vào CUỐI đơn vị này"
+            style="padding:4px 9px;font-size:12px;font-weight:800;border-color:#2980B9;color:#2980B9">📌 Dán cuối</button>`:""}
       ${ed?`<button class="btn-out" data-gsort="${gi}" style="padding:4px 8px;font-size:12px" title="Sắp A-Z theo tên gọi, chỉ trong đơn vị này">🔤</button>
             <button class="btn-out" data-gup="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị lên trên">▲</button>
             <button class="btn-out" data-gdn="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị xuống dưới">▼</button>`:""}
@@ -1269,7 +1272,8 @@ function renderManage(){
       const stt = mgStt[String(c.row)] || "—";
       const ss = String(c.session||"").trim();
       const keo = (ed && !mgTouch);
-      html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""}>
+      const dangCat = mgCut && String(mgCut)===String(c.row);
+      html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""} ${dangCat?'style="background:#FFF7E0;border:2px dashed #D4AF37"':""}>
         <div class="sbd" title="Thứ tự biểu diễn">${stt}</div>
         <div class="info">
           <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</div>
@@ -1289,6 +1293,14 @@ function renderManage(){
                   ${Array.from({length:CONFIG.SESSIONS},(_,i)=>i+1).map(i=>
                     `<option value="${i}"${ss===String(i)?" selected":""}>${tenBuoi(i)}</option>`).join("")}
                 </select>
+                ${mgCut && String(mgCut)!==String(c.row)
+                  ? `<button class="btn-out" data-paste="${c.row}" title="Dán thí sinh đang cắt vào TRƯỚC dòng này"
+                       style="padding:6px 10px;font-size:12px;font-weight:800;border-color:#2980B9;color:#2980B9">📌 Dán</button>`
+                  : (String(mgCut)===String(c.row)
+                     ? `<button class="btn-out" data-uncut="1" title="Hủy cắt"
+                          style="padding:6px 10px;font-size:12px;font-weight:800;border-color:#C0202A;color:#C0202A">✕ Hủy cắt</button>`
+                     : `<button class="btn-out" data-cut="${c.row}" title="Cắt để chuyển đi chỗ khác"
+                          style="padding:6px 9px;font-size:13px">✂️</button>`)}
                 ${c.hoatau?`<button class="btn-out" data-mem="${c.row}" title="Chọn thí sinh vào tiết mục này"
                   style="padding:6px 9px;font-size:13px;border-color:#D4AF37;color:var(--gold-dark)">👥</button>`:""}
                 <button class="btn-out" data-del="${c.row}" title="Xóa thí sinh"
@@ -1301,6 +1313,11 @@ function renderManage(){
 
   $("mgCount").textContent = hienThi + " thí sinh";
   $("mgList").innerHTML = html || `<div class="center" style="padding:24px;color:#aaa">Không có thí sinh</div>`;
+  if(mgCut){
+    const tsc = DATA.contestants.find(x=>String(x.row)===String(mgCut));
+    $("mgHint").innerHTML = '<span style="color:#8A6D00;font-weight:800">✂️ Đang cắt: '
+      + esc(tsc?tsc.name:"") + ' — bấm 📌 Dán ở vị trí muốn đặt (hoặc 📌 Dán cuối ở tên đơn vị)</span>';
+  } else
   $("mgHint").textContent = ed
     ? (mgTouch ? "Dùng ▲▼ để đổi chỗ · đổi đơn vị bằng nút ✏️ Sửa ở Check-in"
                : "Kéo thí sinh để đổi chỗ — kéo sang đơn vị khác sẽ chuyển luôn đơn vị (có hỏi lại) · ▲▼ trên tên đơn vị để chuyển cả đơn vị")
@@ -1345,6 +1362,58 @@ function renderManage(){
       renderManage();
     }catch(e){ hideLoading(); alert("Lỗi khi xóa: "+(e.message||e)); }
   }));
+
+  /* --- CẮT / DÁN thí sinh (nhanh hơn kéo khi đi xa) --- */
+  $("mgList").querySelectorAll("[data-cut]").forEach(b=>b.addEventListener("click", ()=>{
+    mgCut = b.dataset.cut; renderManage();
+  }));
+  $("mgList").querySelectorAll("[data-uncut]").forEach(b=>b.addEventListener("click", ()=>{
+    mgCut = null; renderManage();
+  }));
+
+  // dán vào TRƯỚC một thí sinh cụ thể
+  async function danVao(rowDich, cuoiNhomGi){
+    if(!mgCut) return;
+    const gs = mgGroups();
+    let giTu = -1, iTu = -1;
+    gs.forEach((g,gi)=>{ const k=g.items.findIndex(x=>String(x.row)===String(mgCut)); if(k>=0){ giTu=gi; iTu=k; } });
+    if(giTu < 0){ mgCut=null; renderManage(); return; }
+    const ts = gs[giTu].items[iTu];
+
+    let giDen = -1, iDen = -1;
+    if(cuoiNhomGi != null){
+      giDen = cuoiNhomGi; iDen = gs[giDen] ? gs[giDen].items.length : 0;
+    }else{
+      gs.forEach((g,gi)=>{ const k=g.items.findIndex(x=>String(x.row)===String(rowDich)); if(k>=0){ giDen=gi; iDen=k; } });
+    }
+    if(giDen < 0 || !gs[giDen]){ mgCut=null; renderManage(); return; }
+
+    const doiDonVi = (giDen !== giTu);
+    if(doiDonVi && !confirm(
+        "Chuyển \"" + ts.name + "\"\n"
+        + "từ đơn vị: " + gs[giTu].label + "\n"
+        + "sang đơn vị: " + gs[giDen].label + "\n\n"
+        + "Thí sinh sẽ nằm đúng vị trí vừa dán.")){ return; }
+
+    gs[giTu].items.splice(iTu,1);
+    if(giDen === giTu && iTu < iDen) iDen--;          // bỏ đi 1 phần tử phía trước -> lùi vị trí
+    gs[giDen].items.splice(Math.max(0,Math.min(iDen, gs[giDen].items.length)), 0, ts);
+
+    showLoading(doiDonVi ? "Đang chuyển đơn vị…" : "Đang dán…");
+    try{
+      if(doiDonVi){
+        const donViMoi = (gs[giDen].label === "Cá nhân") ? "" : gs[giDen].label;
+        await window.FS.update(ts.row, { unit: donViMoi });
+        ts.unit = donViMoi;
+      }
+      await applyOrder(mgFlat(gs));
+      mgCut = null;
+      doneLoading("Đã dán ✓");
+      renderManage();
+    }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); renderManage(); }
+  }
+  $("mgList").querySelectorAll("[data-paste]").forEach(b=>b.addEventListener("click", ()=>danVao(b.dataset.paste, null)));
+  $("mgList").querySelectorAll("[data-pastend]").forEach(b=>b.addEventListener("click", ()=>danVao(null, Number(b.dataset.pastend))));
 
   /* --- chuyển cả đơn vị lên / xuống (theo nhóm ĐANG HIỆN, bỏ qua nhóm bị lọc ẩn) --- */
   const moveGroup = async (gi, dir)=>{
