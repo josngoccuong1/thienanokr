@@ -1451,6 +1451,7 @@ function renderApp(){
 
 // ===== TRANG CHỦ (Dashboard) =====
 function hmTint(hex,a){hex=String(hex).replace('#','');const r=parseInt(hex.substr(0,2),16),g=parseInt(hex.substr(2,2),16),b=parseInt(hex.substr(4,2),16);return `rgba(${r},${g},${b},${a})`;}
+function hmMoney(n){n=Number(n)||0;const s=n<0?"-":"";n=Math.abs(n);if(n>=1e9)return s+(n/1e9).toFixed(2).replace(/\.?0+$/,'')+" tỷ";if(n>=1e6)return s+(n/1e6).toFixed(1).replace(/\.0$/,'')+" tr";return s+n.toLocaleString('vi-VN');}
 function renderHome(){
   const u=state.user, ri=roleInfo(u.role);
   const nv=Array.isArray(USERS)?USERS.length:0;
@@ -1460,6 +1461,16 @@ function renderHome(){
   const now=new Date(), ngay=now.getDate()+"/"+(now.getMonth()+1)+"/"+now.getFullYear();
   const thu=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][now.getDay()];
   const gio=now.getHours(), chao=gio<11?"Chào buổi sáng":gio<14?"Chào buổi trưa":gio<18?"Chào buổi chiều":"Chào buổi tối";
+  const mon=state.month;
+  const txs=(state.transactions||[]).filter(t=>t.month===mon);
+  const thu=txs.filter(t=>t.type==="thu").reduce((s,t)=>s+Number(t.amount||0),0);
+  const chi=txs.filter(t=>t.type==="chi").reduce((s,t)=>s+Number(t.amount||0),0);
+  const loi=thu-chi;
+  let quyLuong=0; try{(ccDoc().rows||[]).forEach(r=>quyLuong+=ccCalcRow(r).linh);}catch(e){}
+  const allKRs=(OBJECTIVES||[]).flatMap(o=>o.krs||[]);
+  let okrPct=0; try{ okrPct=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(getKRTotal(kr.id),kr.target),0)/allKRs.length):0; }catch(e){}
+  const okrColor=okrPct>=80?"#16A085":okrPct>=50?"#D4AF37":"#E67E22";
+  const fin=(label,val,color)=>`<div style="flex:1;min-width:120px"><div style="font-size:12px;color:#8a94a6">${label}</div><div style="font-size:21px;font-weight:800;color:${color};margin-top:3px">${hmMoney(val)}<span style="font-size:12px;font-weight:600;color:#b6bdc9">₫</span></div></div>`;
   const stat=(icon,val,label,c)=>`<div class="hm-stat">
     <div class="hm-ico" style="background:${hmTint(c,.12)}">${icon}</div>
     <div><div style="font-size:28px;font-weight:800;color:#1A1A2E;line-height:1">${val}</div>
@@ -1507,6 +1518,27 @@ function renderHome(){
     ${stat("🕒",ccNV,"Đang chấm công tháng","#16A085")}
     ${stat("🛠",bh.length,"Đàn đang bảo hành","#8E44AD")}
     ${stat("⚠️",bhSoon,"Sắp hết bảo hành","#E67E22")}
+  </div>
+  <div class="hm-sec"><i></i><b>Tổng quan tháng ${mon}</b></div>
+  <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:26px">
+    ${u.isAdmin?`<div style="flex:2;min-width:300px;background:#fff;border:1px solid #EDF0F7;border-radius:16px;padding:20px 22px;box-shadow:0 4px 16px rgba(15,52,96,.06)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><div class="hm-ico" style="width:40px;height:40px;font-size:20px;background:${hmTint('#27AE60',.12)}">💰</div><b style="font-size:15px;color:#0F3460">Tài chính tháng này</b></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        ${fin("Doanh thu",thu,"#16A085")}
+        ${fin("Chi phí",chi,"#E67E22")}
+        ${fin("Lợi nhuận",loi,loi>=0?"#0F3460":"#C0392B")}
+      </div>
+      <div style="border-top:1px dashed #E5E9F2;margin-top:16px;padding-top:13px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:#8a94a6">💵 Quỹ lương thực lĩnh (chấm công)</span>
+        <b style="font-size:16px;color:#8E44AD">${hmMoney(quyLuong)}<span style="font-size:11px;color:#b6bdc9"> ₫</span></b>
+      </div>
+    </div>`:""}
+    <div style="flex:1;min-width:250px;background:#fff;border:1px solid #EDF0F7;border-radius:16px;padding:20px 22px;box-shadow:0 4px 16px rgba(15,52,96,.06);display:flex;flex-direction:column;justify-content:center">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div class="hm-ico" style="width:40px;height:40px;font-size:20px;background:${hmTint(okrColor,.14)}">🎯</div><b style="font-size:15px;color:#0F3460">Tiến độ OKR</b></div>
+      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:34px;font-weight:800;color:${okrColor};line-height:1">${okrPct}%</span><span style="font-size:12px;color:#8a94a6">hoàn thành trung bình</span></div>
+      <div style="height:10px;background:#EEF1F8;border-radius:6px;overflow:hidden;margin-top:12px"><div style="width:${Math.min(okrPct,100)}%;height:100%;background:linear-gradient(90deg,#D4AF37,${okrColor});border-radius:6px;transition:width .5s"></div></div>
+      <div style="font-size:11.5px;color:#a4acbb;margin-top:8px">${allKRs.length} kết quả then chốt (KR) đang theo dõi</div>
+    </div>
   </div>
   <div class="hm-sec"><i></i><b>Truy cập nhanh</b></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px">
