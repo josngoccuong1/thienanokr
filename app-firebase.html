@@ -1450,6 +1450,7 @@ function renderApp(){
 }
 
 // ===== TRANG CHỦ (Dashboard) =====
+function hmTint(hex,a){hex=String(hex).replace('#','');const r=parseInt(hex.substr(0,2),16),g=parseInt(hex.substr(2,2),16),b=parseInt(hex.substr(4,2),16);return `rgba(${r},${g},${b},${a})`;}
 function renderHome(){
   const u=state.user, ri=roleInfo(u.role);
   const nv=Array.isArray(USERS)?USERS.length:0;
@@ -1457,11 +1458,12 @@ function renderHome(){
   const bhSoon=bh.filter(r=>{try{return bhInfo(r).status.indexOf("Sắp hết")===0}catch(e){return false}}).length;
   let ccNV=0; try{ ccNV=(ccDoc().rows||[]).length; }catch(e){}
   const now=new Date(), ngay=now.getDate()+"/"+(now.getMonth()+1)+"/"+now.getFullYear();
+  const thu=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][now.getDay()];
   const gio=now.getHours(), chao=gio<11?"Chào buổi sáng":gio<14?"Chào buổi trưa":gio<18?"Chào buổi chiều":"Chào buổi tối";
-  const stat=(icon,val,label,color)=>`<div style="flex:1;min-width:150px;background:#fff;border:1px solid #EEF1F8;border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(15,52,96,.05)">
-    <div style="font-size:22px">${icon}</div>
-    <div style="font-size:26px;font-weight:800;color:${color};margin-top:4px">${val}</div>
-    <div style="font-size:12px;color:#8a94a6;margin-top:2px">${label}</div></div>`;
+  const stat=(icon,val,label,c)=>`<div class="hm-stat">
+    <div class="hm-ico" style="background:${hmTint(c,.12)}">${icon}</div>
+    <div><div style="font-size:28px;font-weight:800;color:#1A1A2E;line-height:1">${val}</div>
+    <div style="font-size:12.5px;color:#8a94a6;margin-top:5px">${label}</div></div></div>`;
   const tiles=[
     {id:"okr",icon:"📊",label:"OKR",desc:"Mục tiêu & kết quả then chốt",c:"#0F3460"},
     {id:"chamcong",icon:"🕒",label:"Chấm công & Lương",desc:"Chấm công, tính lương Mẫu 02",c:"#16A085",admin:true},
@@ -1474,25 +1476,45 @@ function renderHome(){
     {id:"users",icon:"👥",label:"Nhân sự",desc:"Quản lý tài khoản",c:"#34495E",admin:true},
   ].filter(t=>!t.admin||u.isAdmin);
   return `
-  <div style="background:linear-gradient(135deg,#1A1A2E,#16213E 55%,#0F3460);border-radius:18px;padding:24px 26px;color:#fff;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;box-shadow:0 6px 24px rgba(15,52,96,.18)">
-    <div>
-      <div style="font-size:23px;font-weight:800">${chao}, ${u.name} 👋</div>
-      <div style="font-size:13px;color:#D4AF37;margin-top:5px">${ri.icon} ${ri.label} · Học viện Âm nhạc Thiên Ân</div>
+  <style>
+  .hm-ico{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:25px;flex-shrink:0}
+  .hm-stat{flex:1;min-width:190px;background:#fff;border:1px solid #EDF0F7;border-radius:16px;padding:18px 20px;box-shadow:0 4px 16px rgba(15,52,96,.06);display:flex;align-items:center;gap:16px;transition:box-shadow .18s}
+  .hm-stat:hover{box-shadow:0 8px 22px rgba(15,52,96,.12)}
+  .hm-sec{display:flex;align-items:center;gap:11px;margin:6px 0 16px}
+  .hm-sec i{width:5px;height:20px;border-radius:3px;background:linear-gradient(#D4AF37,#B7950B);display:inline-block}
+  .hm-sec b{font-size:16px;color:#0F3460;font-weight:800;letter-spacing:.2px}
+  .hm-tile{cursor:pointer;background:#fff;border:1px solid #EDF0F7;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(15,52,96,.05);transition:transform .18s,box-shadow .18s;position:relative;overflow:hidden}
+  .hm-tile:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(15,52,96,.16)}
+  .hm-tile .arw{position:absolute;right:16px;bottom:15px;font-size:18px;font-weight:700;opacity:0;transform:translateX(-6px);transition:.18s}
+  .hm-tile:hover .arw{opacity:1;transform:translateX(0)}
+  </style>
+  <div style="position:relative;overflow:hidden;background:linear-gradient(120deg,#1A1A2E,#16213E 52%,#0F3460);border-radius:20px;padding:26px 28px;color:#fff;margin-bottom:22px;box-shadow:0 12px 32px rgba(15,52,96,.24)">
+    <div style="position:absolute;right:-24px;top:-46px;font-size:170px;opacity:.07;transform:rotate(-12deg);pointer-events:none">🎹</div>
+    <div style="position:absolute;left:-60px;bottom:-70px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,.22),transparent 70%);pointer-events:none"></div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:25px;font-weight:800;letter-spacing:.2px">${chao}, ${u.name} <span style="font-size:22px">👋</span></div>
+        <div style="font-size:13px;color:#E8C766;margin-top:7px;font-weight:600">${ri.icon} ${ri.label} · Học viện Âm nhạc Thiên Ân</div>
+      </div>
+      <div style="text-align:center;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:11px 20px">
+        <div style="font-size:11px;color:#aab3c5;text-transform:uppercase;letter-spacing:1px">${thu}</div>
+        <div style="font-size:19px;font-weight:800;margin-top:2px">${ngay}</div>
+      </div>
     </div>
-    <div style="text-align:right"><div style="font-size:12px;color:#aab3c5">Hôm nay</div><div style="font-size:17px;font-weight:700">${ngay}</div></div>
   </div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:26px">
     ${stat("👥",nv,"Tài khoản nhân sự","#0F3460")}
     ${stat("🕒",ccNV,"Đang chấm công tháng","#16A085")}
     ${stat("🛠",bh.length,"Đàn đang bảo hành","#8E44AD")}
     ${stat("⚠️",bhSoon,"Sắp hết bảo hành","#E67E22")}
   </div>
-  <div style="font-size:15px;font-weight:800;color:#0F3460;margin-bottom:14px">Truy cập nhanh</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px">
-    ${tiles.map(t=>`<div onclick="goTab('${t.id}')" style="cursor:pointer;background:#fff;border:1px solid #EEF1F8;border-left:4px solid ${t.c};border-radius:14px;padding:18px 18px 16px;box-shadow:0 2px 10px rgba(15,52,96,.05);transition:box-shadow .15s,transform .15s" onmouseover="this.style.boxShadow='0 8px 22px rgba(15,52,96,.16)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(15,52,96,.05)';this.style.transform='none'">
-      <div style="font-size:27px">${t.icon}</div>
-      <div style="font-size:16px;font-weight:800;color:#1A1A2E;margin-top:9px">${t.label}</div>
-      <div style="font-size:12px;color:#8a94a6;margin-top:3px;line-height:1.4">${t.desc}</div>
+  <div class="hm-sec"><i></i><b>Truy cập nhanh</b></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px">
+    ${tiles.map(t=>`<div class="hm-tile" onclick="goTab('${t.id}')">
+      <div class="hm-ico" style="background:${hmTint(t.c,.12)}">${t.icon}</div>
+      <div style="font-size:16.5px;font-weight:800;color:#1A1A2E;margin-top:14px">${t.label}</div>
+      <div style="font-size:12.5px;color:#8a94a6;margin-top:4px;line-height:1.45">${t.desc}</div>
+      <span class="arw" style="color:${t.c}">→</span>
     </div>`).join("")}
   </div>`;
 }
