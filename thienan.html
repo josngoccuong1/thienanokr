@@ -1623,7 +1623,7 @@ function luuHocVien(dong, ma){
   });
 }
 function moThuTienNgay(maHV, maHD, conNo){
-  goi('xemHocVien',{maHV:maHV}).then(function(d){ ChiTiet=d; veChiTiet(); moThuTien(maHD, conNo); }).catch(function(e){ bao(e.message,true); });
+  goi('xemHocVien',{maHV:maHV}).then(function(d){ ChiTiet=d; moThuTien(maHD, conNo); }).catch(function(e){ bao(e.message,true); });
 }
 function capNhatKhoaChon(){}
 
