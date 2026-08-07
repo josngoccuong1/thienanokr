@@ -745,6 +745,7 @@ async function post(payload){
       if(payload.category != null) data.category = payload.category;
       if(payload.unit     != null) data.unit     = payload.unit;
       if(payload.phone    != null) data.phone    = payload.phone;
+      if(payload.order    != null) data.order    = Number(payload.order);
       if(payload.members  != null) data.members  = payload.members;
       if(payload.memberIds!= null) data.memberIds= payload.memberIds;
       await window.FS.update(row, data);
@@ -934,9 +935,18 @@ function openEditInfo(row){
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
       const memberIds = memInp ? eiIds : null;
-      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds});
+      // Đổi đơn vị -> cho số thứ tự LỚN NHẤT để nằm CUỐI đơn vị mới.
+      // Giữ nguyên vị trí mọi thí sinh khác, không tự sắp lại gì cả.
+      let newOrder = null;
+      if(norm(unit||"Cá nhân") !== norm(c.unit||"Cá nhân")){
+        let maxO = 0;
+        DATA.contestants.forEach(x=>{ const o=Number(x.order)||0; if(o>maxO) maxO=o; });
+        newOrder = maxO + 1;
+      }
+      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds, order:newOrder});
       if(d.ok){
         c.name=name; c.piece=piece; c.category=category; c.unit=unit; c.phone=phone;
+        if(newOrder!=null){ c.order=newOrder; DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)); }
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
