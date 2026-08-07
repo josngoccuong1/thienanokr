@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v21 · Số thứ tự riêng trong từng đơn vị</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v22 · Số thứ tự liên tục theo buổi</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -977,9 +977,9 @@ function renderCheckin(){
   else {
     // Số thứ tự CỐ ĐỊNH theo danh sách đầy đủ của buổi đang xem —
     // tìm kiếm hay lọc bảng đều không làm đổi số của thí sinh.
-    // Số thứ tự RIÊNG trong từng đơn vị (mỗi đơn vị đánh lại từ 1)
+    // Số thứ tự chạy LIÊN TỤC trong buổi đang xem: hết đơn vị này sang đơn vị kia
     const sttMap = {};
-    groupByUnit(all).forEach(g=>{ let k = 0; g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; }); });
+    { let k = 0; groupByUnit(all).forEach(g=>g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; })); }
     let html = "", grpIdx = 0;
     const groups = groupByUnit(list);
     window.__ciGroups = groups;
@@ -1080,9 +1080,9 @@ function renderJudge(){
 
   if(list.length===0){ $("jvList").innerHTML = `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>`; }
   else {
-    // Số thứ tự RIÊNG trong từng đơn vị
+    // Số thứ tự chạy LIÊN TỤC trong buổi đang xem
     const sttMap = {};
-    groupByUnit(toanBo).forEach(g=>{ let k = 0; g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; }); });
+    { let k = 0; groupByUnit(toanBo).forEach(g=>g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; })); }
     let html="";
     const jvGroups = groupByUnit(list);
     window.__jvGroups = jvGroups;
@@ -1211,15 +1211,17 @@ function renderManage(){
   $("mgSess").querySelectorAll("[data-ms]").forEach(b=>b.addEventListener("click",()=>{ mgSess=b.dataset.ms; renderManage(); }));
 
   const q = norm($("mgSearch").value||"");
-  const hop = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess))
-                && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
+  const hopBuoi = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess));
+  const hop = c => hopBuoi(c) && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
 
+  // Số thứ tự chạy LIÊN TỤC theo phạm vi đang xem (buổi đang lọc)
+  const mgStt = {};
+  { let k = 0; groups.forEach(g=>g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; })); }
   let html = "", hienThi = 0;
   groups.forEach((g, gi)=>{
     const items = g.items.filter(hop);
     const soTrongNhom = g.items.length;
     if(items.length === 0){ return; }
-    let stt = 0;                      // số thứ tự RIÊNG trong đơn vị này
     hienThi += items.length;
     html += `<div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:7px 12px;background:linear-gradient(135deg,#1A1A2E,#0F3460);border-radius:10px">
       <span style="font-size:14px">🏫</span>
@@ -1230,8 +1232,8 @@ function renderManage(){
             <button class="btn-out" data-gdn="${gi}" style="padding:4px 8px;font-size:12px" title="Chuyển cả đơn vị xuống dưới">▼</button>`:""}
     </div>`;
     g.items.forEach(c=>{
-      stt++;
       if(!hop(c)) return;
+      const stt = mgStt[String(c.row)] || "—";
       const ss = String(c.session||"").trim();
       const keo = (ed && !mgTouch);
       html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""}>
