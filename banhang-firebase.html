@@ -199,7 +199,7 @@ const P="bh_";
 const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks",settings:P+"settings"};
 let db=null,ready=false,CURRENT_USER=null,BANK_INFO=null;
 let PRODUCTS=[],CATEGORIES=[],CUSTOMERS=[],TRANSACTIONS=[],ORDERS=[],ORDER_CART=[],ORDER_PAID_EDITED=false;
-let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[];
+let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[],ORDER_FEES=[];
 
 function initFirebase(){
   if(firebaseConfig.apiKey==="PASTE_API_KEY"||!firebaseConfig.apiKey){document.getElementById('configGate').style.display='flex';document.getElementById('loginScreen').style.display='none';return false;}
@@ -776,7 +776,7 @@ function openOrderForm(){
           <div style="border-top:1px solid var(--line);padding-top:10px">
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13.5px"><span style="color:var(--muted)">Tạm tính</span><b id="ordSubtotal">0</b></div>
             <div class="field" style="margin:8px 0"><label>Giảm giá (₫)</label><input id="ordDiscount" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div>
-            <div class="grid2" style="gap:8px;margin-bottom:4px"><div class="field" style="margin:0"><label>Phí VC / cẩu (₫)</label><input id="ordPhi" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div><div class="field" style="margin:0"><label>Nội dung phí</label><input id="ordPhiLabel" placeholder="VD: Cước cẩu"></div></div>
+            <div style="margin:8px 0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><label style="font-size:12.5px;font-weight:600;color:var(--muted);margin:0">Phí phát sinh</label><button type="button" class="btn btn-ghost btn-sm" style="padding:3px 9px;font-size:12px" onclick="addFeeRow()">＋ Thêm phí</button></div><div id="ordFeesBody"></div></div>
             <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:18px;border-top:1px solid var(--line)"><b>Tổng cộng</b><b id="ordTotal" style="color:var(--gold-2)">0</b></div>
             <div class="field" style="margin:8px 0 6px"><label>Số tiền thanh toán (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
             <div style="display:flex;gap:5px;margin-bottom:11px">
@@ -789,7 +789,7 @@ function openOrderForm(){
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Còn nợ đơn này</span><b id="ordConNo" style="color:var(--danger)">0</b></div>
             <div class="field" style="margin:11px 0 8px"><label>Phương thức thanh toán</label><select id="ordPttt" onchange="updatePayUI()"><option value="Tiền mặt">💵 Tiền mặt</option><option value="Chuyển khoản">🏦 Chuyển khoản</option></select></div>
             <div id="ordQrBlock" style="display:none;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;text-align:center"><div id="ordQrInner"></div></div>
-            <div class="field" style="margin:0 0 8px"><label>Bảo hành (tháng)</label><input id="ordBaoHanh" type="number" value="0" placeholder="VD: 12" oninput="updateWarrantyHint()"><div id="ordBhHint" class="hint" style="display:none"></div></div>
+            <div class="field" style="margin:0 0 8px"><label>Bảo hành</label><div style="display:flex;gap:6px"><input id="ordBaoHanhSo" type="number" value="0" placeholder="VD: 2" oninput="updateWarrantyHint()" style="flex:1"><select id="ordBaoHanhDv" onchange="updateWarrantyHint()" style="width:110px"><option value="thang">Tháng</option><option value="nam">Năm</option></select></div><div id="ordBhHint" class="hint" style="display:none"></div></div>
             <div class="field" style="margin:0 0 12px"><label>Ghi chú</label><input id="ordNote" placeholder="Ghi chú đơn (hiện trên hóa đơn)"></div>
             <button class="btn btn-primary btn-block" id="saveOrdBtn" onclick="saveOrder()" style="padding:13px;font-size:14.5px">💾 Lưu đơn & thu tiền</button>
           </div>
@@ -798,6 +798,7 @@ function openOrderForm(){
     </div>`;
   $('posSearch').oninput=e=>renderPosProducts(e.target.value);
   $('posSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addFirstMatch();}});
+  ORDER_FEES=[];renderFees();
   renderPosProducts('');
   renderCart();
 }
@@ -851,7 +852,7 @@ function setPaid(mode){
 }
 function updateOrderTotals(){
   let sub=0;ORDER_CART.forEach((it,i)=>{const tt=(Number(it.donGia)||0)*(Number(it.qty)||0);sub+=tt;const c=$('cartTt'+i);if(c)c.textContent=money(tt);});
-  const ck=Number($('ordDiscount')?.value)||0;const phi=Number($('ordPhi')?.value)||0;const total=Math.max(0,sub-ck+phi);
+  const ck=Number($('ordDiscount')?.value)||0;const phi=feesTotal();const total=Math.max(0,sub-ck+phi);
   if($('ordSubtotal'))$('ordSubtotal').textContent=money(sub);
   if($('ordTotal'))$('ordTotal').textContent=money(total);
   if(!ORDER_PAID_EDITED&&$('ordPaid'))$('ordPaid').value=total;
@@ -859,13 +860,27 @@ function updateOrderTotals(){
   if($('ordConNo'))$('ordConNo').textContent=money(Math.max(0,total-paid));
   updatePayUI();
 }
+function feesTotal(){return ORDER_FEES.reduce((s,f)=>s+(Number(f.amount)||0),0);}
+function renderFees(){
+  const body=$('ordFeesBody');if(!body)return;
+  if(ORDER_FEES.length===0){body.innerHTML='<div style="color:var(--muted-2);font-size:12px;padding:2px 0">Chưa có phí. Bấm "＋ Thêm phí" nếu có cước xe, cước cẩu…</div>';updateOrderTotals();return;}
+  body.innerHTML=ORDER_FEES.map((f,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px">
+    <input placeholder="Nội dung (cước xe, cẩu…)" value="${esc(f.label)}" oninput="ORDER_FEES[${i}].label=this.value" style="flex:1;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;font-size:13px">
+    <input type="number" placeholder="0" value="${f.amount||''}" oninput="ORDER_FEES[${i}].amount=Number(this.value)||0;ORDER_PAID_EDITED=false;updateOrderTotals()" style="width:100px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;text-align:right;font-size:13px">
+    <button class="icon-btn del" onclick="removeFee(${i})" style="flex-shrink:0">🗑</button>
+  </div>`).join('');
+  updateOrderTotals();
+}
+function addFeeRow(){ORDER_FEES.push({label:'',amount:0});renderFees();}
+function removeFee(i){ORDER_FEES.splice(i,1);renderFees();}
+function warrantyText(o){if(!(o.baoHanhThang>0))return '';return o.baoHanhSo?`${o.baoHanhSo} ${o.baoHanhDonVi==='nam'?'năm':'tháng'}`:`${o.baoHanhThang} tháng`;}
 function addMonthsToDate(iso,months){if(!iso||!months)return null;const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,(m-1)+Number(months),d);return dt;}
 function fmtDate(dt){if(!dt)return '';return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;}
 function updateWarrantyHint(){
-  const thang=Number($('ordBaoHanh')?.value)||0;const hint=$('ordBhHint');if(!hint)return;
-  if(thang<=0){hint.style.display='none';return;}
-  const from=$('ordDate')?.value;const to=addMonthsToDate(from,thang);
-  hint.style.display='block';hint.textContent=`Từ ${fmtDate(new Date(from))} đến ${fmtDate(to)}`;
+  const so=Number($('ordBaoHanhSo')?.value)||0;const dv=$('ordBaoHanhDv')?.value;const hint=$('ordBhHint');if(!hint)return;
+  if(so<=0){hint.style.display='none';return;}
+  const months=dv==='nam'?so*12:so;const from=$('ordDate')?.value;const to=addMonthsToDate(from,months);
+  hint.style.display='block';hint.textContent=`${so} ${dv==='nam'?'năm':'tháng'} · từ ${fmtDate(new Date(from))} đến ${fmtDate(to)}`;
 }
 function buildQrUrl(amount,info){
   if(!BANK_INFO||!BANK_INFO.accountNo||!BANK_INFO.bankCode)return '';
@@ -892,16 +907,16 @@ async function saveOrder(){
   const items=ORDER_CART.map(it=>({maSP:it.maSP,ten:it.ten,donGia:Number(it.donGia)||0,qty:Number(it.qty)||0,thanhTien:(Number(it.donGia)||0)*(Number(it.qty)||0),laDichVu:!!it.laDichVu,prodId:it.id}));
   const sub=items.reduce((s,it)=>s+it.thanhTien,0);
   const ck=Number($('ordDiscount').value)||0;
-  const phi=Number($('ordPhi').value)||0;
-  const phiLabel=$('ordPhiLabel').value.trim();
+  const fees=ORDER_FEES.filter(f=>(Number(f.amount)||0)>0).map(f=>({label:(f.label||'Phí').trim()||'Phí',amount:Number(f.amount)||0}));
+  const phi=fees.reduce((s,f)=>s+f.amount,0);
   const total=Math.max(0,sub-ck+phi);
   const paid=Number($('ordPaid').value)||0;
   const conNo=Math.max(0,total-paid);
   if(conNo>0&&!cust){toast('Khách lẻ phải thanh toán đủ. Chọn khách hàng nếu muốn ghi nợ.','warn');return;}
-  const bhThang=Number($('ordBaoHanh').value)||0;
+  const bhSo=Number($('ordBaoHanhSo').value)||0;const bhDv=$('ordBaoHanhDv').value;const bhThang=bhDv==='nam'?bhSo*12:bhSo;
   const bhDen=bhThang>0?fmtDate(addMonthsToDate($('ordDate').value,bhThang)):'';
   const maDon=genOrderCode();
-  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiVanChuyen:phi,phiLabel:phiLabel||'Phí vận chuyển/cẩu',tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
+  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
     // 1) ghi đơn
@@ -935,12 +950,12 @@ function openOrderDetail(id){
       <div style="background:#fafbfc;border-radius:11px;padding:16px">
         <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Tổng hàng</span><b>${money(o.tongHang)}₫</b></div>
         ${o.chietKhau>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Chiết khấu</span><b style="color:var(--danger)">−${money(o.chietKhau)}₫</b></div>`:''}
-        ${o.phiVanChuyen>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(o.phiLabel||'Phí vận chuyển/cẩu')}</span><b>+${money(o.phiVanChuyen)}₫</b></div>`:''}
+        ${(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(f.label)}</span><b>+${money(f.amount)}₫</b></div>`).join(''):(o.phiVanChuyen>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(o.phiLabel||'Phí')}</span><b>+${money(o.phiVanChuyen)}₫</b></div>`:'')}
         <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:16px;border-top:1px solid var(--line);margin-top:4px"><b>Tổng cộng</b><b style="color:var(--gold-2)">${money(o.tongCong)}₫</b></div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--ok)">Đã trả</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
         ${o.conNo>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--danger)">Còn nợ</span><b style="color:var(--danger)">${money(o.conNo)}₫</b></div>`:''}
       </div>
-      ${o.baoHanhThang>0?`<div style="margin-top:12px;background:var(--gold-soft);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--gold-2)">🛡 Bảo hành <b>${o.baoHanhThang} tháng</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
+      ${o.baoHanhThang>0?`<div style="margin-top:12px;background:var(--gold-soft);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--gold-2)">🛡 Bảo hành <b>${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
       ${o.ghiChu?`<div style="margin-top:12px;font-size:13px;color:var(--muted)">📝 ${esc(o.ghiChu)}</div>`:''}
       <div style="margin-top:8px;font-size:12px;color:var(--muted-2)">Người tạo: ${esc(o.createdBy||'')} · PTTT: ${esc(o.phuongThuc||'')}</div>
     </div>
@@ -963,12 +978,12 @@ function printInvoice(id){
       <div class="tot"><table>
         <tr><td>Tổng hàng:</td><td class="right">${money(o.tongHang)} ₫</td></tr>
         ${o.chietKhau>0?`<tr><td>Chiết khấu:</td><td class="right">−${money(o.chietKhau)} ₫</td></tr>`:''}
-        ${o.phiVanChuyen>0?`<tr><td>${esc(o.phiLabel||'Phí vận chuyển/cẩu')}:</td><td class="right">+${money(o.phiVanChuyen)} ₫</td></tr>`:''}
+        ${(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td>${esc(f.label)}:</td><td class="right">+${money(f.amount)} ₫</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td>${esc(o.phiLabel||'Phí')}:</td><td class="right">+${money(o.phiVanChuyen)} ₫</td></tr>`:'')}
         <tr><td style="font-size:15px;font-weight:bold;border-top:1px solid #333">Tổng cộng:</td><td class="right" style="font-size:15px;font-weight:bold;border-top:1px solid #333;color:#a97e46">${money(o.tongCong)} ₫</td></tr>
         <tr><td>Đã thanh toán:</td><td class="right">${money(o.daTra)} ₫</td></tr>
         ${o.conNo>0?`<tr><td style="color:#c00">Còn nợ:</td><td class="right" style="color:#c00">${money(o.conNo)} ₫</td></tr>`:''}
       </table></div>
-      ${o.baoHanhThang>0?`<div style="margin-top:14px;padding:10px 14px;background:#f4ecdf;border-radius:8px;font-size:12.5px">🛡 <b>Bảo hành ${o.baoHanhThang} tháng</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
+      ${o.baoHanhThang>0?`<div style="margin-top:14px;padding:10px 14px;background:#f4ecdf;border-radius:8px;font-size:12.5px">🛡 <b>Bảo hành ${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
       ${o.ghiChu?`<div style="margin-top:10px;font-size:12.5px"><b>Ghi chú:</b> ${esc(o.ghiChu)}</div>`:''}
       <div style="margin-top:10px;font-size:12.5px"><b>Thanh toán:</b> ${esc(o.phuongThuc||'')}</div>
       ${(o.phuongThuc==='Chuyển khoản'&&BANK_INFO&&BANK_INFO.accountNo)?`<div style="margin-top:14px;text-align:center;border:1px dashed #ccc;border-radius:10px;padding:14px"><div style="font-size:12.5px;margin-bottom:8px;font-weight:bold">Quét mã QR để chuyển khoản</div><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:200px;height:200px;object-fit:contain"><div style="font-size:12.5px;margin-top:6px">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} · ${esc(BANK_INFO.accountNo)} · ${esc(BANK_INFO.accountName||'')}</div></div>`:''}
