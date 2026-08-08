@@ -133,6 +133,11 @@ tbody tr:hover{background:#fbfcfe}tbody tr:last-child td{border-bottom:none}
 .overlay.show{display:flex}
 .modal{background:var(--card);border-radius:16px;width:100%;max-width:640px;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:pop .18s}
 .modal.sm{max-width:440px}
+.modal.lg{max-width:900px}
+.od-box{background:#fbfcfd;border:1px solid var(--line);border-radius:11px;padding:15px 16px;margin-bottom:14px}
+.od-box h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;margin-bottom:11px}
+.od-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px;gap:12px}
+.od-row span{color:var(--muted)}.od-row b{text-align:right}
 @keyframes pop{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
 .modal-head{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center}
 .modal-head h3{font-size:16px;font-weight:700}
@@ -916,7 +921,7 @@ async function saveOrder(){
   const bhSo=Number($('ordBaoHanhSo').value)||0;const bhDv=$('ordBaoHanhDv').value;const bhThang=bhDv==='nam'?bhSo*12:bhSo;
   const bhDen=bhThang>0?fmtDate(addMonthsToDate($('ordDate').value,bhThang)):'';
   const maDon=genOrderCode();
-  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
+  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,trangThai:'Hoàn thành',ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
     // 1) ghi đơn
@@ -935,61 +940,121 @@ async function saveOrder(){
     renderOrders();
   }catch(e){console.error(e);toast('Lỗi tạo đơn: '+e.message,'err');btn.disabled=false;btn.textContent='💾 Lưu đơn & thu tiền';}
 }
-/* --- Chi tiết đơn --- */
+/* --- Chi tiết đơn (2 cột) --- */
 function openOrderDetail(id){
   const o=ORDERS.find(x=>x._id===id);if(!o)return;const stt=orderPayStatus(o);
-  const chip={paid:'<span class="chip ok">● Đã thanh toán</span>',partial:'<span class="chip vip">◐ Trả một phần</span>',unpaid:'<span class="chip low">○ Chưa thanh toán</span>'}[stt];
+  const payChip={paid:'<span class="chip ok">● Đã thanh toán</span>',partial:'<span class="chip vip">◐ Trả một phần</span>',unpaid:'<span class="chip low">○ Chưa thanh toán</span>'}[stt];
   const rows=(o.items||[]).map((it,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="t-name">${esc(it.ten)}<small>${esc(it.maSP)}</small></td><td class="t-num">${money(it.donGia)}</td><td class="t-num">${money(it.qty)}</td><td class="t-num t-price">${money(it.thanhTien)}</td></tr>`).join('');
-  openModal(`<div class="modal-head"><h3>Đơn ${esc(o.maDon)}</h3><button onclick="closeModal()">×</button></div>
-    <div class="modal-body">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-        <div><div style="font-size:13px;color:var(--muted)">Khách hàng</div><div style="font-size:16px;font-weight:700">${esc(o.khachTen||'Khách lẻ')}</div>${o.khachSDT?`<div style="font-size:13px;color:var(--muted)">${esc(o.khachSDT)}</div>`:''}</div>
-        <div style="text-align:right"><div>${chip}</div><div style="font-size:13px;color:var(--muted);margin-top:6px">${esc(o.ngayHienThi||'')}</div></div>
+  const statuses=['Mới','Đang xử lý','Hoàn thành','Đã hủy'];const curSt=o.trangThai||'Hoàn thành';
+  const stOpts=statuses.map(s=>`<option value="${s}" ${s===curSt?'selected':''}>${s}</option>`).join('');
+  const pays=TRANSACTIONS.filter(t=>t.refOrderId===o.maDon);
+  const payHist=pays.length?pays.map(t=>`<div style="background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--muted)">${esc(t.ngayHienThi||'')}</span><span class="chip ok">${esc(t.phuongThuc||'')}</span></div><div style="font-size:15px;font-weight:800;color:var(--ok);margin-top:4px">${money(t.soTien)}₫</div><div style="font-size:12px;color:var(--muted-2);margin-top:2px">${esc(t.moTa||'')}</div></div>`).join(''):'<div style="color:var(--muted-2);font-size:13px;padding:6px 0">Chưa có lịch sử thanh toán.</div>';
+  const feeLines=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<div class="od-row"><span>${esc(f.label)}</span><b>+${money(f.amount)}₫</b></div>`).join(''):(o.phiVanChuyen>0?`<div class="od-row"><span>Phí</span><b>+${money(o.phiVanChuyen)}₫</b></div>`:'');
+  openModal(`
+    <div class="modal-head"><h3>Chi tiết đơn hàng · ${esc(o.maDon)}</h3>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="printInvoice('${esc(id)}')">🖨 In hóa đơn</button>
+        <button onclick="closeModal()" style="font-size:22px;color:var(--muted-2);padding:2px 6px;border-radius:8px">×</button>
       </div>
-      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:10px;margin-bottom:16px"><table><thead><tr><th>#</th><th>Sản phẩm</th><th class="t-num">Đơn giá</th><th class="t-num">SL</th><th class="t-num">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div style="background:#fafbfc;border-radius:11px;padding:16px">
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Tổng hàng</span><b>${money(o.tongHang)}₫</b></div>
-        ${o.chietKhau>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Chiết khấu</span><b style="color:var(--danger)">−${money(o.chietKhau)}₫</b></div>`:''}
-        ${(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(f.label)}</span><b>+${money(f.amount)}₫</b></div>`).join(''):(o.phiVanChuyen>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(o.phiLabel||'Phí')}</span><b>+${money(o.phiVanChuyen)}₫</b></div>`:'')}
-        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:16px;border-top:1px solid var(--line);margin-top:4px"><b>Tổng cộng</b><b style="color:var(--gold-2)">${money(o.tongCong)}₫</b></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--ok)">Đã trả</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
-        ${o.conNo>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--danger)">Còn nợ</span><b style="color:var(--danger)">${money(o.conNo)}₫</b></div>`:''}
-      </div>
-      ${o.baoHanhThang>0?`<div style="margin-top:12px;background:var(--gold-soft);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--gold-2)">🛡 Bảo hành <b>${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
-      ${o.ghiChu?`<div style="margin-top:12px;font-size:13px;color:var(--muted)">📝 ${esc(o.ghiChu)}</div>`:''}
-      <div style="margin-top:8px;font-size:12px;color:var(--muted-2)">Người tạo: ${esc(o.createdBy||'')} · PTTT: ${esc(o.phuongThuc||'')}</div>
     </div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-ghost" onclick="printInvoice('${esc(id)}')">🖨 In hóa đơn</button><button class="btn btn-danger" onclick="deleteOrder('${esc(id)}')">🗑 Xóa đơn</button></div>`);
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start">
+        <div>
+          <div class="od-box">
+            <h4>Thông tin đơn hàng</h4>
+            <div class="od-row"><span>Mã đơn</span><b class="t-code">${esc(o.maDon)}</b></div>
+            <div class="od-row"><span>Ngày</span><b>${esc(o.ngayHienThi||'')}</b></div>
+            <div class="od-row"><span>Khách hàng</span><b>${esc(o.khachTen||'Khách lẻ')}</b></div>
+            ${o.khachSDT?`<div class="od-row"><span>Điện thoại</span><b>${esc(o.khachSDT)}</b></div>`:''}
+            <div class="od-row"><span>Thanh toán</span><b>${esc(o.phuongThuc||'')}</b></div>
+            <div class="od-row"><span>Nhân viên</span><b>${esc(o.createdBy||'')}</b></div>
+          </div>
+          ${(o.baoHanhThang>0||o.ghiChu)?`<div class="od-box" style="background:var(--warn-bg);border-color:#f0dcae">
+            <h4 style="color:var(--warn)">Ghi chú & bảo hành</h4>
+            ${o.baoHanhThang>0?`<div style="font-size:13.5px;color:var(--txt);margin-bottom:${o.ghiChu?'6px':'0'}">🛡 Bảo hành <b>${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
+            ${o.ghiChu?`<div style="font-size:13.5px;color:var(--txt)">📝 ${esc(o.ghiChu)}</div>`:''}
+          </div>`:''}
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:6px 0 10px">Chi tiết sản phẩm</div>
+          <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:10px;margin-bottom:14px"><table><thead><tr><th>#</th><th>Sản phẩm</th><th class="t-num">Đơn giá</th><th class="t-num">SL</th><th class="t-num">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <div class="od-box" style="margin:0">
+            <div class="od-row"><span>Tổng hàng</span><b>${money(o.tongHang)}₫</b></div>
+            ${o.chietKhau>0?`<div class="od-row"><span>Chiết khấu</span><b style="color:var(--danger)">−${money(o.chietKhau)}₫</b></div>`:''}
+            ${feeLines}
+            <div class="od-row" style="border-top:1px solid var(--line);margin-top:5px;padding-top:9px;font-size:17px"><b>TỔNG TIỀN</b><b style="color:var(--gold-2)">${money(o.tongCong)}₫</b></div>
+          </div>
+        </div>
+        <div>
+          <div class="od-box">
+            <h4>Trạng thái đơn hàng</h4>
+            <select id="odStatus" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;margin-bottom:10px">${stOpts}</select>
+            <button class="btn btn-primary btn-block btn-sm" onclick="updateOrderStatus('${esc(id)}')">Cập nhật trạng thái</button>
+          </div>
+          <div class="od-box" style="background:var(--ok-bg);border-color:#c9ead9">
+            <h4 style="color:var(--ok)">Thanh toán ${payChip}</h4>
+            <div class="od-row"><span>Tổng tiền</span><b>${money(o.tongCong)}₫</b></div>
+            <div class="od-row"><span>Đã thanh toán</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
+            <div class="od-row" style="font-size:16px"><span>Còn nợ</span><b style="color:${o.conNo>0?'var(--danger)':'var(--muted)'}">${money(o.conNo)}₫</b></div>
+          </div>
+          <div class="od-box">
+            <h4>Lịch sử thanh toán</h4>
+            ${payHist}
+          </div>
+          <button class="btn btn-primary btn-block" onclick="toast('Module Bảo hành + QR đang được xây ở bước tiếp theo','info')" style="margin-bottom:10px">🛡 Tạo phiếu bảo hành</button>
+          <button class="btn btn-danger btn-block" onclick="deleteOrder('${esc(id)}')">🗑 Xóa đơn hàng</button>
+        </div>
+      </div>
+    </div>`,'lg');
 }
-/* --- In hóa đơn --- */
+async function updateOrderStatus(id){
+  const o=ORDERS.find(x=>x._id===id);if(!o)return;const st=$('odStatus').value;
+  try{await db.collection(COL.orders).doc(id).update({trangThai:st,updatedAt:new Date().toISOString()});o.trangThai=st;toast('Đã cập nhật trạng thái: '+st,'ok');await loadOrders();}catch(e){toast('Lỗi: '+e.message,'err');}
+}
+/* --- In hóa đơn (1 trang, gọn) --- */
 function printInvoice(id){
   const o=ORDERS.find(x=>x._id===id);if(!o)return;
-  const rows=(o.items||[]).map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${esc(it.ten)}<br><small style="color:#888">${esc(it.maSP)}</small></td><td style="text-align:right">${money(it.donGia)}</td><td style="text-align:center">${money(it.qty)}</td><td style="text-align:right">${money(it.thanhTien)}</td></tr>`).join('');
+  const rows=(o.items||[]).map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${esc(it.ten)} <span style="color:#999;font-size:10px">${esc(it.maSP)}</span></td><td class="r">${money(it.donGia)}</td><td style="text-align:center">${money(it.qty)}</td><td class="r">${money(it.thanhTien)}</td></tr>`).join('');
+  const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td>${esc(f.label)}:</td><td class="r">+${money(f.amount)} ₫</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td>Phí:</td><td class="r">+${money(o.phiVanChuyen)} ₫</td></tr>`:'');
+  const qrBlock=(o.phuongThuc==='Chuyển khoản'&&BANK_INFO&&BANK_INFO.accountNo)?`<div style="text-align:center;border:1px dashed #bbb;border-radius:8px;padding:8px;width:170px"><div style="font-size:10px;font-weight:bold;margin-bottom:4px">QUÉT QR CHUYỂN KHOẢN</div><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:130px;height:130px;object-fit:contain"><div style="font-size:10px;margin-top:3px;line-height:1.3">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)}<br>${esc(BANK_INFO.accountNo)}<br>${esc(BANK_INFO.accountName||'')}</div></div>`:'';
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
-    <style>body{font-family:Arial,sans-serif;padding:28px;color:#222;font-size:13px}h1{font-size:19px;margin:0;color:#a97e46}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{padding:8px 10px;border-bottom:1px solid #ddd}thead th{background:#f4ecdf;text-align:left;font-size:12px}.tot{display:flex;justify-content:flex-end}.tot table{width:auto;min-width:280px}.tot td{border:none;padding:4px 10px}.right{text-align:right}@media print{button{display:none}}</style></head>
+    <style>
+      @page{size:A4;margin:12mm}
+      *{box-sizing:border-box}
+      body{font-family:Arial,sans-serif;color:#222;font-size:12px;margin:0;line-height:1.45}
+      h1{font-size:17px;margin:0;color:#a97e46}
+      table.items{width:100%;border-collapse:collapse;margin:10px 0}
+      table.items th,table.items td{padding:5px 8px;border-bottom:1px solid #e0e0e0}
+      table.items thead th{background:#f4ecdf;text-align:left;font-size:11px}
+      .r{text-align:right}
+      .tot td{border:none;padding:2px 8px;font-size:12px}
+      @media print{.noprint{display:none}}
+    </style></head>
     <body>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #a97e46;padding-bottom:14px">
-        <div><h1>HỌC VIỆN ÂM NHẠC THIÊN ÂN</h1><div style="color:#666;font-size:12px;margin-top:4px">424 Bà Triệu, Đông Thọ, TP. Thanh Hóa</div></div>
-        <div style="text-align:right"><div style="font-size:17px;font-weight:bold">HÓA ĐƠN BÁN HÀNG</div><div style="color:#666;margin-top:4px">Số: ${esc(o.maDon)}</div><div style="color:#666">Ngày: ${esc(o.ngayHienThi||'')}</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #a97e46;padding-bottom:8px">
+        <div><h1>HỌC VIỆN ÂM NHẠC THIÊN ÂN</h1><div style="color:#666;font-size:11px;margin-top:2px">424 Bà Triệu, Đông Thọ, TP. Thanh Hóa</div></div>
+        <div style="text-align:right"><div style="font-size:15px;font-weight:bold">HÓA ĐƠN BÁN HÀNG</div><div style="color:#666;font-size:11px;margin-top:2px">Số: ${esc(o.maDon)}</div><div style="color:#666;font-size:11px">Ngày: ${esc(o.ngayHienThi||'')}</div></div>
       </div>
-      <div style="margin:14px 0;font-size:13px"><b>Khách hàng:</b> ${esc(o.khachTen||'Khách lẻ')}${o.khachSDT?' &nbsp; <b>ĐT:</b> '+esc(o.khachSDT):''}</div>
-      <table><thead><tr><th style="text-align:center">STT</th><th>Sản phẩm</th><th class="right">Đơn giá</th><th style="text-align:center">SL</th><th class="right">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="tot"><table>
-        <tr><td>Tổng hàng:</td><td class="right">${money(o.tongHang)} ₫</td></tr>
-        ${o.chietKhau>0?`<tr><td>Chiết khấu:</td><td class="right">−${money(o.chietKhau)} ₫</td></tr>`:''}
-        ${(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td>${esc(f.label)}:</td><td class="right">+${money(f.amount)} ₫</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td>${esc(o.phiLabel||'Phí')}:</td><td class="right">+${money(o.phiVanChuyen)} ₫</td></tr>`:'')}
-        <tr><td style="font-size:15px;font-weight:bold;border-top:1px solid #333">Tổng cộng:</td><td class="right" style="font-size:15px;font-weight:bold;border-top:1px solid #333;color:#a97e46">${money(o.tongCong)} ₫</td></tr>
-        <tr><td>Đã thanh toán:</td><td class="right">${money(o.daTra)} ₫</td></tr>
-        ${o.conNo>0?`<tr><td style="color:#c00">Còn nợ:</td><td class="right" style="color:#c00">${money(o.conNo)} ₫</td></tr>`:''}
+      <div style="margin:8px 0;font-size:12px"><b>Khách hàng:</b> ${esc(o.khachTen||'Khách lẻ')}${o.khachSDT?' &nbsp;·&nbsp; <b>ĐT:</b> '+esc(o.khachSDT):''} &nbsp;·&nbsp; <b>TT:</b> ${esc(o.phuongThuc||'')}</div>
+      <table class="items"><thead><tr><th style="text-align:center;width:32px">STT</th><th>Sản phẩm</th><th class="r">Đơn giá</th><th style="text-align:center;width:44px">SL</th><th class="r">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="display:flex;justify-content:flex-end"><table class="tot" style="width:auto;min-width:260px">
+        <tr><td>Tổng hàng:</td><td class="r">${money(o.tongHang)} ₫</td></tr>
+        ${o.chietKhau>0?`<tr><td>Chiết khấu:</td><td class="r">−${money(o.chietKhau)} ₫</td></tr>`:''}
+        ${feeRows}
+        <tr><td style="font-size:14px;font-weight:bold;border-top:1px solid #333;padding-top:4px">Tổng cộng:</td><td class="r" style="font-size:14px;font-weight:bold;border-top:1px solid #333;padding-top:4px;color:#a97e46">${money(o.tongCong)} ₫</td></tr>
+        <tr><td>Đã thanh toán:</td><td class="r">${money(o.daTra)} ₫</td></tr>
+        ${o.conNo>0?`<tr><td style="color:#c00">Còn nợ:</td><td class="r" style="color:#c00">${money(o.conNo)} ₫</td></tr>`:''}
       </table></div>
-      ${o.baoHanhThang>0?`<div style="margin-top:14px;padding:10px 14px;background:#f4ecdf;border-radius:8px;font-size:12.5px">🛡 <b>Bảo hành ${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
-      ${o.ghiChu?`<div style="margin-top:10px;font-size:12.5px"><b>Ghi chú:</b> ${esc(o.ghiChu)}</div>`:''}
-      <div style="margin-top:10px;font-size:12.5px"><b>Thanh toán:</b> ${esc(o.phuongThuc||'')}</div>
-      ${(o.phuongThuc==='Chuyển khoản'&&BANK_INFO&&BANK_INFO.accountNo)?`<div style="margin-top:14px;text-align:center;border:1px dashed #ccc;border-radius:10px;padding:14px"><div style="font-size:12.5px;margin-bottom:8px;font-weight:bold">Quét mã QR để chuyển khoản</div><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:200px;height:200px;object-fit:contain"><div style="font-size:12.5px;margin-top:6px">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} · ${esc(BANK_INFO.accountNo)} · ${esc(BANK_INFO.accountName||'')}</div></div>`:''}
-      <div style="display:flex;justify-content:space-between;margin-top:40px;text-align:center;color:#555;font-size:12px"><div>Khách hàng<br><br><br>(Ký, ghi rõ họ tên)</div><div>Người bán hàng<br><br><br>${esc(o.createdBy||'')}</div></div>
-      <div style="text-align:center;margin-top:30px;color:#999;font-size:11px">Cảm ơn quý khách! — Học viện Âm nhạc Thiên Ân</div>
-      <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In hóa đơn</button></div>
+      ${o.baoHanhThang>0?`<div style="margin-top:8px;padding:6px 12px;background:#f4ecdf;border-radius:6px;font-size:11.5px">🛡 <b>Bảo hành ${warrantyText(o)}</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
+      ${o.ghiChu?`<div style="margin-top:6px;font-size:11.5px"><b>Ghi chú:</b> ${esc(o.ghiChu)}</div>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;gap:16px">
+        <div style="flex:1">${qrBlock}</div>
+        <div style="display:flex;gap:40px;text-align:center;color:#555;font-size:11px">
+          <div>Khách hàng<br><span style="font-size:10px">(Ký, ghi rõ họ tên)</span><br><br><br></div>
+          <div>Người bán hàng<br><br><br><b>${esc(o.createdBy||'')}</b></div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:10px;color:#999;font-size:10px">Cảm ơn quý khách! — Học viện Âm nhạc Thiên Ân</div>
+      <div class="noprint" style="text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In hóa đơn</button></div>
     </body></html>`);
   w.document.close();
 }
