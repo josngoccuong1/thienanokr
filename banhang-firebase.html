@@ -196,9 +196,10 @@ const firebaseConfig = {
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
 const P="bh_";
-const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders"};
+const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks"};
 let db=null,ready=false,CURRENT_USER=null;
 let PRODUCTS=[],CATEGORIES=[],CUSTOMERS=[],TRANSACTIONS=[],ORDERS=[],ORDER_CART=[],ORDER_PAID_EDITED=false;
+let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[];
 
 function initFirebase(){
   if(firebaseConfig.apiKey==="PASTE_API_KEY"||!firebaseConfig.apiKey){document.getElementById('configGate').style.display='flex';document.getElementById('loginScreen').style.display='none';return false;}
@@ -258,7 +259,7 @@ function logout(){CURRENT_USER=null;try{sessionStorage.removeItem('bh_session');
 const NAV=[
   {group:'Tổng quan',items:[{id:'dashboard',ic:'▦',label:'Tổng quan'}]},
   {group:'Bán hàng',items:[{id:'products',ic:'♪',label:'Sản phẩm'},{id:'customers',ic:'👤',label:'Khách hàng'},{id:'orders',ic:'🧾',label:'Đơn hàng'}]},
-  {group:'Kho & Nhập hàng',items:[{id:'purchases',ic:'📥',label:'Nhập hàng',soon:true},{id:'suppliers',ic:'🏭',label:'Nhà cung cấp',soon:true},{id:'inventory',ic:'📦',label:'Kiểm kho',soon:true},{id:'serial',ic:'#️⃣',label:'Serial',soon:true}]},
+  {group:'Kho & Nhập hàng',items:[{id:'purchases',ic:'📥',label:'Nhập hàng'},{id:'suppliers',ic:'🏭',label:'Nhà cung cấp'},{id:'inventory',ic:'📦',label:'Kiểm kho'},{id:'serial',ic:'#️⃣',label:'Serial',soon:true}]},
   {group:'Dịch vụ',items:[{id:'warranty',ic:'🛡',label:'Bảo hành',soon:true},{id:'returns',ic:'↩',label:'Trả hàng',soon:true}]},
   {group:'Tài chính & Báo cáo',items:[{id:'finance',ic:'💰',label:'Thu chi'},{id:'reports',ic:'📊',label:'Báo cáo',soon:true}]},
   {group:'Hệ thống',items:[{id:'users',ic:'⚙',label:'Người dùng',soon:true}]},
@@ -272,12 +273,12 @@ function buildNav(){
 }
 function navigate(id){
   CURRENT_VIEW=id;buildNav();document.getElementById('sidebar').classList.remove('open');
-  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn']};
+  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn'],suppliers:['Nhà cung cấp','Đối tác cung cấp hàng'],purchases:['Nhập hàng','Phiếu nhập & công nợ nhà cung cấp'],inventory:['Kiểm kho','Đối chiếu & điều chỉnh tồn kho']};
   const [t,s]=titles[id]||[id,''];$('pageTitle').textContent=t;$('pageSub').textContent=s;
-  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();
+  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();
 }
-async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders()]);await loadCategories();refreshCurrent();}
-function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();}
+async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases()]);await loadCategories();refreshCurrent();}
+function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();if(CURRENT_VIEW==='suppliers')renderSuppliers();if(CURRENT_VIEW==='purchases')renderPurchases();if(CURRENT_VIEW==='inventory')renderInventory();}
 async function loadProducts(){try{const s=await db.collection(COL.products).get();PRODUCTS=s.docs.map(d=>({_id:d.id,...d.data()}));PRODUCTS.sort((a,b)=>String(a.maSP||'').localeCompare(String(b.maSP||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải sản phẩm: '+e.message,'err');PRODUCTS=[];}}
 async function loadCustomers(){try{const s=await db.collection(COL.customers).get();CUSTOMERS=s.docs.map(d=>({_id:d.id,...d.data()}));CUSTOMERS.sort((a,b)=>String(a.maKH||'').localeCompare(String(b.maKH||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải khách hàng: '+e.message,'err');CUSTOMERS=[];}}
 async function loadTransactions(){try{const s=await db.collection(COL.transactions).get();TRANSACTIONS=s.docs.map(d=>({_id:d.id,...d.data()}));TRANSACTIONS.sort((a,b)=>(b.ngaySort||0)-(a.ngaySort||0));}catch(e){console.error(e);TRANSACTIONS=[];}}
@@ -964,6 +965,273 @@ async function confirmDeleteOrder(id){
     await Promise.all([loadOrders(),loadProducts(),loadCustomers(),loadTransactions()]);
     renderOrders();
   }catch(e){console.error(e);toast('Lỗi xóa đơn: '+e.message,'err');btn.disabled=false;btn.textContent='Xóa & hoàn tác';}
+}
+
+/* ===== NHÀ CUNG CẤP ===== */
+async function loadSuppliers(){try{const s=await db.collection(COL.suppliers).get();SUPPLIERS=s.docs.map(d=>({_id:d.id,...d.data()}));SUPPLIERS.sort((a,b)=>String(a.maNCC||'').localeCompare(String(b.maNCC||''),'vi',{numeric:true}));}catch(e){console.error(e);SUPPLIERS=[];}}
+let sFilter={q:'',page:1,per:20};
+function renderSuppliers(){
+  const total=SUPPLIERS.length,tongNo=SUPPLIERS.reduce((s,x)=>s+(Number(x.congNo)||0),0),coNo=SUPPLIERS.filter(x=>(Number(x.congNo)||0)>0).length;
+  $('view').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat g1"><div class="ic">🏭</div><div class="lbl">Tổng NCC</div><div class="val">${money(total)}</div></div>
+      <div class="stat g4"><div class="ic">💸</div><div class="lbl">Nợ phải trả</div><div class="val" style="font-size:19px">${money(tongNo)}<span style="font-size:12px"> ₫</span></div><div class="sub">${coNo} NCC đang nợ</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>Danh sách nhà cung cấp</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="sSearch" placeholder="Tìm tên, SĐT, mã NCC…" value="${esc(sFilter.q)}"></div><button class="btn btn-primary btn-sm" onclick="openSupplierForm()">＋ Thêm NCC</button></div></div><div id="sTableWrap"><div class="spin"></div></div></div>`;
+  $('sSearch').oninput=e=>{sFilter.q=e.target.value;sFilter.page=1;drawSupplierTable();};
+  drawSupplierTable();
+}
+function filteredSuppliers(){const q=sFilter.q.toLowerCase().trim();return SUPPLIERS.filter(x=>{if(q){const hay=[x.maNCC,x.tenNCC,x.dienThoai,x.nguoiLienHe].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});}
+function drawSupplierTable(){
+  const wrap=$('sTableWrap');if(!wrap)return;const all=filteredSuppliers();
+  if(all.length===0){wrap.innerHTML=SUPPLIERS.length===0?`<div class="empty"><div class="em-ic">🏭</div><h4>Chưa có nhà cung cấp</h4><p>Thêm nhà cung cấp để dùng khi tạo phiếu nhập hàng.</p><button class="btn btn-primary btn-sm" onclick="openSupplierForm()">＋ Thêm NCC</button></div>`:`<div class="empty"><div class="em-ic">🔍</div><h4>Không tìm thấy</h4></div>`;return;}
+  const per=sFilter.per,pages=Math.ceil(all.length/per);if(sFilter.page>pages)sFilter.page=pages;const st=(sFilter.page-1)*per,rows=all.slice(st,st+per);
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mã NCC</th><th>Tên nhà cung cấp</th><th>Liên hệ</th><th>Người LH</th><th class="t-num">Công nợ phải trả</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${rows.map(supRow).join('')}</tbody></table></div>
+    <div class="tbl-foot"><span>Hiển thị ${st+1}–${Math.min(st+per,all.length)} / <b>${money(all.length)}</b> NCC</span><div class="pg"><button ${sFilter.page<=1?'disabled':''} onclick="sFilter.page--;drawSupplierTable()">‹ Trước</button><span style="padding:0 6px">Trang ${sFilter.page}/${pages}</span><button ${sFilter.page>=pages?'disabled':''} onclick="sFilter.page++;drawSupplierTable()">Sau ›</button></div></div>`;
+}
+function supRow(x){
+  const no=Number(x.congNo)||0;const noCell=no>0?`<span style="color:var(--danger);font-weight:700">${money(no)}</span>`:'<span style="color:var(--muted-2)">—</span>';
+  const av=esc((x.tenNCC||'?').trim().charAt(0).toUpperCase());
+  return `<tr style="cursor:pointer" onclick="openSupplierDetail('${esc(x._id)}')"><td class="t-code">${esc(x.maNCC||'')}</td><td><div class="namecell"><span class="pavatar">${av}</span><div class="t-name">${esc(x.tenNCC||'—')}</div></div></td><td>${x.dienThoai?esc(x.dienThoai):'<span style="color:var(--muted-2)">—</span>'}</td><td>${x.nguoiLienHe?esc(x.nguoiLienHe):'<span style="color:var(--muted-2)">—</span>'}</td><td class="t-num">${noCell}</td><td><div class="row-act"><button class="icon-btn" onclick="event.stopPropagation();openSupplierForm('${esc(x._id)}')">✎</button><button class="icon-btn del" onclick="event.stopPropagation();deleteSupplier('${esc(x._id)}')">🗑</button></div></td></tr>`;
+}
+function openSupplierDetail(id){
+  const x=SUPPLIERS.find(s=>s._id===id);if(!x)return;const no=Number(x.congNo)||0;
+  const info=(l,v)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f2f6"><span style="color:var(--muted);font-size:13px">${l}</span><span style="font-weight:600;font-size:13.5px;text-align:right">${v||'<span style=\"color:var(--muted-2);font-weight:400\">—</span>'}</span></div>`;
+  const purs=PURCHASES.filter(p=>p.nccId===id);
+  openModal(`<div class="modal-head"><h3>Chi tiết nhà cung cấp</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px"><div style="width:48px;height:48px;border-radius:12px;background:var(--gold-soft);color:var(--gold-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px">${esc((x.tenNCC||'?').trim().charAt(0).toUpperCase())}</div><div><div style="font-family:ui-monospace,monospace;color:var(--muted);font-size:12.5px;font-weight:700">${esc(x.maNCC||'')}</div><div style="font-size:18px;font-weight:800">${esc(x.tenNCC||'')}</div></div></div>
+      ${no>0?`<div style="background:var(--danger-bg);border-radius:11px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center"><span style="color:var(--danger);font-weight:600;font-size:13px">Nợ phải trả</span><span style="color:var(--danger);font-weight:800;font-size:20px">${money(no)}₫</span></div>`:`<div style="background:var(--ok-bg);border-radius:11px;padding:12px 16px;margin-bottom:16px;color:var(--ok);font-weight:600;font-size:13px;text-align:center">✓ Không nợ</div>`}
+      <div>${info('Điện thoại',x.dienThoai?esc(x.dienThoai):'')}${info('Email',x.email?esc(x.email):'')}${info('Địa chỉ',x.diaChi?esc(x.diaChi):'')}${info('Người liên hệ',x.nguoiLienHe?esc(x.nguoiLienHe):'')}${info('Số phiếu nhập',purs.length?money(purs.length):'')}${x.ghiChu?`<div style="padding:12px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:6px">Ghi chú</div><div style="font-size:13.5px;background:#fafbfc;border-radius:9px;padding:11px 13px">${esc(x.ghiChu)}</div></div>`:''}</div>
+    </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-primary" onclick="openSupplierForm('${esc(id)}')">✎ Sửa</button></div>`);
+}
+function openSupplierForm(id){
+  const x=id?SUPPLIERS.find(s=>s._id===id):{},edit=!!id;
+  openModal(`<div class="modal-head"><h3>${edit?'Sửa nhà cung cấp':'Thêm nhà cung cấp'}</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body"><div class="grid2">
+      <div class="field"><label>Mã NCC <span class="req">*</span></label><input id="fsMa" value="${esc(x.maNCC||'')}" ${edit?'readonly style="background:#f0f2f6;color:var(--muted)"':''} placeholder="VD: NCC01"></div>
+      <div class="field"><label>Điện thoại</label><input id="fsDt" value="${esc(x.dienThoai||'')}" placeholder="SĐT"></div>
+      <div class="field full"><label>Tên nhà cung cấp <span class="req">*</span></label><input id="fsTen" value="${esc(x.tenNCC||'')}" placeholder="VD: Công ty Nhạc cụ ABC"></div>
+      <div class="field"><label>Email</label><input id="fsEmail" value="${esc(x.email||'')}"></div>
+      <div class="field"><label>Người liên hệ</label><input id="fsLH" value="${esc(x.nguoiLienHe||'')}"></div>
+      <div class="field full"><label>Địa chỉ</label><input id="fsDiaChi" value="${esc(x.diaChi||'')}"></div>
+      <div class="field"><label>Công nợ phải trả (₫)</label><input id="fsNo" type="number" value="${x.congNo||''}" placeholder="0"></div>
+      <div class="field full"><label>Ghi chú</label><textarea id="fsGhiChu" rows="2">${esc(x.ghiChu||'')}</textarea></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveSupBtn" onclick="saveSupplier('${edit?esc(id):''}')">${edit?'Lưu':'Thêm NCC'}</button></div>`);
+}
+async function saveSupplier(id){
+  const ma=$('fsMa').value.trim(),ten=$('fsTen').value.trim();
+  if(!ma){toast('Nhập Mã NCC','warn');return;}if(!ten){toast('Nhập tên NCC','warn');return;}
+  const data={maNCC:ma,tenNCC:ten,dienThoai:$('fsDt').value.trim(),email:$('fsEmail').value.trim(),nguoiLienHe:$('fsLH').value.trim(),diaChi:$('fsDiaChi').value.trim(),congNo:Number($('fsNo').value)||0,ghiChu:$('fsGhiChu').value.trim(),updatedAt:new Date().toISOString()};
+  const btn=$('saveSupBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{if(id){await db.collection(COL.suppliers).doc(id).set(data,{merge:true});toast('Đã cập nhật','ok');}else{const docId=slug(ma);const ex=await db.collection(COL.suppliers).doc(docId).get();if(ex.exists){toast('Mã NCC đã tồn tại','err');btn.disabled=false;btn.textContent='Thêm NCC';return;}data.createdAt=new Date().toISOString();await db.collection(COL.suppliers).doc(docId).set(data);toast('Đã thêm NCC','ok');}closeModal();await loadSuppliers();renderSuppliers();}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='Lưu';}
+}
+function deleteSupplier(id){const x=SUPPLIERS.find(s=>s._id===id);if(!x)return;openModal(`<div class="modal-head"><h3>Xóa nhà cung cấp</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.6">Xóa <b>${esc(x.tenNCC)}</b> (${esc(x.maNCC)})?</p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delSupBtn" onclick="confirmDeleteSupplier('${esc(id)}')">Xóa</button></div>`,'sm');}
+async function confirmDeleteSupplier(id){const b=$('delSupBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.suppliers).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadSuppliers();renderSuppliers();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
+
+/* ===== NHẬP HÀNG ===== */
+async function loadPurchases(){try{const s=await db.collection(COL.purchases).get();PURCHASES=s.docs.map(d=>({_id:d.id,...d.data()}));PURCHASES.sort((a,b)=>(b.ngaySort||0)-(a.ngaySort||0));}catch(e){console.error(e);PURCHASES=[];}}
+let purFilter={q:'',page:1,per:20};
+function purchaseStats(){const count=PURCHASES.length,tong=PURCHASES.reduce((s,p)=>s+(Number(p.tongTien)||0),0),daTra=PURCHASES.reduce((s,p)=>s+(Number(p.daTra)||0),0),conNo=PURCHASES.reduce((s,p)=>s+(Number(p.conNo)||0),0);return {count,tong,daTra,conNo};}
+function renderPurchases(){
+  const st=purchaseStats();
+  $('view').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat g1"><div class="ic">📥</div><div class="lbl">Tổng phiếu nhập</div><div class="val">${money(st.count)}</div></div>
+      <div class="stat g3"><div class="ic">💰</div><div class="lbl">Tổng tiền nhập</div><div class="val" style="font-size:19px">${money(st.tong)}<span style="font-size:12px"> ₫</span></div></div>
+      <div class="stat g2"><div class="ic">✓</div><div class="lbl">Đã trả NCC</div><div class="val" style="font-size:19px">${money(st.daTra)}<span style="font-size:12px"> ₫</span></div></div>
+      <div class="stat g4"><div class="ic">⏳</div><div class="lbl">Còn nợ NCC</div><div class="val" style="font-size:19px">${money(st.conNo)}<span style="font-size:12px"> ₫</span></div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>Danh sách phiếu nhập</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="purSearch" placeholder="Tìm mã phiếu, NCC…" value="${esc(purFilter.q)}"></div><button class="btn btn-primary btn-sm" onclick="openPurchaseForm()">＋ Tạo phiếu nhập</button></div></div><div id="purTableWrap"><div class="spin"></div></div></div>`;
+  $('purSearch').oninput=e=>{purFilter.q=e.target.value;purFilter.page=1;drawPurchaseTable();};
+  drawPurchaseTable();
+}
+function filteredPurchases(){const q=purFilter.q.toLowerCase().trim();return PURCHASES.filter(p=>{if(q){const hay=[p.maPhieu,p.nccTen].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});}
+function drawPurchaseTable(){
+  const wrap=$('purTableWrap');if(!wrap)return;const all=filteredPurchases();
+  if(all.length===0){wrap.innerHTML=PURCHASES.length===0?`<div class="empty"><div class="em-ic">📥</div><h4>Chưa có phiếu nhập</h4><p>Tạo phiếu nhập để cộng tồn kho và ghi công nợ nhà cung cấp.</p><button class="btn btn-primary btn-sm" onclick="openPurchaseForm()">＋ Tạo phiếu nhập</button></div>`:`<div class="empty"><div class="em-ic">🔍</div><h4>Không tìm thấy</h4></div>`;return;}
+  const per=purFilter.per,pages=Math.ceil(all.length/per);if(purFilter.page>pages)purFilter.page=pages;const st=(purFilter.page-1)*per,rows=all.slice(st,st+per);
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mã phiếu</th><th>Ngày</th><th>Nhà cung cấp</th><th class="t-num">Số món</th><th class="t-num">Tổng tiền</th><th class="t-num">Còn nợ</th><th>Trạng thái</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${rows.map(purRow).join('')}</tbody></table></div>
+    <div class="tbl-foot"><span>Hiển thị ${st+1}–${Math.min(st+per,all.length)} / <b>${money(all.length)}</b> phiếu</span><div class="pg"><button ${purFilter.page<=1?'disabled':''} onclick="purFilter.page--;drawPurchaseTable()">‹ Trước</button><span style="padding:0 6px">Trang ${purFilter.page}/${pages}</span><button ${purFilter.page>=pages?'disabled':''} onclick="purFilter.page++;drawPurchaseTable()">Sau ›</button></div></div>`;
+}
+function purRow(p){
+  const conNo=Number(p.conNo)||0;const paid=Number(p.daTra)||0,total=Number(p.tongTien)||0;
+  const stt=paid>=total&&total>0?'<span class="chip ok">● Đã trả đủ</span>':(paid<=0?'<span class="chip low">○ Chưa trả</span>':'<span class="chip vip">◐ Trả một phần</span>');
+  const noCell=conNo>0?`<span style="color:var(--danger);font-weight:700">${money(conNo)}</span>`:'<span style="color:var(--muted-2)">—</span>';
+  return `<tr style="cursor:pointer" onclick="openPurchaseDetail('${esc(p._id)}')"><td class="t-code">${esc(p.maPhieu||'')}</td><td style="white-space:nowrap">${esc(p.ngayHienThi||'—')}</td><td class="t-name">${esc(p.nccTen||'—')}</td><td class="t-num">${(p.items||[]).length}</td><td class="t-num t-price">${money(p.tongTien)}</td><td class="t-num">${noCell}</td><td>${stt}</td><td><div class="row-act"><button class="icon-btn" onclick="event.stopPropagation();openPurchaseDetail('${esc(p._id)}')">👁</button><button class="icon-btn del" onclick="event.stopPropagation();deletePurchase('${esc(p._id)}')">🗑</button></div></td></tr>`;
+}
+function genPurCode(){const d=new Date();const ymd=`${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;return 'PN'+ymd+'-'+Math.random().toString(36).slice(2,6).toUpperCase();}
+function openPurchaseForm(){
+  PURCHASE_CART=[];PUR_PAID_EDITED=false;
+  const nccOpts='<option value="">— Chọn nhà cung cấp —</option>'+SUPPLIERS.map(x=>`<option value="${esc(x._id)}">${esc(x.maNCC)} — ${esc(x.tenNCC)}</option>`).join('');
+  const prodList=PRODUCTS.map(p=>`<option value="${esc(p.maSP)} — ${esc(p.tenSP)}">`).join('');
+  const today=new Date();const defDate=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  openModal(`<div class="modal-head"><h3>Tạo phiếu nhập hàng</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="field" style="margin:0"><label>Nhà cung cấp</label><select id="purNcc">${nccOpts}</select></div>
+        <div class="field" style="margin:0"><label>Ngày nhập</label><input id="purDate" type="date" value="${defDate}"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="purProdInput" list="purProdList" placeholder="Gõ tên/mã sản phẩm để thêm…" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px">
+        <datalist id="purProdList">${prodList}</datalist>
+        <button class="btn btn-primary btn-sm" onclick="addPurItem()">＋ Thêm</button>
+      </div>
+      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:10px;margin-bottom:16px"><table><thead><tr><th>Sản phẩm</th><th style="width:130px">Giá nhập</th><th style="width:70px;text-align:center">SL</th><th class="t-num" style="width:120px">Thành tiền</th><th style="width:40px"></th></tr></thead><tbody id="purCartBody"></tbody></table></div>
+      <div class="grid2">
+        <div>
+          <div class="field"><label>Phương thức TT</label><input id="purPttt" value="Tiền mặt"></div>
+          <div class="field" style="margin:0"><label>Ghi chú</label><input id="purNote" placeholder="Ghi chú phiếu nhập"></div>
+        </div>
+        <div style="background:#fafbfc;border-radius:11px;padding:16px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:16px;border-bottom:1px solid var(--line)"><b>Tổng tiền nhập</b><b id="purTotal" style="color:var(--gold-2)">0</b></div>
+          <div class="field" style="margin:10px 0 6px"><label>Đã trả NCC (₫)</label><input id="purPaid" type="number" placeholder="0" oninput="PUR_PAID_EDITED=true;updatePurTotals()"></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px"><span style="color:var(--muted)">Còn nợ NCC</span><b id="purConNo" style="color:var(--danger)">0</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="savePurBtn" onclick="savePurchase()">💾 Lưu phiếu nhập</button></div>`);
+  $('purProdInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPurItem();}});
+  renderPurCart();
+}
+function addPurItem(){
+  const val=$('purProdInput').value.trim();if(!val)return;
+  const maSP=val.split(' — ')[0].trim();
+  const p=PRODUCTS.find(x=>String(x.maSP)===maSP)||PRODUCTS.find(x=>x.tenSP===val);
+  if(!p){toast('Không tìm thấy sản phẩm. Chọn từ gợi ý.','warn');return;}
+  const ex=PURCHASE_CART.find(it=>it.id===p._id);
+  if(ex)ex.qty++;else PURCHASE_CART.push({id:p._id,maSP:p.maSP,ten:p.tenSP,gia:Number(p.giaNhap)||0,qty:1});
+  $('purProdInput').value='';renderPurCart();
+}
+function removePurItem(i){PURCHASE_CART.splice(i,1);renderPurCart();}
+function renderPurCart(){
+  const body=$('purCartBody');if(!body)return;
+  if(PURCHASE_CART.length===0){body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted-2);padding:22px">Chưa có sản phẩm. Gõ tên rồi bấm Thêm.</td></tr>';updatePurTotals();return;}
+  body.innerHTML=PURCHASE_CART.map((it,i)=>`<tr>
+    <td><div style="font-weight:600;font-size:13.5px">${esc(it.ten)}</div><small style="color:var(--muted-2)">${esc(it.maSP)}</small></td>
+    <td><input type="number" value="${it.gia}" oninput="PURCHASE_CART[${i}].gia=Number(this.value)||0;PUR_PAID_EDITED=false;updatePurTotals()" style="width:118px;padding:7px 9px;border:1.5px solid var(--line);border-radius:7px;text-align:right"></td>
+    <td><input type="number" min="1" value="${it.qty}" oninput="PURCHASE_CART[${i}].qty=Number(this.value)||0;PUR_PAID_EDITED=false;updatePurTotals()" style="width:56px;padding:7px;border:1.5px solid var(--line);border-radius:7px;text-align:center"></td>
+    <td class="t-num t-price" id="purTt${i}">${money(it.gia*it.qty)}</td>
+    <td><button class="icon-btn del" onclick="removePurItem(${i})">🗑</button></td>
+  </tr>`).join('');
+  updatePurTotals();
+}
+function updatePurTotals(){
+  let sub=0;PURCHASE_CART.forEach((it,i)=>{const tt=(Number(it.gia)||0)*(Number(it.qty)||0);sub+=tt;const c=$('purTt'+i);if(c)c.textContent=money(tt);});
+  if($('purTotal'))$('purTotal').textContent=money(sub);
+  if(!PUR_PAID_EDITED&&$('purPaid'))$('purPaid').value=sub;
+  const paid=Number($('purPaid')?.value)||0;
+  if($('purConNo'))$('purConNo').textContent=money(Math.max(0,sub-paid));
+}
+async function savePurchase(){
+  if(PURCHASE_CART.length===0){toast('Chưa có sản phẩm trong phiếu','warn');return;}
+  const nccId=$('purNcc').value;const ncc=nccId?SUPPLIERS.find(s=>s._id===nccId):null;
+  const d=parseVNDate($('purDate').value);
+  const items=PURCHASE_CART.map(it=>({maSP:it.maSP,ten:it.ten,gia:Number(it.gia)||0,qty:Number(it.qty)||0,thanhTien:(Number(it.gia)||0)*(Number(it.qty)||0),prodId:it.id}));
+  const total=items.reduce((s,it)=>s+it.thanhTien,0);
+  const paid=Number($('purPaid').value)||0;
+  const conNo=Math.max(0,total-paid);
+  if(conNo>0&&!ncc){toast('Còn nợ NCC — hãy chọn nhà cung cấp để ghi công nợ.','warn');return;}
+  const maPhieu=genPurCode();
+  const pur={maPhieu,ngay:$('purDate').value,ngayHienThi:d.disp||$('purDate').value,ngaySort:d.sort||Date.now(),nccId:ncc?ncc._id:'',nccTen:ncc?ncc.tenNCC:'(Không chọn NCC)',items,tongTien:total,daTra:paid,conNo,phuongThuc:$('purPttt').value.trim()||'Tiền mặt',ghiChu:$('purNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
+  const btn=$('savePurBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{
+    await db.collection(COL.purchases).doc(slug(maPhieu)).set(pur);
+    const batch=db.batch();
+    items.forEach(it=>{if(it.prodId){batch.update(db.collection(COL.products).doc(it.prodId),{tonKho:FV().increment(it.qty),giaNhap:it.gia});}});
+    if(conNo>0&&ncc){batch.update(db.collection(COL.suppliers).doc(ncc._id),{congNo:FV().increment(conNo)});}
+    await batch.commit();
+    if(paid>0){const txId='TRX-'+slug(maPhieu);await db.collection(COL.transactions).doc(txId).set({maGD:txId,loai:'Chi',ngay:pur.ngay,ngayHienThi:pur.ngayHienThi,ngaySort:pur.ngaySort,soTien:paid,danhMuc:'Nhập hàng',moTa:'Trả tiền nhập '+maPhieu+(ncc?' - '+ncc.tenNCC:''),phuongThuc:pur.phuongThuc,thamChieu:maPhieu,refPurchaseId:maPhieu,ghiChu:'',createdAt:new Date().toISOString()});}
+    toast('Đã tạo phiếu nhập '+maPhieu,'ok');
+    closeModal();
+    await Promise.all([loadPurchases(),loadProducts(),loadSuppliers(),loadTransactions()]);
+    renderPurchases();
+  }catch(e){console.error(e);toast('Lỗi tạo phiếu: '+e.message,'err');btn.disabled=false;btn.textContent='💾 Lưu phiếu nhập';}
+}
+function openPurchaseDetail(id){
+  const p=PURCHASES.find(x=>x._id===id);if(!p)return;
+  const rows=(p.items||[]).map((it,i)=>`<tr><td style="color:var(--muted)">${i+1}</td><td class="t-name">${esc(it.ten)}<small>${esc(it.maSP)}</small></td><td class="t-num">${money(it.gia)}</td><td class="t-num">${money(it.qty)}</td><td class="t-num t-price">${money(it.thanhTien)}</td></tr>`).join('');
+  openModal(`<div class="modal-head"><h3>Phiếu nhập ${esc(p.maPhieu)}</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><div><div style="font-size:13px;color:var(--muted)">Nhà cung cấp</div><div style="font-size:16px;font-weight:700">${esc(p.nccTen||'')}</div></div><div style="text-align:right;color:var(--muted);font-size:13px">${esc(p.ngayHienThi||'')}</div></div>
+      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:10px;margin-bottom:16px"><table><thead><tr><th>#</th><th>Sản phẩm</th><th class="t-num">Giá nhập</th><th class="t-num">SL</th><th class="t-num">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div style="background:#fafbfc;border-radius:11px;padding:16px">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:16px"><b>Tổng tiền</b><b style="color:var(--gold-2)">${money(p.tongTien)}₫</b></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--ok)">Đã trả</span><b style="color:var(--ok)">${money(p.daTra)}₫</b></div>
+        ${p.conNo>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--danger)">Còn nợ NCC</span><b style="color:var(--danger)">${money(p.conNo)}₫</b></div>`:''}
+      </div>
+      ${p.ghiChu?`<div style="margin-top:12px;font-size:13px;color:var(--muted)">📝 ${esc(p.ghiChu)}</div>`:''}
+      <div style="margin-top:8px;font-size:12px;color:var(--muted-2)">Người tạo: ${esc(p.createdBy||'')} · PTTT: ${esc(p.phuongThuc||'')}</div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-danger" onclick="deletePurchase('${esc(id)}')">🗑 Xóa phiếu</button></div>`);
+}
+function deletePurchase(id){const p=PURCHASES.find(x=>x._id===id);if(!p)return;openModal(`<div class="modal-head"><h3>Xóa phiếu nhập</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.7">Xóa phiếu <b>${esc(p.maPhieu)}</b> (${money(p.tongTien)}₫)?<br><span style="color:var(--muted);font-size:13px">Hệ thống sẽ tự <b>trừ lại tồn kho</b>, <b>giảm nợ NCC</b> và <b>xóa khoản chi</b> liên quan.</span></p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delPurBtn" onclick="confirmDeletePurchase('${esc(id)}')">Xóa & hoàn tác</button></div>`,'sm');}
+async function confirmDeletePurchase(id){
+  const p=PURCHASES.find(x=>x._id===id);if(!p)return;const btn=$('delPurBtn');btn.disabled=true;btn.textContent='Đang xử lý…';
+  try{
+    const batch=db.batch();
+    (p.items||[]).forEach(it=>{if(it.prodId){batch.update(db.collection(COL.products).doc(it.prodId),{tonKho:FV().increment(-(Number(it.qty)||0))});}});
+    if((Number(p.conNo)||0)>0&&p.nccId){batch.update(db.collection(COL.suppliers).doc(p.nccId),{congNo:FV().increment(-(Number(p.conNo)||0))});}
+    await batch.commit();
+    try{const s=await db.collection(COL.transactions).where('refPurchaseId','==',p.maPhieu).get();const b2=db.batch();s.forEach(d=>b2.delete(d.ref));await b2.commit();}catch(e){}
+    await db.collection(COL.purchases).doc(id).delete();
+    toast('Đã xóa phiếu & hoàn tác','ok');closeModal();
+    await Promise.all([loadPurchases(),loadProducts(),loadSuppliers(),loadTransactions()]);renderPurchases();
+  }catch(e){console.error(e);toast('Lỗi xóa: '+e.message,'err');btn.disabled=false;btn.textContent='Xóa & hoàn tác';}
+}
+
+/* ===== KIỂM KHO ===== */
+let invFilter={q:''};
+async function loadStockChecks(){try{const s=await db.collection(COL.stockchecks).orderBy('ngaySort','desc').limit(30).get();STOCKCHECKS=s.docs.map(d=>({_id:d.id,...d.data()}));}catch(e){STOCKCHECKS=[];}}
+function renderInventory(){
+  $('view').innerHTML=`
+    <div class="panel" style="margin-bottom:18px">
+      <div class="panel-head"><h3>Kiểm kho — đối chiếu & điều chỉnh tồn</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="invSearch" placeholder="Tìm sản phẩm cần kiểm…" value="${esc(invFilter.q)}"></div></div></div>
+      <div style="padding:12px 20px;background:#fafbfc;color:var(--muted);font-size:12.5px;border-bottom:1px solid var(--line)">💡 Nhập <b>tồn thực tế đếm được</b> vào ô, hệ thống hiện chênh lệch. Bấm <b>Cập nhật</b> để chỉnh tồn về đúng thực tế (có ghi lịch sử).</div>
+      <div id="invTableWrap"></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>Lịch sử điều chỉnh gần đây</h3></div><div id="invHistWrap"><div class="spin"></div></div></div>`;
+  $('invSearch').oninput=e=>{invFilter.q=e.target.value;drawInventory();};
+  drawInventory();
+  loadStockChecks().then(drawStockHistory);
+}
+function drawInventory(){
+  const wrap=$('invTableWrap');if(!wrap)return;const q=invFilter.q.toLowerCase().trim();
+  if(!q){wrap.innerHTML='<div class="empty" style="padding:34px"><div class="em-ic">🔍</div><h4>Gõ tên sản phẩm để kiểm kho</h4><p>Để tránh tải nặng, hãy tìm sản phẩm cần kiểm thay vì hiện toàn bộ.</p></div>';return;}
+  const list=PRODUCTS.filter(p=>[p.maSP,p.tenSP,p.barcode].join(' ').toLowerCase().includes(q)).slice(0,50);
+  if(list.length===0){wrap.innerHTML='<div class="empty" style="padding:34px"><div class="em-ic">🔍</div><h4>Không tìm thấy</h4></div>';return;}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mã SP</th><th>Tên sản phẩm</th><th class="t-num">Tồn hệ thống</th><th style="width:120px;text-align:center">Tồn thực tế</th><th class="t-num">Chênh lệch</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${list.map(invRow).join('')}</tbody></table></div>`;
+}
+function invRow(p){
+  const cur=Number(p.tonKho)||0;
+  return `<tr><td class="t-code">${esc(p.maSP||'')}</td><td class="t-name">${esc(p.tenSP||'')}</td><td class="t-num"><b>${money(cur)}</b> ${esc(p.donVi||'')}</td>
+    <td><input type="number" id="inv_${esc(p._id)}" value="${cur}" oninput="invDiff('${esc(p._id)}',${cur})" style="width:100px;padding:7px;border:1.5px solid var(--line);border-radius:7px;text-align:center"></td>
+    <td class="t-num" id="invd_${esc(p._id)}"><span style="color:var(--muted-2)">0</span></td>
+    <td><div class="row-act"><button class="btn btn-ghost btn-sm" id="invb_${esc(p._id)}" onclick="adjustStock('${esc(p._id)}',${cur})" disabled style="opacity:.5">Cập nhật</button></div></td></tr>`;
+}
+function invDiff(id,cur){
+  const val=Number($('inv_'+id).value)||0;const diff=val-cur;
+  const cell=$('invd_'+id),btn=$('invb_'+id);
+  if(cell)cell.innerHTML=diff===0?'<span style="color:var(--muted-2)">0</span>':`<b style="color:${diff>0?'var(--ok)':'var(--danger)'}">${diff>0?'+':''}${money(diff)}</b>`;
+  if(btn){btn.disabled=diff===0;btn.style.opacity=diff===0?'.5':'1';}
+}
+async function adjustStock(id,cur){
+  const p=PRODUCTS.find(x=>x._id===id);if(!p)return;
+  const val=Number($('inv_'+id).value)||0;const diff=val-cur;if(diff===0)return;
+  const btn=$('invb_'+id);btn.disabled=true;btn.textContent='…';
+  try{
+    await db.collection(COL.products).doc(id).update({tonKho:val,updatedAt:new Date().toISOString()});
+    const now=new Date();
+    await db.collection(COL.stockchecks).add({maSP:p.maSP,ten:p.tenSP,tonTruoc:cur,tonSau:val,chenhLech:diff,ngayHienThi:now.toLocaleDateString('vi-VN'),ngaySort:now.getTime(),nguoi:CURRENT_USER.hoTen,createdAt:now.toISOString()});
+    toast(`Đã cập nhật tồn ${p.maSP}: ${money(cur)} → ${money(val)}`,'ok');
+    await loadProducts();drawInventory();loadStockChecks().then(drawStockHistory);
+  }catch(e){console.error(e);toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='Cập nhật';}
+}
+function drawStockHistory(){
+  const wrap=$('invHistWrap');if(!wrap)return;
+  if(STOCKCHECKS.length===0){wrap.innerHTML='<div class="empty" style="padding:30px"><p>Chưa có điều chỉnh nào.</p></div>';return;}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Ngày</th><th>Mã SP</th><th>Sản phẩm</th><th class="t-num">Trước</th><th class="t-num">Sau</th><th class="t-num">Chênh lệch</th><th>Người</th></tr></thead><tbody>${STOCKCHECKS.map(h=>`<tr><td style="white-space:nowrap">${esc(h.ngayHienThi||'')}</td><td class="t-code">${esc(h.maSP||'')}</td><td class="t-name">${esc(h.ten||'')}</td><td class="t-num">${money(h.tonTruoc)}</td><td class="t-num"><b>${money(h.tonSau)}</b></td><td class="t-num"><b style="color:${h.chenhLech>0?'var(--ok)':'var(--danger)'}">${h.chenhLech>0?'+':''}${money(h.chenhLech)}</b></td><td>${esc(h.nguoi||'')}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ===== KHỞI ĐỘNG ===== */
