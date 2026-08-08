@@ -201,10 +201,10 @@ const firebaseConfig = {
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
 const P="bh_";
-const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks",settings:P+"settings"};
+const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks",settings:P+"settings",baohanh:P+"baohanh"};
 let db=null,ready=false,CURRENT_USER=null,BANK_INFO=null;
 let PRODUCTS=[],CATEGORIES=[],CUSTOMERS=[],TRANSACTIONS=[],ORDERS=[],ORDER_CART=[],ORDER_PAID_EDITED=false;
-let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[],ORDER_FEES=[],EDITING_ORDER_ID=null;
+let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[],ORDER_FEES=[],EDITING_ORDER_ID=null,BAOHANH=[];
 const LOGO_DATAURI="data:image/jpeg;base64,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";
 const SHOP={name:"HỌC VIỆN ÂM NHẠC THIÊN ÂN",cs1:"Cơ Sở 1: 424 Bà Triệu, Phường Hạc Thành, Tỉnh Thanh Hoá",cs2:"Cơ Sở 2: Lô C14 Đô Thị Lam Kinh, Phường Hạc Thành, Tỉnh Thanh Hoá",phone:"091.190.3436 - 0819.069.888",company:"CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN"};
 
@@ -267,7 +267,7 @@ const NAV=[
   {group:'Tổng quan',items:[{id:'dashboard',ic:'▦',label:'Tổng quan'}]},
   {group:'Bán hàng',items:[{id:'products',ic:'♪',label:'Sản phẩm'},{id:'customers',ic:'👤',label:'Khách hàng'},{id:'orders',ic:'🧾',label:'Đơn hàng'}]},
   {group:'Kho & Nhập hàng',items:[{id:'purchases',ic:'📥',label:'Nhập hàng'},{id:'suppliers',ic:'🏭',label:'Nhà cung cấp'},{id:'inventory',ic:'📦',label:'Kiểm kho'},{id:'serial',ic:'#️⃣',label:'Serial',soon:true}]},
-  {group:'Dịch vụ',items:[{id:'warranty',ic:'🛡',label:'Bảo hành',soon:true},{id:'returns',ic:'↩',label:'Trả hàng',soon:true}]},
+  {group:'Dịch vụ',items:[{id:'warranty',ic:'🛡',label:'Bảo hành'},{id:'returns',ic:'↩',label:'Trả hàng',soon:true}]},
   {group:'Tài chính & Báo cáo',items:[{id:'finance',ic:'💰',label:'Thu chi'},{id:'reports',ic:'📊',label:'Báo cáo',soon:true}]},
   {group:'Hệ thống',items:[{id:'users',ic:'⚙',label:'Người dùng',soon:true}]},
 ];
@@ -280,12 +280,12 @@ function buildNav(){
 }
 function navigate(id){
   CURRENT_VIEW=id;buildNav();document.getElementById('sidebar').classList.remove('open');
-  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn'],suppliers:['Nhà cung cấp','Đối tác cung cấp hàng'],purchases:['Nhập hàng','Phiếu nhập & công nợ nhà cung cấp'],inventory:['Kiểm kho','Đối chiếu & điều chỉnh tồn kho']};
+  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn'],suppliers:['Nhà cung cấp','Đối tác cung cấp hàng'],purchases:['Nhập hàng','Phiếu nhập & công nợ nhà cung cấp'],inventory:['Kiểm kho','Đối chiếu & điều chỉnh tồn kho'],warranty:['Bảo hành','Phiếu bảo hành & mã QR dán đàn']};
   const [t,s]=titles[id]||[id,''];$('pageTitle').textContent=t;$('pageSub').textContent=s;
-  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();
+  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();if(id==='warranty')renderWarranty();
 }
-async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases(),loadSettings()]);await loadCategories();refreshCurrent();}
-function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();if(CURRENT_VIEW==='suppliers')renderSuppliers();if(CURRENT_VIEW==='purchases')renderPurchases();if(CURRENT_VIEW==='inventory')renderInventory();}
+async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases(),loadSettings(),loadBaoHanh()]);await loadCategories();refreshCurrent();}
+function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();if(CURRENT_VIEW==='suppliers')renderSuppliers();if(CURRENT_VIEW==='purchases')renderPurchases();if(CURRENT_VIEW==='inventory')renderInventory();if(CURRENT_VIEW==='warranty')renderWarranty();}
 async function loadProducts(){try{const s=await db.collection(COL.products).get();PRODUCTS=s.docs.map(d=>({_id:d.id,...d.data()}));PRODUCTS.sort((a,b)=>String(a.maSP||'').localeCompare(String(b.maSP||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải sản phẩm: '+e.message,'err');PRODUCTS=[];}}
 async function loadCustomers(){try{const s=await db.collection(COL.customers).get();CUSTOMERS=s.docs.map(d=>({_id:d.id,...d.data()}));CUSTOMERS.sort((a,b)=>String(a.maKH||'').localeCompare(String(b.maKH||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải khách hàng: '+e.message,'err');CUSTOMERS=[];}}
 async function loadTransactions(){try{const s=await db.collection(COL.transactions).get();TRANSACTIONS=s.docs.map(d=>({_id:d.id,...d.data()}));TRANSACTIONS.sort((a,b)=>(b.ngaySort||0)-(a.ngaySort||0));}catch(e){console.error(e);TRANSACTIONS=[];}}
@@ -1028,7 +1028,7 @@ function openOrderDetail(id){
             <h4>Lịch sử thanh toán</h4>
             ${payHist}
           </div>
-          <button class="btn btn-primary btn-block" onclick="toast('Module Bảo hành + QR đang được xây ở bước tiếp theo','info')" style="margin-bottom:10px">🛡 Tạo phiếu bảo hành</button>
+          <button class="btn btn-primary btn-block" onclick="createWarrantyFromOrder('${esc(id)}')" style="margin-bottom:10px">🛡 Tạo phiếu bảo hành</button>
           <button class="btn btn-danger btn-block" onclick="deleteOrder('${esc(id)}')">🗑 Xóa đơn hàng</button>
         </div>
       </div>
@@ -1058,7 +1058,7 @@ function ngayChu(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return `Ng�
 function invoiceDocHTML(o,withBtn){
   const rows=(o.items||[]).map((it,i)=>{const p=PRODUCTS.find(x=>x._id===it.prodId);const dvt=p?(p.donVi||''):'';
     return `<tr><td style="text-align:center">${i+1}</td><td style="text-align:center">${esc(it.maSP)}</td><td>${esc(it.ten)}</td><td style="text-align:center">${esc(dvt)}</td><td style="text-align:center">${money(it.qty)}</td><td class="r">${money(it.donGia)}</td><td class="r">${money(it.thanhTien)}</td></tr>`;}).join('');
-  const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td>${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td>Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
+  const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td colspan="6" class="r">${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td colspan="6" class="r">Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
   const qrBlock=(BANK_INFO&&BANK_INFO.accountNo)?`<div style="text-align:center;margin-top:12px"><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:120px;height:120px;object-fit:contain"><div style="font-size:12px;margin-top:4px;font-weight:bold">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} - ${esc(BANK_INFO.accountNo)}</div><div style="font-size:11.5px">${esc(SHOP.company)}</div></div>`:'';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
     <style>
@@ -1088,15 +1088,14 @@ function invoiceDocHTML(o,withBtn){
           <div><b>NVBH:</b> ${esc(o.createdBy||'')}</div>
         </div>
       </div>
-      <table class="items"><thead><tr><th style="width:30px">STT</th><th style="width:70px">Mã hàng</th><th>Tên hàng</th><th style="width:44px">ĐVT</th><th style="width:54px">Số lượng</th><th style="width:90px">Đơn giá</th><th style="width:100px">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="display:flex;justify-content:flex-end"><table class="tot" style="min-width:300px">
-        <tr><td><b>Tổng cộng:</b></td><td class="r"><b>${money(o.tongHang)}</b></td></tr>
-        ${o.chietKhau>0?`<tr><td>Giảm giá:</td><td class="r">${money(o.chietKhau)}</td></tr>`:'<tr><td>Giảm giá:</td><td class="r">0</td></tr>'}
+      <table class="items"><thead><tr><th style="width:30px">STT</th><th style="width:70px">Mã hàng</th><th>Tên hàng</th><th style="width:44px">ĐVT</th><th style="width:54px">Số lượng</th><th style="width:90px">Đơn giá</th><th style="width:100px">Thành tiền</th></tr></thead><tbody>${rows}
+        <tr><td colspan="6" class="r" style="font-weight:bold">Tổng cộng:</td><td class="r" style="font-weight:bold">${money(o.tongHang)}</td></tr>
+        <tr><td colspan="6" class="r">Giảm giá:</td><td class="r">${money(o.chietKhau||0)}</td></tr>
         ${feeRows}
-        <tr><td style="font-weight:bold;border-top:1px solid #333">Tổng thanh toán:</td><td class="r" style="font-weight:bold;border-top:1px solid #333">${money(o.tongCong)}</td></tr>
-        <tr><td>Khách thanh toán trước:</td><td class="r">${money(o.daTra)}</td></tr>
-        <tr><td>Còn lại:</td><td class="r">${money(o.conNo)}</td></tr>
-      </table></div>
+        <tr style="background:#f4ecdf"><td colspan="6" class="r" style="font-weight:bold;font-size:13.5px">TỔNG THANH TOÁN:</td><td class="r" style="font-weight:bold;font-size:13.5px;color:#a97e46">${money(o.tongCong)}</td></tr>
+        <tr><td colspan="6" class="r">Khách thanh toán trước:</td><td class="r">${money(o.daTra)}</td></tr>
+        <tr><td colspan="6" class="r">Còn lại:</td><td class="r"${o.conNo>0?' style="color:#c00;font-weight:bold"':''}>${money(o.conNo)}</td></tr>
+      </tbody></table>
       <div class="center" style="font-style:italic;font-size:12.5px;margin-top:6px">Tổng thanh toán bằng chữ: ${docTienBangChu(o.tongCong)}</div>
       ${qrBlock}
       <div style="display:flex;justify-content:space-between;margin-top:16px;font-size:12.5px">
@@ -1412,6 +1411,172 @@ function drawStockHistory(){
   wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Ngày</th><th>Mã SP</th><th>Sản phẩm</th><th class="t-num">Trước</th><th class="t-num">Sau</th><th class="t-num">Chênh lệch</th><th>Người</th></tr></thead><tbody>${STOCKCHECKS.map(h=>`<tr><td style="white-space:nowrap">${esc(h.ngayHienThi||'')}</td><td class="t-code">${esc(h.maSP||'')}</td><td class="t-name">${esc(h.ten||'')}</td><td class="t-num">${money(h.tonTruoc)}</td><td class="t-num"><b>${money(h.tonSau)}</b></td><td class="t-num"><b style="color:${h.chenhLech>0?'var(--ok)':'var(--danger)'}">${h.chenhLech>0?'+':''}${money(h.chenhLech)}</b></td><td>${esc(h.nguoi||'')}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+/* ===== BẢO HÀNH + QR ===== */
+async function loadBaoHanh(){try{const s=await db.collection(COL.baohanh).get();BAOHANH=s.docs.map(d=>({_id:d.id,...d.data()}));BAOHANH.sort((a,b)=>(b.createdSort||0)-(a.createdSort||0));}catch(e){console.error(e);BAOHANH=[];}}
+function genMaBaoHanh(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function bhLookupUrl(code){return location.origin+location.pathname+'?bh='+code;}
+function bhQrImg(code,size){return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(bhLookupUrl(code))}`;}
+function bhDaysLeft(o){if(!o.baoHanhDen)return null;const [d,m,y]=o.baoHanhDen.split('/').map(Number);const end=new Date(y,m-1,d,23,59,59);const now=new Date();return Math.ceil((end-now)/86400000);}
+function bhStatus(o){const dl=bhDaysLeft(o);if(dl===null)return {txt:'Không xác định',cls:'cn',dl:null};if(dl<0)return {txt:'Hết bảo hành',cls:'low',dl};if(dl<=30)return {txt:'Sắp hết ('+dl+' ngày)',cls:'vip',dl};return {txt:'Còn bảo hành',cls:'ok',dl};}
+let wFilter={q:'',page:1,per:20};
+function renderWarranty(){
+  const total=BAOHANH.length;let con=0,sap=0,het=0;
+  BAOHANH.forEach(o=>{const dl=bhDaysLeft(o);if(dl===null)return;if(dl<0)het++;else if(dl<=30)sap++;else con++;});
+  $('view').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat g1"><div class="ic">🛡</div><div class="lbl">Tổng phiếu BH</div><div class="val">${money(total)}</div></div>
+      <div class="stat g5"><div class="ic">✓</div><div class="lbl">Còn bảo hành</div><div class="val">${money(con)}</div></div>
+      <div class="stat g3"><div class="ic">⏰</div><div class="lbl">Sắp hết (≤30 ngày)</div><div class="val">${money(sap)}</div></div>
+      <div class="stat g4"><div class="ic">⌛</div><div class="lbl">Hết bảo hành</div><div class="val">${money(het)}</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><h3>Danh sách phiếu bảo hành</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="wSearch" placeholder="Tìm mã BH, sản phẩm, khách…" value="${esc(wFilter.q)}"></div><button class="btn btn-primary btn-sm" onclick="openWarrantyForm()">＋ Tạo phiếu bảo hành</button></div></div><div id="wTableWrap"><div class="spin"></div></div></div>`;
+  $('wSearch').oninput=e=>{wFilter.q=e.target.value;wFilter.page=1;drawWarrantyTable();};
+  drawWarrantyTable();
+}
+function filteredWarranty(){const q=wFilter.q.toLowerCase().trim();return BAOHANH.filter(o=>{if(q){const hay=[o.maBaoHanh,o.tenSanPham,o.khachTen,o.khachSDT,o.serial].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});}
+function drawWarrantyTable(){
+  const wrap=$('wTableWrap');if(!wrap)return;const all=filteredWarranty();
+  if(all.length===0){wrap.innerHTML=BAOHANH.length===0?`<div class="empty"><div class="em-ic">🛡</div><h4>Chưa có phiếu bảo hành</h4><p>Tạo phiếu bảo hành để in mã QR dán lên đàn. Khách quét QR là tra cứu được.</p><button class="btn btn-primary btn-sm" onclick="openWarrantyForm()">＋ Tạo phiếu bảo hành</button></div>`:`<div class="empty"><div class="em-ic">🔍</div><h4>Không tìm thấy</h4></div>`;return;}
+  const per=wFilter.per,pages=Math.ceil(all.length/per);if(wFilter.page>pages)wFilter.page=pages;const st=(wFilter.page-1)*per,rows=all.slice(st,st+per);
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mã BH</th><th>Sản phẩm</th><th>Khách hàng</th><th>Ngày mua</th><th>Hết hạn</th><th>Trạng thái</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${rows.map(wRow).join('')}</tbody></table></div>
+    <div class="tbl-foot"><span>Hiển thị ${st+1}–${Math.min(st+per,all.length)} / <b>${money(all.length)}</b> phiếu</span><div class="pg"><button ${wFilter.page<=1?'disabled':''} onclick="wFilter.page--;drawWarrantyTable()">‹ Trước</button><span style="padding:0 6px">Trang ${wFilter.page}/${pages}</span><button ${wFilter.page>=pages?'disabled':''} onclick="wFilter.page++;drawWarrantyTable()">Sau ›</button></div></div>`;
+}
+function wRow(o){
+  const st=bhStatus(o);
+  return `<tr style="cursor:pointer" onclick="openWarrantyDetail('${esc(o._id)}')"><td class="t-code">${esc(o.maBaoHanh||'')}</td><td class="t-name">${esc(o.tenSanPham||'')}${o.serial?`<small>SN: ${esc(o.serial)}</small>`:''}</td><td>${esc(o.khachTen||'—')}${o.khachSDT?`<br><small style="color:var(--muted-2)">${esc(o.khachSDT)}</small>`:''}</td><td style="white-space:nowrap">${esc(o.ngayMua||'—')}</td><td style="white-space:nowrap">${esc(o.baoHanhDen||'—')}</td><td><span class="chip ${st.cls}">${st.txt}</span></td><td><div class="row-act"><button class="icon-btn" title="Xem" onclick="event.stopPropagation();openWarrantyDetail('${esc(o._id)}')">👁</button><button class="icon-btn" title="In tem QR" onclick="event.stopPropagation();printWarrantyTem('${esc(o._id)}')">🏷</button><button class="icon-btn del" title="Xóa" onclick="event.stopPropagation();deleteWarranty('${esc(o._id)}')">🗑</button></div></td></tr>`;
+}
+function createWarrantyFromOrder(orderId){
+  const o=ORDERS.find(x=>x._id===orderId);if(!o)return;
+  const it=(o.items||[])[0]||{};
+  closeModal();
+  openWarrantyForm(null,{tenSanPham:it.ten||'',maSP:it.maSP||'',khachTen:o.khachTen||'',khachSDT:o.khachSDT||'',ngayMua:o.ngay||'',baoHanhSo:o.baoHanhSo||0,baoHanhDonVi:o.baoHanhDonVi||'thang',refOrderId:o.maDon||''});
+}
+function openWarrantyForm(id,prefill){
+  const o=id?BAOHANH.find(x=>x._id===id):(prefill||{});const edit=!!id;
+  const prodList=PRODUCTS.map(p=>`<option value="${esc(p.tenSP)}">`).join('');
+  const today=new Date();const defDate=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const ngayMuaIso=(o.ngayMua&&o.ngayMua.includes('/'))?o.ngayMua.split('/').reverse().join('-'):(o.ngayMua||defDate);
+  openModal(`<div class="modal-head"><h3>${edit?'Sửa phiếu bảo hành':'Tạo phiếu bảo hành'}</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body"><div class="grid2">
+      <div class="field full"><label>Tên sản phẩm (đàn) <span class="req">*</span></label><input id="fwTen" list="fwProdList" value="${esc(o.tenSanPham||'')}" placeholder="VD: Đàn piano cơ Yamaha U3"><datalist id="fwProdList">${prodList}</datalist></div>
+      <div class="field"><label>Mã SP</label><input id="fwMaSP" value="${esc(o.maSP||'')}"></div>
+      <div class="field"><label>Số serial (nếu có)</label><input id="fwSerial" value="${esc(o.serial||'')}" placeholder="Số máy trên đàn"></div>
+      <div class="field"><label>Khách hàng</label><input id="fwKhach" value="${esc(o.khachTen||'')}"></div>
+      <div class="field"><label>Điện thoại</label><input id="fwSDT" value="${esc(o.khachSDT||'')}"></div>
+      <div class="field"><label>Ngày mua</label><input id="fwNgay" type="date" value="${ngayMuaIso}"></div>
+      <div class="field"><label>Thời hạn bảo hành</label><div style="display:flex;gap:6px"><input id="fwBhSo" type="number" value="${o.baoHanhSo||0}" style="flex:1" oninput="wFormHint()"><select id="fwBhDv" onchange="wFormHint()" style="width:110px"><option value="thang" ${o.baoHanhDonVi==='nam'?'':'selected'}>Tháng</option><option value="nam" ${o.baoHanhDonVi==='nam'?'selected':''}>Năm</option></select></div><div id="fwHint" class="hint" style="display:none"></div></div>
+      <div class="field full"><label>Ghi chú</label><input id="fwGhiChu" value="${esc(o.ghiChu||'')}" placeholder="Điều kiện bảo hành, phụ kiện kèm theo…"></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveWBtn" onclick="saveWarranty('${edit?esc(id):''}','${esc(o.refOrderId||'')}')">${edit?'Lưu':'Tạo phiếu & QR'}</button></div>`);
+  wFormHint();
+}
+function wFormHint(){const so=Number($('fwBhSo')?.value)||0;const dv=$('fwBhDv')?.value;const from=$('fwNgay')?.value;const hint=$('fwHint');if(!hint)return;if(so<=0){hint.style.display='none';return;}const months=dv==='nam'?so*12:so;const to=addMonthsToDate(from,months);hint.style.display='block';hint.textContent=`${so} ${dv==='nam'?'năm':'tháng'} · đến ${fmtDate(to)}`;}
+async function saveWarranty(id,refOrderId){
+  const ten=$('fwTen').value.trim();if(!ten){toast('Nhập tên sản phẩm','warn');return;}
+  const so=Number($('fwBhSo').value)||0;const dv=$('fwBhDv').value;const months=dv==='nam'?so*12:so;
+  const ngayIso=$('fwNgay').value;const [y,m,d]=ngayIso.split('-');
+  const data={tenSanPham:ten,maSP:$('fwMaSP').value.trim(),serial:$('fwSerial').value.trim(),khachTen:$('fwKhach').value.trim(),khachSDT:$('fwSDT').value.trim(),ngayMua:`${d}/${m}/${y}`,baoHanhSo:so,baoHanhDonVi:dv,baoHanhThang:months,baoHanhTu:`${d}/${m}/${y}`,baoHanhDen:months>0?fmtDate(addMonthsToDate(ngayIso,months)):'',ghiChu:$('fwGhiChu').value.trim(),updatedAt:new Date().toISOString()};
+  const btn=$('saveWBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{
+    if(id){await db.collection(COL.baohanh).doc(id).set(data,{merge:true});toast('Đã cập nhật phiếu bảo hành','ok');closeModal();await loadBaoHanh();renderWarranty();}
+    else{let code=genMaBaoHanh();data.maBaoHanh=code;data.refOrderId=refOrderId||'';data.lichSu=[];data.createdSort=Date.now();data.createdAt=new Date().toISOString();data.createdBy=CURRENT_USER.hoTen;
+      await db.collection(COL.baohanh).doc(code).set(data);toast('Đã tạo phiếu bảo hành '+code,'ok');closeModal();await loadBaoHanh();renderWarranty();
+      const rec=BAOHANH.find(x=>x.maBaoHanh===code);if(rec)openWarrantyDetail(rec._id);}
+  }catch(e){console.error(e);toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent=id?'Lưu':'Tạo phiếu & QR';}
+}
+function openWarrantyDetail(id){
+  const o=BAOHANH.find(x=>x._id===id);if(!o)return;const st=bhStatus(o);
+  const lichSu=(o.lichSu&&o.lichSu.length)?o.lichSu.map(h=>`<div style="background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between"><b style="font-size:13px">${esc(h.ngay||'')}</b><span style="font-size:12px;color:var(--muted-2)">${esc(h.nguoi||'')}</span></div><div style="font-size:13px;margin-top:3px">${esc(h.noiDung||'')}</div></div>`).join(''):'<div style="color:var(--muted-2);font-size:13px;padding:6px 0">Chưa có lần bảo hành/sửa chữa nào.</div>';
+  openModal(`<div class="modal-head"><h3>Phiếu bảo hành · ${esc(o.maBaoHanh)}</h3><div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button class="btn btn-primary btn-sm" onclick="printWarrantyTem('${esc(id)}')">🏷 In tem QR</button><button onclick="closeModal()" style="font-size:22px;color:var(--muted-2);padding:2px 6px">×</button></div></div>
+    <div class="modal-body"><div style="display:grid;grid-template-columns:1fr 240px;gap:18px;align-items:start">
+      <div>
+        <div class="od-box">
+          <h4>Thông tin bảo hành</h4>
+          <div class="od-row"><span>Mã tra cứu</span><b class="t-code">${esc(o.maBaoHanh)}</b></div>
+          <div class="od-row"><span>Sản phẩm</span><b>${esc(o.tenSanPham||'')}</b></div>
+          ${o.serial?`<div class="od-row"><span>Serial</span><b>${esc(o.serial)}</b></div>`:''}
+          <div class="od-row"><span>Khách hàng</span><b>${esc(o.khachTen||'—')}</b></div>
+          ${o.khachSDT?`<div class="od-row"><span>Điện thoại</span><b>${esc(o.khachSDT)}</b></div>`:''}
+          <div class="od-row"><span>Ngày mua</span><b>${esc(o.ngayMua||'')}</b></div>
+          <div class="od-row"><span>Thời hạn</span><b>${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'}</b></div>
+          <div class="od-row"><span>Hết hạn</span><b>${esc(o.baoHanhDen||'')}</b></div>
+          <div class="od-row"><span>Trạng thái</span><b><span class="chip ${st.cls}">${st.txt}</span></b></div>
+          ${o.ghiChu?`<div class="od-row"><span>Ghi chú</span><b>${esc(o.ghiChu)}</b></div>`:''}
+        </div>
+        <div class="od-box" style="margin:0">
+          <h4>Lịch sử bảo hành / sửa chữa</h4>
+          ${lichSu}
+          <div style="display:flex;gap:6px;margin-top:8px"><input id="wLsInput" placeholder="Nội dung lần bảo hành…" style="flex:1;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px"><button class="btn btn-primary btn-sm" onclick="addWarrantyLog('${esc(id)}')">＋ Ghi</button></div>
+        </div>
+      </div>
+      <div>
+        <div class="od-box" style="text-align:center">
+          <h4>Mã QR dán đàn</h4>
+          <img src="${bhQrImg(o.maBaoHanh,180)}" style="width:170px;height:170px;background:#fff;border-radius:8px" alt="QR">
+          <div style="font-family:ui-monospace,monospace;font-weight:800;font-size:16px;margin-top:6px;letter-spacing:1px">${esc(o.maBaoHanh)}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Quét để tra cứu bảo hành</div>
+          <button class="btn btn-primary btn-block btn-sm" style="margin-top:10px" onclick="printWarrantyTem('${esc(id)}')">🏷 In tem dán</button>
+          <a href="${bhLookupUrl(o.maBaoHanh)}" target="_blank" style="display:block;font-size:11.5px;color:var(--gold-2);margin-top:8px;word-break:break-all">Mở trang tra cứu ↗</a>
+        </div>
+        <button class="btn btn-danger btn-block" onclick="deleteWarranty('${esc(id)}')" style="margin-top:12px">🗑 Xóa phiếu</button>
+      </div>
+    </div></div>`,'lg');
+}
+async function addWarrantyLog(id){
+  const o=BAOHANH.find(x=>x._id===id);if(!o)return;const v=$('wLsInput').value.trim();if(!v)return;
+  const log={ngay:new Date().toLocaleDateString('vi-VN'),noiDung:v,nguoi:CURRENT_USER.hoTen};
+  const ls=(o.lichSu||[]).concat([log]);
+  try{await db.collection(COL.baohanh).doc(id).update({lichSu:ls,updatedAt:new Date().toISOString()});o.lichSu=ls;toast('Đã ghi lịch sử','ok');openWarrantyDetail(id);}catch(e){toast('Lỗi: '+e.message,'err');}
+}
+function deleteWarranty(id){const o=BAOHANH.find(x=>x._id===id);if(!o)return;openModal(`<div class="modal-head"><h3>Xóa phiếu bảo hành</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.6">Xóa phiếu <b>${esc(o.maBaoHanh)}</b> — ${esc(o.tenSanPham||'')}?<br><span style="color:var(--muted);font-size:13px">QR đã dán sẽ không tra cứu được nữa.</span></p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delWBtn" onclick="confirmDeleteWarranty('${esc(id)}')">Xóa</button></div>`,'sm');}
+async function confirmDeleteWarranty(id){const b=$('delWBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.baohanh).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadBaoHanh();renderWarranty();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
+function printWarrantyTem(id){
+  const o=BAOHANH.find(x=>x._id===id);if(!o)return;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tem BH ${esc(o.maBaoHanh)}</title>
+    <style>@page{size:80mm 100mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:6px;text-align:center;color:#111}
+    .tem{border:2px solid #a97e46;border-radius:10px;padding:10px 8px}img.logo{width:70px}img.qr{width:150px;height:150px}
+    @media print{.noprint{display:none}}</style></head>
+    <body><div class="tem">
+      <img class="logo" src="${LOGO_DATAURI}">
+      <div style="font-weight:bold;font-size:13px;color:#a97e46;margin:2px 0">PHIẾU BẢO HÀNH</div>
+      <div style="font-size:11px;line-height:1.35">${esc(SHOP.name)}<br>${esc(SHOP.phone)}</div>
+      <img class="qr" src="${bhQrImg(o.maBaoHanh,300)}" style="margin:6px 0">
+      <div style="font-family:monospace;font-weight:bold;font-size:18px;letter-spacing:2px">${esc(o.maBaoHanh)}</div>
+      <div style="font-size:12px;margin-top:4px"><b>${esc(o.tenSanPham||'')}</b></div>
+      <div style="font-size:11px">BH ${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'} · đến ${esc(o.baoHanhDen||'')}</div>
+      <div style="font-size:10.5px;color:#555;margin-top:4px">📱 Quét mã QR để tra cứu bảo hành</div>
+    </div>
+    <div class="noprint" style="text-align:center;margin-top:12px"><button onclick="window.print()" style="padding:8px 20px;background:#a97e46;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨 In tem</button></div>
+    </body></html>`);
+  w.document.close();
+}
+/* --- Trang tra cứu công khai (khách quét QR) --- */
+async function renderPublicWarranty(code){
+  document.body.innerHTML=`<div id="pubw" style="min-height:100vh;background:linear-gradient(160deg,#0f1626,#1a2338);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;font-family:Inter,system-ui,Arial,sans-serif"><div style="width:100%;max-width:440px"><div style="text-align:center;margin-bottom:16px"><img src="${LOGO_DATAURI}" style="width:96px;background:#fff;border-radius:14px;padding:6px"><div style="color:#f0d79a;font-weight:800;font-size:18px;margin-top:8px;letter-spacing:.5px">TRA CỨU BẢO HÀNH</div><div style="color:#9fb0cc;font-size:12.5px">Học viện Âm nhạc Thiên Ân</div></div><div id="pubwCard" style="background:#fff;border-radius:16px;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.3)"><div style="text-align:center;color:#888;padding:20px">Đang tra cứu mã <b>${esc(code)}</b>…</div></div><div style="text-align:center;color:#8296b5;font-size:11.5px;margin-top:14px">Hotline: ${esc(SHOP.phone)}</div></div></div>`;
+  try{
+    if(!ready)initFirebase();
+    const doc=await db.collection(COL.baohanh).doc(code).get();
+    const card=document.getElementById('pubwCard');
+    if(!doc.exists){card.innerHTML=`<div style="text-align:center;padding:16px"><div style="font-size:40px">❓</div><h3 style="margin:8px 0;color:#c0392b">Không tìm thấy</h3><p style="color:#666;font-size:13.5px">Mã bảo hành <b>${esc(code)}</b> không tồn tại hoặc đã bị xóa. Vui lòng liên hệ cửa hàng.</p></div>`;return;}
+    const o={_id:doc.id,...doc.data()};const st=bhStatus(o);
+    const stColor={ok:'#1c8a4d',vip:'#b8860b',low:'#c0392b',cn:'#666'}[st.cls];
+    const stBg={ok:'#e5f5ec',vip:'#fdf3d9',low:'#fbe6e3',cn:'#eee'}[st.cls];
+    const row=(l,v)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eef0f4;font-size:13.5px"><span style="color:#888">${l}</span><b style="text-align:right">${v||'—'}</b></div>`;
+    const ls=(o.lichSu&&o.lichSu.length)?o.lichSu.map(h=>`<div style="background:#f7f9fc;border-radius:8px;padding:8px 11px;margin-top:6px;font-size:12.5px"><b>${esc(h.ngay||'')}</b> — ${esc(h.noiDung||'')}</div>`).join(''):'<div style="color:#aaa;font-size:12.5px;padding:4px 0">Chưa có lịch sử bảo hành.</div>';
+    card.innerHTML=`
+      <div style="text-align:center;background:${stBg};color:${stColor};border-radius:11px;padding:12px;margin-bottom:16px"><div style="font-size:22px;font-weight:800">${st.txt}</div>${st.dl!==null&&st.dl>=0?`<div style="font-size:12.5px;margin-top:2px">Còn ${st.dl} ngày bảo hành</div>`:''}</div>
+      <div style="font-size:17px;font-weight:800;text-align:center;margin-bottom:4px">${esc(o.tenSanPham||'')}</div>
+      <div style="text-align:center;font-family:monospace;color:#a97e46;font-weight:700;margin-bottom:14px">Mã: ${esc(o.maBaoHanh)}</div>
+      ${o.serial?row('Số serial',esc(o.serial)):''}
+      ${row('Ngày mua',esc(o.ngayMua||''))}
+      ${row('Thời hạn BH',`${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'}`)}
+      ${row('Bảo hành đến',esc(o.baoHanhDen||''))}
+      ${o.khachTen?row('Khách hàng',esc(o.khachTen)):''}
+      <div style="margin-top:16px"><div style="font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Lịch sử bảo hành</div>${ls}</div>`;
+  }catch(e){const card=document.getElementById('pubwCard');if(card)card.innerHTML=`<div style="text-align:center;padding:16px;color:#c0392b">Lỗi tra cứu: ${esc(e.message)}</div>`;}
+}
+
 /* ===== CẤU HÌNH TÀI KHOẢN NGÂN HÀNG ===== */
 async function loadSettings(){try{const d=await db.collection(COL.settings).doc('bank').get();if(d.exists)BANK_INFO=d.data();}catch(e){BANK_INFO=null;}}
 const VN_BANKS=[['VCB','Vietcombank'],['TCB','Techcombank'],['MB','MB Bank'],['BIDV','BIDV'],['ICB','VietinBank'],['VBA','Agribank'],['ACB','ACB'],['VPB','VPBank'],['STB','Sacombank'],['TPB','TPBank'],['MSB','MSB'],['HDB','HDBank'],['OCB','OCB'],['SHB','SHB'],['VIB','VIB'],['SEAB','SeABank'],['EIB','Eximbank'],['LPB','LPBank'],['NAB','Nam A Bank'],['BAB','BacABank'],['ABB','ABBANK'],['SCB','SCB'],['VAB','VietABank'],['PVCB','PVcomBank']];
@@ -1437,10 +1602,16 @@ async function saveBankSettings(){
 }
 
 /* ===== KHỞI ĐỘNG ===== */
-$('liBtn').onclick=doLogin;
-$('liPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-$('liUser').addEventListener('keydown',e=>{if(e.key==='Enter')$('liPass').focus();});
-if(initFirebase()){bootLogin();try{const s=sessionStorage.getItem('bh_session');if(s)loginSuccess(JSON.parse(s));}catch(e){}}
+const _bhCode=new URLSearchParams(location.search).get('bh');
+if(_bhCode){
+  if(!ready)initFirebase();
+  renderPublicWarranty(_bhCode.toUpperCase().trim());
+}else{
+  $('liBtn').onclick=doLogin;
+  $('liPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  $('liUser').addEventListener('keydown',e=>{if(e.key==='Enter')$('liPass').focus();});
+  if(initFirebase()){bootLogin();try{const s=sessionStorage.getItem('bh_session');if(s)loginSuccess(JSON.parse(s));}catch(e){}}
+}
 </script>
 </body>
 </html>
