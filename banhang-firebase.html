@@ -980,6 +980,7 @@ function openOrderDetail(id){
   openModal(`
     <div class="modal-head"><h3>Chi tiết đơn hàng · ${esc(o.maDon)}</h3>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="previewInvoice('${esc(id)}')">👁 Xem trước</button>
         <button class="btn btn-ghost btn-sm" onclick="closeModal();openOrderForm('${esc(id)}')">✎ Sửa đơn</button>
         <button class="btn btn-ghost btn-sm" onclick="printInvoice('${esc(id)}')">🖨 In hóa đơn</button>
         <button onclick="closeModal()" style="font-size:22px;color:var(--muted-2);padding:2px 6px;border-radius:8px">×</button>
@@ -1054,23 +1055,21 @@ function docTienBangChu(number){
   kq=kq.trim().replace(/\s+/g,' ');return kq.charAt(0).toUpperCase()+kq.slice(1)+' đồng chẵn';
 }
 function ngayChu(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return `Ngày ${d} tháng ${m} năm ${y}`;}
-function printInvoice(id){
-  const o=ORDERS.find(x=>x._id===id);if(!o)return;
+function invoiceDocHTML(o,withBtn){
   const rows=(o.items||[]).map((it,i)=>{const p=PRODUCTS.find(x=>x._id===it.prodId);const dvt=p?(p.donVi||''):'';
     return `<tr><td style="text-align:center">${i+1}</td><td style="text-align:center">${esc(it.maSP)}</td><td>${esc(it.ten)}</td><td style="text-align:center">${esc(dvt)}</td><td style="text-align:center">${money(it.qty)}</td><td class="r">${money(it.donGia)}</td><td class="r">${money(it.thanhTien)}</td></tr>`;}).join('');
   const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td>${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td>Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
   const qrBlock=(BANK_INFO&&BANK_INFO.accountNo)?`<div style="text-align:center;margin-top:12px"><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:120px;height:120px;object-fit:contain"><div style="font-size:12px;margin-top:4px;font-weight:bold">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} - ${esc(BANK_INFO.accountNo)}</div><div style="font-size:11.5px">${esc(SHOP.company)}</div></div>`:'';
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
     <style>
       @page{size:A4;margin:12mm}*{box-sizing:border-box}
-      body{font-family:Arial,sans-serif;color:#222;font-size:12.5px;margin:0;line-height:1.5}
+      body{font-family:Arial,sans-serif;color:#222;font-size:12.5px;margin:0;line-height:1.5;padding:18px}
       .center{text-align:center}.r{text-align:right}
       table.items{width:100%;border-collapse:collapse;margin:8px 0}
       table.items th,table.items td{border:1px solid #999;padding:5px 7px;font-size:12px}
       table.items thead th{background:#f4ecdf;text-align:center;font-size:11.5px}
       .tot td{padding:2px 6px;font-size:12.5px}
-      @media print{.noprint{display:none}}
+      @media print{.noprint{display:none}body{padding:0}}
     </style></head>
     <body>
       <div class="center"><img src="${LOGO_DATAURI}" style="width:110px;height:auto"></div>
@@ -1104,9 +1103,19 @@ function printInvoice(id){
         <div class="center" style="flex:1">Người mua hàng<br><span style="font-size:11px">(Ký, ghi rõ họ tên)</span></div>
         <div class="center" style="flex:1"><i>${ngayChu(o.ngay)}</i><br>Người bán hàng<br><br><b>${esc(o.createdBy||'')}</b></div>
       </div>
-      <div class="noprint center" style="margin-top:18px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In hóa đơn</button></div>
-    </body></html>`);
-  w.document.close();
+      ${withBtn?`<div class="noprint center" style="margin-top:18px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In hóa đơn</button></div>`:''}
+    </body></html>`;
+}
+function printInvoice(id){const o=ORDERS.find(x=>x._id===id);if(!o)return;const w=window.open('','_blank');w.document.write(invoiceDocHTML(o,true));w.document.close();}
+function previewInvoice(id){
+  const o=ORDERS.find(x=>x._id===id);if(!o)return;
+  openModal(`<div class="modal-head"><h3>Xem trước hóa đơn · ${esc(o.maDon)}</h3>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="printInvoice('${esc(id)}')">🖨 In hóa đơn</button>
+      <button onclick="closeModal()" style="font-size:22px;color:var(--muted-2);padding:2px 6px;border-radius:8px">×</button>
+    </div></div>
+    <div class="modal-body" style="padding:14px;background:#eef1f5"><iframe id="invPrevFrame" style="width:100%;height:72vh;border:none;border-radius:8px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.12)"></iframe></div>`,'lg');
+  const fr=$('invPrevFrame');if(fr)fr.srcdoc=invoiceDocHTML(o,false);
 }
 /* --- Xóa đơn (hoàn tác tồn/nợ/thu) --- */
 function deleteOrder(id){
