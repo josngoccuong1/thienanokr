@@ -196,8 +196,8 @@ const firebaseConfig = {
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
 const P="bh_";
-const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks"};
-let db=null,ready=false,CURRENT_USER=null;
+const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks",settings:P+"settings"};
+let db=null,ready=false,CURRENT_USER=null,BANK_INFO=null;
 let PRODUCTS=[],CATEGORIES=[],CUSTOMERS=[],TRANSACTIONS=[],ORDERS=[],ORDER_CART=[],ORDER_PAID_EDITED=false;
 let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[];
 
@@ -277,7 +277,7 @@ function navigate(id){
   const [t,s]=titles[id]||[id,''];$('pageTitle').textContent=t;$('pageSub').textContent=s;
   if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();
 }
-async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases()]);await loadCategories();refreshCurrent();}
+async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases(),loadSettings()]);await loadCategories();refreshCurrent();}
 function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();if(CURRENT_VIEW==='suppliers')renderSuppliers();if(CURRENT_VIEW==='purchases')renderPurchases();if(CURRENT_VIEW==='inventory')renderInventory();}
 async function loadProducts(){try{const s=await db.collection(COL.products).get();PRODUCTS=s.docs.map(d=>({_id:d.id,...d.data()}));PRODUCTS.sort((a,b)=>String(a.maSP||'').localeCompare(String(b.maSP||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải sản phẩm: '+e.message,'err');PRODUCTS=[];}}
 async function loadCustomers(){try{const s=await db.collection(COL.customers).get();CUSTOMERS=s.docs.map(d=>({_id:d.id,...d.data()}));CUSTOMERS.sort((a,b)=>String(a.maKH||'').localeCompare(String(b.maKH||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải khách hàng: '+e.message,'err');CUSTOMERS=[];}}
@@ -776,6 +776,7 @@ function openOrderForm(){
           <div style="border-top:1px solid var(--line);padding-top:10px">
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13.5px"><span style="color:var(--muted)">Tạm tính</span><b id="ordSubtotal">0</b></div>
             <div class="field" style="margin:8px 0"><label>Giảm giá (₫)</label><input id="ordDiscount" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div>
+            <div class="grid2" style="gap:8px;margin-bottom:4px"><div class="field" style="margin:0"><label>Phí VC / cẩu (₫)</label><input id="ordPhi" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div><div class="field" style="margin:0"><label>Nội dung phí</label><input id="ordPhiLabel" placeholder="VD: Cước cẩu"></div></div>
             <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:18px;border-top:1px solid var(--line)"><b>Tổng cộng</b><b id="ordTotal" style="color:var(--gold-2)">0</b></div>
             <div class="field" style="margin:8px 0 6px"><label>Số tiền thanh toán (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
             <div style="display:flex;gap:5px;margin-bottom:11px">
@@ -786,8 +787,10 @@ function openOrderForm(){
               <button class="btn btn-ghost btn-sm" style="padding:6px 9px" onclick="setPaid('clear')">✕</button>
             </div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Còn nợ đơn này</span><b id="ordConNo" style="color:var(--danger)">0</b></div>
-            <div class="field" style="margin:11px 0 8px"><label>Phương thức TT</label><input id="ordPttt" value="Tiền mặt" placeholder="Tiền mặt / CK…"></div>
-            <div class="field" style="margin:0 0 12px"><label>Ghi chú</label><input id="ordNote" placeholder="Ghi chú đơn"></div>
+            <div class="field" style="margin:11px 0 8px"><label>Phương thức thanh toán</label><select id="ordPttt" onchange="updatePayUI()"><option value="Tiền mặt">💵 Tiền mặt</option><option value="Chuyển khoản">🏦 Chuyển khoản</option></select></div>
+            <div id="ordQrBlock" style="display:none;background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;text-align:center"><div id="ordQrInner"></div></div>
+            <div class="field" style="margin:0 0 8px"><label>Bảo hành (tháng)</label><input id="ordBaoHanh" type="number" value="0" placeholder="VD: 12" oninput="updateWarrantyHint()"><div id="ordBhHint" class="hint" style="display:none"></div></div>
+            <div class="field" style="margin:0 0 12px"><label>Ghi chú</label><input id="ordNote" placeholder="Ghi chú đơn (hiện trên hóa đơn)"></div>
             <button class="btn btn-primary btn-block" id="saveOrdBtn" onclick="saveOrder()" style="padding:13px;font-size:14.5px">💾 Lưu đơn & thu tiền</button>
           </div>
         </div>
@@ -848,13 +851,38 @@ function setPaid(mode){
 }
 function updateOrderTotals(){
   let sub=0;ORDER_CART.forEach((it,i)=>{const tt=(Number(it.donGia)||0)*(Number(it.qty)||0);sub+=tt;const c=$('cartTt'+i);if(c)c.textContent=money(tt);});
-  const ck=Number($('ordDiscount')?.value)||0;const total=Math.max(0,sub-ck);
+  const ck=Number($('ordDiscount')?.value)||0;const phi=Number($('ordPhi')?.value)||0;const total=Math.max(0,sub-ck+phi);
   if($('ordSubtotal'))$('ordSubtotal').textContent=money(sub);
-  if($('ordCkView'))$('ordCkView').textContent='−'+money(ck);
   if($('ordTotal'))$('ordTotal').textContent=money(total);
   if(!ORDER_PAID_EDITED&&$('ordPaid'))$('ordPaid').value=total;
   const paid=Number($('ordPaid')?.value)||0;
   if($('ordConNo'))$('ordConNo').textContent=money(Math.max(0,total-paid));
+  updatePayUI();
+}
+function addMonthsToDate(iso,months){if(!iso||!months)return null;const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,(m-1)+Number(months),d);return dt;}
+function fmtDate(dt){if(!dt)return '';return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;}
+function updateWarrantyHint(){
+  const thang=Number($('ordBaoHanh')?.value)||0;const hint=$('ordBhHint');if(!hint)return;
+  if(thang<=0){hint.style.display='none';return;}
+  const from=$('ordDate')?.value;const to=addMonthsToDate(from,thang);
+  hint.style.display='block';hint.textContent=`Từ ${fmtDate(new Date(from))} đến ${fmtDate(to)}`;
+}
+function buildQrUrl(amount,info){
+  if(!BANK_INFO||!BANK_INFO.accountNo||!BANK_INFO.bankCode)return '';
+  const base=`https://img.vietqr.io/image/${encodeURIComponent(BANK_INFO.bankCode)}-${encodeURIComponent(BANK_INFO.accountNo)}-compact2.png`;
+  const p=new URLSearchParams();if(amount>0)p.set('amount',String(Math.round(amount)));if(info)p.set('addInfo',info);if(BANK_INFO.accountName)p.set('accountName',BANK_INFO.accountName);
+  return base+'?'+p.toString();
+}
+function updatePayUI(){
+  const sel=$('ordPttt');if(!sel)return;const isCK=sel.value==='Chuyển khoản';
+  const block=$('ordQrBlock');if(!block)return;block.style.display=isCK?'block':'none';
+  if(!isCK)return;const inner=$('ordQrInner');if(!inner)return;
+  if(!BANK_INFO||!BANK_INFO.accountNo){inner.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0">Chưa cấu hình tài khoản ngân hàng.<br><button class="btn btn-ghost btn-sm" onclick="openBankSettings()" style="margin-top:8px">⚙ Cấu hình tài khoản</button></div>';return;}
+  const total=Number(String($('ordTotal').textContent).replace(/\D/g,''))||0;
+  const url=buildQrUrl(total,'Thanh toan don hang');
+  const img=inner.querySelector('#ordQrImg');
+  if(img){img.src=url;}
+  else{inner.innerHTML=`<img id="ordQrImg" src="${url}" alt="QR chuyển khoản" style="width:170px;height:170px;object-fit:contain;border-radius:8px;background:#fff"><div style="font-size:13px;margin-top:8px;line-height:1.5"><b>${esc(BANK_INFO.bankName||BANK_INFO.bankCode)}</b><br>${esc(BANK_INFO.accountNo)} · ${esc(BANK_INFO.accountName||'')}</div><button class="btn btn-ghost btn-sm" onclick="openBankSettings()" style="margin-top:8px;font-size:12px">⚙ Đổi tài khoản</button>`;}
 }
 function genOrderCode(){const d=new Date();const ymd=`${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;const r=Math.random().toString(36).slice(2,6).toUpperCase();return 'DH'+ymd+'-'+r;}
 async function saveOrder(){
@@ -864,12 +892,16 @@ async function saveOrder(){
   const items=ORDER_CART.map(it=>({maSP:it.maSP,ten:it.ten,donGia:Number(it.donGia)||0,qty:Number(it.qty)||0,thanhTien:(Number(it.donGia)||0)*(Number(it.qty)||0),laDichVu:!!it.laDichVu,prodId:it.id}));
   const sub=items.reduce((s,it)=>s+it.thanhTien,0);
   const ck=Number($('ordDiscount').value)||0;
-  const total=Math.max(0,sub-ck);
+  const phi=Number($('ordPhi').value)||0;
+  const phiLabel=$('ordPhiLabel').value.trim();
+  const total=Math.max(0,sub-ck+phi);
   const paid=Number($('ordPaid').value)||0;
   const conNo=Math.max(0,total-paid);
   if(conNo>0&&!cust){toast('Khách lẻ phải thanh toán đủ. Chọn khách hàng nếu muốn ghi nợ.','warn');return;}
+  const bhThang=Number($('ordBaoHanh').value)||0;
+  const bhDen=bhThang>0?fmtDate(addMonthsToDate($('ordDate').value,bhThang)):'';
   const maDon=genOrderCode();
-  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value.trim()||'Tiền mặt',ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
+  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:d.sort||Date.now(),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiVanChuyen:phi,phiLabel:phiLabel||'Phí vận chuyển/cẩu',tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,ghiChu:$('ordNote').value.trim(),createdBy:CURRENT_USER.hoTen,createdAt:new Date().toISOString()};
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
     // 1) ghi đơn
@@ -903,10 +935,12 @@ function openOrderDetail(id){
       <div style="background:#fafbfc;border-radius:11px;padding:16px">
         <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Tổng hàng</span><b>${money(o.tongHang)}₫</b></div>
         ${o.chietKhau>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">Chiết khấu</span><b style="color:var(--danger)">−${money(o.chietKhau)}₫</b></div>`:''}
+        ${o.phiVanChuyen>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--muted)">${esc(o.phiLabel||'Phí vận chuyển/cẩu')}</span><b>+${money(o.phiVanChuyen)}₫</b></div>`:''}
         <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:16px;border-top:1px solid var(--line);margin-top:4px"><b>Tổng cộng</b><b style="color:var(--gold-2)">${money(o.tongCong)}₫</b></div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--ok)">Đã trả</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
         ${o.conNo>0?`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px"><span style="color:var(--danger)">Còn nợ</span><b style="color:var(--danger)">${money(o.conNo)}₫</b></div>`:''}
       </div>
+      ${o.baoHanhThang>0?`<div style="margin-top:12px;background:var(--gold-soft);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--gold-2)">🛡 Bảo hành <b>${o.baoHanhThang} tháng</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
       ${o.ghiChu?`<div style="margin-top:12px;font-size:13px;color:var(--muted)">📝 ${esc(o.ghiChu)}</div>`:''}
       <div style="margin-top:8px;font-size:12px;color:var(--muted-2)">Người tạo: ${esc(o.createdBy||'')} · PTTT: ${esc(o.phuongThuc||'')}</div>
     </div>
@@ -929,10 +963,15 @@ function printInvoice(id){
       <div class="tot"><table>
         <tr><td>Tổng hàng:</td><td class="right">${money(o.tongHang)} ₫</td></tr>
         ${o.chietKhau>0?`<tr><td>Chiết khấu:</td><td class="right">−${money(o.chietKhau)} ₫</td></tr>`:''}
+        ${o.phiVanChuyen>0?`<tr><td>${esc(o.phiLabel||'Phí vận chuyển/cẩu')}:</td><td class="right">+${money(o.phiVanChuyen)} ₫</td></tr>`:''}
         <tr><td style="font-size:15px;font-weight:bold;border-top:1px solid #333">Tổng cộng:</td><td class="right" style="font-size:15px;font-weight:bold;border-top:1px solid #333;color:#a97e46">${money(o.tongCong)} ₫</td></tr>
         <tr><td>Đã thanh toán:</td><td class="right">${money(o.daTra)} ₫</td></tr>
         ${o.conNo>0?`<tr><td style="color:#c00">Còn nợ:</td><td class="right" style="color:#c00">${money(o.conNo)} ₫</td></tr>`:''}
       </table></div>
+      ${o.baoHanhThang>0?`<div style="margin-top:14px;padding:10px 14px;background:#f4ecdf;border-radius:8px;font-size:12.5px">🛡 <b>Bảo hành ${o.baoHanhThang} tháng</b> — từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
+      ${o.ghiChu?`<div style="margin-top:10px;font-size:12.5px"><b>Ghi chú:</b> ${esc(o.ghiChu)}</div>`:''}
+      <div style="margin-top:10px;font-size:12.5px"><b>Thanh toán:</b> ${esc(o.phuongThuc||'')}</div>
+      ${(o.phuongThuc==='Chuyển khoản'&&BANK_INFO&&BANK_INFO.accountNo)?`<div style="margin-top:14px;text-align:center;border:1px dashed #ccc;border-radius:10px;padding:14px"><div style="font-size:12.5px;margin-bottom:8px;font-weight:bold">Quét mã QR để chuyển khoản</div><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:200px;height:200px;object-fit:contain"><div style="font-size:12.5px;margin-top:6px">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} · ${esc(BANK_INFO.accountNo)} · ${esc(BANK_INFO.accountName||'')}</div></div>`:''}
       <div style="display:flex;justify-content:space-between;margin-top:40px;text-align:center;color:#555;font-size:12px"><div>Khách hàng<br><br><br>(Ký, ghi rõ họ tên)</div><div>Người bán hàng<br><br><br>${esc(o.createdBy||'')}</div></div>
       <div style="text-align:center;margin-top:30px;color:#999;font-size:11px">Cảm ơn quý khách! — Học viện Âm nhạc Thiên Ân</div>
       <div style="text-align:center;margin-top:20px"><button onclick="window.print()" style="padding:10px 24px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In hóa đơn</button></div>
@@ -1232,6 +1271,30 @@ function drawStockHistory(){
   const wrap=$('invHistWrap');if(!wrap)return;
   if(STOCKCHECKS.length===0){wrap.innerHTML='<div class="empty" style="padding:30px"><p>Chưa có điều chỉnh nào.</p></div>';return;}
   wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Ngày</th><th>Mã SP</th><th>Sản phẩm</th><th class="t-num">Trước</th><th class="t-num">Sau</th><th class="t-num">Chênh lệch</th><th>Người</th></tr></thead><tbody>${STOCKCHECKS.map(h=>`<tr><td style="white-space:nowrap">${esc(h.ngayHienThi||'')}</td><td class="t-code">${esc(h.maSP||'')}</td><td class="t-name">${esc(h.ten||'')}</td><td class="t-num">${money(h.tonTruoc)}</td><td class="t-num"><b>${money(h.tonSau)}</b></td><td class="t-num"><b style="color:${h.chenhLech>0?'var(--ok)':'var(--danger)'}">${h.chenhLech>0?'+':''}${money(h.chenhLech)}</b></td><td>${esc(h.nguoi||'')}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ===== CẤU HÌNH TÀI KHOẢN NGÂN HÀNG ===== */
+async function loadSettings(){try{const d=await db.collection(COL.settings).doc('bank').get();if(d.exists)BANK_INFO=d.data();}catch(e){BANK_INFO=null;}}
+const VN_BANKS=[['VCB','Vietcombank'],['TCB','Techcombank'],['MB','MB Bank'],['BIDV','BIDV'],['ICB','VietinBank'],['VBA','Agribank'],['ACB','ACB'],['VPB','VPBank'],['STB','Sacombank'],['TPB','TPBank'],['MSB','MSB'],['HDB','HDBank'],['OCB','OCB'],['SHB','SHB'],['VIB','VIB'],['SEAB','SeABank'],['EIB','Eximbank'],['LPB','LPBank'],['NAB','Nam A Bank'],['BAB','BacABank'],['ABB','ABBANK'],['SCB','SCB'],['VAB','VietABank'],['PVCB','PVcomBank']];
+function openBankSettings(){
+  const b=BANK_INFO||{};
+  const opts=VN_BANKS.map(([c,n])=>`<option value="${c}" ${b.bankCode===c?'selected':''}>${n}</option>`).join('');
+  openModal(`<div class="modal-head"><h3>Cấu hình tài khoản chuyển khoản</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:14px">Nhập tài khoản nhận tiền. App sẽ tạo <b>mã QR VietQR</b> (quét bằng mọi app ngân hàng, tự điền số tiền) và in lên hóa đơn khi chọn Chuyển khoản.</p>
+      <div class="field"><label>Ngân hàng <span class="req">*</span></label><select id="bkCode">${opts}</select></div>
+      <div class="field"><label>Số tài khoản <span class="req">*</span></label><input id="bkAcc" value="${esc(b.accountNo||'')}" placeholder="Số TK nhận tiền"></div>
+      <div class="field" style="margin:0"><label>Tên chủ tài khoản</label><input id="bkName" value="${esc(b.accountName||'')}" placeholder="VD: DO NGOC CUONG"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveBkBtn" onclick="saveBankSettings()">💾 Lưu tài khoản</button></div>`);
+}
+async function saveBankSettings(){
+  const code=$('bkCode').value,acc=$('bkAcc').value.trim();
+  if(!acc){toast('Nhập số tài khoản','warn');return;}
+  const bankName=(VN_BANKS.find(x=>x[0]===code)||[])[1]||code;
+  const data={bankCode:code,bankName,accountNo:acc,accountName:$('bkName').value.trim(),updatedAt:new Date().toISOString()};
+  const btn=$('saveBkBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{await db.collection(COL.settings).doc('bank').set(data);BANK_INFO=data;toast('Đã lưu tài khoản','ok');closeModal();if(typeof updatePayUI==='function')updatePayUI();}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='💾 Lưu tài khoản';}
 }
 
 /* ===== KHỞI ĐỘNG ===== */
