@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v26 · Cắt & dán thí sinh</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v27 · Sắp xếp: số thứ tự trong đơn vị</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1248,9 +1248,10 @@ function renderManage(){
   const hopBuoi = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess));
   const hop = c => hopBuoi(c) && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
 
-  // Số thứ tự chạy LIÊN TỤC theo phạm vi đang xem (buổi đang lọc)
+  // Số thứ tự TRONG TỪNG ĐƠN VỊ (mỗi đơn vị đánh lại từ 1).
+  // Chỉ tính theo buổi đang lọc, KHÔNG phụ thuộc ô tìm kiếm -> tìm tên vẫn giữ đúng số.
   const mgStt = {};
-  { let k = 0; groups.forEach(g=>g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; })); }
+  groups.forEach(g=>{ let k = 0; g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; }); });
   let html = "", hienThi = 0;
   groups.forEach((g, gi)=>{
     const items = g.items.filter(hop);
@@ -1274,7 +1275,7 @@ function renderManage(){
       const keo = (ed && !mgTouch);
       const dangCat = mgCut && String(mgCut)===String(c.row);
       html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""} ${dangCat?'style="background:#FFF7E0;border:2px dashed #D4AF37"':""}>
-        <div class="sbd" title="Thứ tự biểu diễn">${stt}</div>
+        <div class="sbd" title="Số thứ tự trong đơn vị">${stt}</div>
         <div class="info">
           <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</div>
           <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
