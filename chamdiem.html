@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v27 · Sắp xếp: số thứ tự trong đơn vị</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v29 · Số thứ tự Sắp xếp giống Check-in</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -954,19 +954,23 @@ function openEditInfo(row){
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
       const memberIds = memInp ? eiIds : null;
-      // Đổi đơn vị -> cho số thứ tự LỚN NHẤT để nằm CUỐI đơn vị mới.
-      // Giữ nguyên vị trí mọi thí sinh khác, không tự sắp lại gì cả.
-      let newOrder = null;
-      if(norm(unit||"Cá nhân") !== norm(c.unit||"Cá nhân")){
-        let maxO = 0;
-        DATA.contestants.forEach(x=>{ const o=Number(x.order)||0; if(o>maxO) maxO=o; });
-        newOrder = maxO + 1;
-      }
-      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds, order:newOrder});
+      const doiDonVi = (norm(unit||"Cá nhân") !== norm(c.unit||"Cá nhân"));
+      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds});
       if(d.ok){
-        c.name=name; c.piece=piece; c.category=category; c.unit=unit; c.phone=phone;
-        if(newOrder!=null){ c.order=newOrder; DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0)); }
+        c.name=name; c.piece=piece; c.category=category; c.phone=phone;
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
+        if(doiDonVi){
+          // Giữ NGUYÊN thứ tự các đơn vị đang có, chỉ chuyển em này xuống CUỐI đơn vị mới.
+          const gsTruoc = groupByUnit(DATA.contestants);            // chụp lại thứ tự hiện tại
+          gsTruoc.forEach(g=>{ const k=g.items.findIndex(x=>String(x.row)===String(row)); if(k>=0) g.items.splice(k,1); });
+          c.unit = unit;
+          const kMoi = norm(unit||"Cá nhân");
+          let nhomMoi = gsTruoc.find(g=>norm(g.label||"Cá nhân")===kMoi);
+          if(!nhomMoi){ nhomMoi = { label: unit||"Cá nhân", items: [] }; gsTruoc.push(nhomMoi); }
+          nhomMoi.items.push(c);                                    // xuống CUỐI đơn vị mới
+          const phang = []; gsTruoc.forEach(g=>g.items.forEach(x=>phang.push(x)));
+          await applyOrder(phang);                                  // đánh số lại, giữ nguyên mọi vị trí khác
+        }
         close(); renderCheckin();
       } else { ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ '+(d.error||"Lỗi lưu")+'</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
     }catch(e){ ov.querySelector("#ei_msg").innerHTML='<span style="color:#C0202A">❌ Lỗi kết nối</span>'; btn.disabled=false; btn.textContent="💾 Lưu"; }
@@ -1248,10 +1252,10 @@ function renderManage(){
   const hopBuoi = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess));
   const hop = c => hopBuoi(c) && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
 
-  // Số thứ tự TRONG TỪNG ĐƠN VỊ (mỗi đơn vị đánh lại từ 1).
-  // Chỉ tính theo buổi đang lọc, KHÔNG phụ thuộc ô tìm kiếm -> tìm tên vẫn giữ đúng số.
+  // Số thứ tự GIỐNG HỆT màn Check-in: chạy liên tục qua các đơn vị theo buổi đang lọc.
+  // Không phụ thuộc ô tìm kiếm -> tìm tên vẫn giữ đúng số.
   const mgStt = {};
-  groups.forEach(g=>{ let k = 0; g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; }); });
+  { let k = 0; groups.forEach(g=>g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; })); }
   let html = "", hienThi = 0;
   groups.forEach((g, gi)=>{
     const items = g.items.filter(hop);
@@ -1275,7 +1279,7 @@ function renderManage(){
       const keo = (ed && !mgTouch);
       const dangCat = mgCut && String(mgCut)===String(c.row);
       html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""} ${dangCat?'style="background:#FFF7E0;border:2px dashed #D4AF37"':""}>
-        <div class="sbd" title="Số thứ tự trong đơn vị">${stt}</div>
+        <div class="sbd" title="Số thứ tự (giống Check-in)">${stt}</div>
         <div class="info">
           <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</div>
           <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
