@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v29 · Số thứ tự Sắp xếp giống Check-in</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v30 · Đổi buổi thì về cuối, không chen giữa</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1332,13 +1332,25 @@ function renderManage(){
   /* --- đổi buổi --- */
   $("mgList").querySelectorAll("[data-ss]").forEach(sel=>sel.addEventListener("change", async ()=>{
     const row = sel.dataset.ss, val = sel.value;
+    const c = DATA.contestants.find(x=>String(x.row)===String(row));
+    if(!c){ sel.disabled=false; return; }
     sel.disabled = true;
+    showLoading("Đang chuyển buổi…");
     try{
       await window.FS.update(row, { session: val });
-      const c = DATA.contestants.find(x=>String(x.row)===String(row));
-      if(c) c.session = val;
+      c.session = val;
+      // ĐẨY VỀ CUỐI đơn vị của em đó, giữ nguyên thứ tự các đơn vị và mọi em khác
+      const gs = groupByUnit(DATA.contestants);
+      gs.forEach(g=>{ const k=g.items.findIndex(x=>String(x.row)===String(row)); if(k>=0) g.items.splice(k,1); });
+      const kDV = norm(c.unit||"Cá nhân");
+      let nhom = gs.find(g=>norm(g.label||"Cá nhân")===kDV);
+      if(!nhom){ nhom = { label: c.unit||"Cá nhân", items: [] }; gs.push(nhom); }
+      nhom.items.push(c);
+      const phang = []; gs.forEach(g=>g.items.forEach(x=>phang.push(x)));
+      await applyOrder(phang);
+      doneLoading("Đã chuyển ✓");
       renderManage();
-    }catch(e){ alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
+    }catch(e){ hideLoading(); alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
   }));
 
   /* --- XÓA thí sinh (phải nhập mật khẩu) --- */
