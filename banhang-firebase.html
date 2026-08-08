@@ -786,7 +786,7 @@ function openOrderForm(editId){
             <div class="field" style="margin:8px 0"><label>Giảm giá (₫)</label><input id="ordDiscount" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div>
             <div style="margin:8px 0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><label style="font-size:12.5px;font-weight:600;color:var(--muted);margin:0">Phí phát sinh</label><button type="button" class="btn btn-ghost btn-sm" style="padding:3px 9px;font-size:12px" onclick="addFeeRow()">＋ Thêm phí</button></div><div id="ordFeesBody"></div></div>
             <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:18px;border-top:1px solid var(--line)"><b>Tổng cộng</b><b id="ordTotal" style="color:var(--gold-2)">0</b></div>
-            <div class="field" style="margin:8px 0 6px"><label>Số tiền thanh toán (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
+            <div class="field" style="margin:8px 0 6px"><label>Số tiền khách trả / đặt cọc (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
             <div style="display:flex;gap:5px;margin-bottom:11px">
               <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid('full')">Đủ</button>
               <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid(50000)">+50k</button>
@@ -1058,7 +1058,7 @@ function ngayChu(iso){if(!iso)return '';const [y,m,d]=iso.split('-');return `Ng�
 function invoiceDocHTML(o,withBtn){
   const rows=(o.items||[]).map((it,i)=>{const p=PRODUCTS.find(x=>x._id===it.prodId);const dvt=p?(p.donVi||''):'';
     return `<tr><td style="text-align:center">${i+1}</td><td style="text-align:center">${esc(it.maSP)}</td><td>${esc(it.ten)}</td><td style="text-align:center">${esc(dvt)}</td><td style="text-align:center">${money(it.qty)}</td><td class="r">${money(it.donGia)}</td><td class="r">${money(it.thanhTien)}</td></tr>`;}).join('');
-  const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td colspan="6" class="r">${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td colspan="6" class="r">Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
+  const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td colspan="6">${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td colspan="6">Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
   const qrBlock=(BANK_INFO&&BANK_INFO.accountNo)?`<div style="text-align:center;margin-top:12px"><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:120px;height:120px;object-fit:contain"><div style="font-size:12px;margin-top:4px;font-weight:bold">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} - ${esc(BANK_INFO.accountNo)}</div><div style="font-size:11.5px">${esc(SHOP.company)}</div></div>`:'';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
     <style>
@@ -1089,12 +1089,12 @@ function invoiceDocHTML(o,withBtn){
         </div>
       </div>
       <table class="items"><thead><tr><th style="width:30px">STT</th><th style="width:70px">Mã hàng</th><th>Tên hàng</th><th style="width:44px">ĐVT</th><th style="width:54px">Số lượng</th><th style="width:90px">Đơn giá</th><th style="width:100px">Thành tiền</th></tr></thead><tbody>${rows}
-        <tr><td colspan="6" class="r" style="font-weight:bold">Tổng cộng:</td><td class="r" style="font-weight:bold">${money(o.tongHang)}</td></tr>
-        <tr><td colspan="6" class="r">Giảm giá:</td><td class="r">${money(o.chietKhau||0)}</td></tr>
+        <tr><td colspan="6" style="font-weight:bold">Tổng cộng:</td><td class="r" style="font-weight:bold">${money(o.tongHang)}</td></tr>
+        <tr><td colspan="6">Giảm giá:</td><td class="r">${money(o.chietKhau||0)}</td></tr>
         ${feeRows}
-        <tr style="background:#f4ecdf"><td colspan="6" class="r" style="font-weight:bold;font-size:13.5px">TỔNG THANH TOÁN:</td><td class="r" style="font-weight:bold;font-size:13.5px;color:#a97e46">${money(o.tongCong)}</td></tr>
-        <tr><td colspan="6" class="r">Khách thanh toán trước:</td><td class="r">${money(o.daTra)}</td></tr>
-        <tr><td colspan="6" class="r">Còn lại:</td><td class="r"${o.conNo>0?' style="color:#c00;font-weight:bold"':''}>${money(o.conNo)}</td></tr>
+        <tr style="background:#f4ecdf"><td colspan="6" style="font-weight:bold;font-size:13.5px">TỔNG THANH TOÁN:</td><td class="r" style="font-weight:bold;font-size:13.5px;color:#a97e46">${money(o.tongCong)}</td></tr>
+        <tr><td colspan="6">${o.conNo>0?'Đặt cọc':'Đã thanh toán'}:</td><td class="r">${money(o.daTra)}</td></tr>
+        <tr><td colspan="6">Còn lại:</td><td class="r"${o.conNo>0?' style="color:#c00;font-weight:bold"':''}>${money(o.conNo)}</td></tr>
       </tbody></table>
       <div class="center" style="font-style:italic;font-size:12.5px;margin-top:6px">Tổng thanh toán bằng chữ: ${docTienBangChu(o.tongCong)}</div>
       ${qrBlock}
