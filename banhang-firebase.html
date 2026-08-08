@@ -743,66 +743,95 @@ function orderRow(o){
   const noCell=conNo>0?`<span style="color:var(--danger);font-weight:700">${money(conNo)}</span>`:'<span style="color:var(--muted-2)">—</span>';
   return `<tr style="cursor:pointer" onclick="openOrderDetail('${esc(o._id)}')"><td class="t-code">${esc(o.maDon||'')}</td><td style="white-space:nowrap">${esc(o.ngayHienThi||'—')}</td><td class="t-name">${esc(o.khachTen||'Khách lẻ')}</td><td class="t-num">${(o.items||[]).length}</td><td class="t-num t-price">${money(o.tongCong)}</td><td class="t-num">${noCell}</td><td>${chip}</td><td><div class="row-act"><button class="icon-btn" title="Xem" onclick="event.stopPropagation();openOrderDetail('${esc(o._id)}')">👁</button><button class="icon-btn" title="In hóa đơn" onclick="event.stopPropagation();printInvoice('${esc(o._id)}')">🖨</button><button class="icon-btn del" title="Xóa" onclick="event.stopPropagation();deleteOrder('${esc(o._id)}')">🗑</button></div></td></tr>`;
 }
-/* --- Tạo đơn --- */
+/* --- Tạo đơn: trang POS 2 cột --- */
 function openOrderForm(){
   ORDER_CART=[];ORDER_PAID_EDITED=false;
   const custOpts='<option value="le">🧑 Khách lẻ</option>'+CUSTOMERS.map(c=>`<option value="${esc(c._id)}">${esc(c.maKH)} — ${esc(c.ten)}</option>`).join('');
-  const prodList=PRODUCTS.filter(p=>(p.trangThai||'Active')==='Active').map(p=>`<option value="${esc(p.maSP)} — ${esc(p.tenSP)}">`).join('');
   const today=new Date();const defDate=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  openModal(`<div class="modal-head"><h3>Tạo đơn hàng</h3><button onclick="closeModal()">×</button></div>
-    <div class="modal-body">
-      <div class="grid2" style="margin-bottom:16px">
-        <div class="field" style="margin:0"><label>Khách hàng</label><select id="ordCust">${custOpts}</select></div>
-        <div class="field" style="margin:0"><label>Ngày</label><input id="ordDate" type="date" value="${defDate}"></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input id="ordProdInput" list="ordProdList" placeholder="Gõ tên hoặc mã sản phẩm để thêm…" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px">
-        <datalist id="ordProdList">${prodList}</datalist>
-        <button class="btn btn-primary btn-sm" onclick="addCartItem()">＋ Thêm</button>
-      </div>
-      <div class="tbl-wrap" style="border:1px solid var(--line);border-radius:10px;margin-bottom:16px">
-        <table><thead><tr><th>Sản phẩm</th><th style="width:120px">Đơn giá</th><th style="width:80px;text-align:center">SL</th><th class="t-num" style="width:110px">Thành tiền</th><th style="width:40px"></th></tr></thead><tbody id="ordCartBody"></tbody></table>
-      </div>
-      <div class="grid2">
-        <div>
-          <div class="field"><label>Chiết khấu (₫)</label><input id="ordDiscount" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div>
-          <div class="field"><label>Phương thức TT</label><input id="ordPttt" value="Tiền mặt" placeholder="Tiền mặt / CK…"></div>
-          <div class="field" style="margin:0"><label>Ghi chú</label><input id="ordNote" placeholder="Ghi chú đơn"></div>
-        </div>
-        <div style="background:#fafbfc;border-radius:11px;padding:16px">
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px"><span style="color:var(--muted)">Tổng hàng</span><b id="ordSubtotal">0</b></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Chiết khấu</span><b id="ordCkView" style="color:var(--danger)">0</b></div>
-          <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:16px"><b>Tổng cộng</b><b id="ordTotal" style="color:var(--gold-2)">0</b></div>
-          <div class="field" style="margin:8px 0 0"><label>Khách trả (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
-          <div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:14px"><span style="color:var(--muted)">Còn nợ</span><b id="ordConNo" style="color:var(--danger)">0</b></div>
-        </div>
-      </div>
+  $('view').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <button class="btn btn-ghost btn-sm" onclick="renderOrders()">‹ Quay lại</button>
+      <div><h2 style="font-size:17px;font-weight:700">Tạo đơn hàng</h2><div style="color:var(--muted);font-size:12.5px">Chọn sản phẩm bên trái, thu tiền bên phải</div></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveOrdBtn" onclick="saveOrder()">💾 Lưu đơn & thu tiền</button></div>`);
-  $('ordProdInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addCartItem();}});
+    <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+      <div class="panel" style="flex:1;min-width:320px">
+        <div class="panel-head"><h3>Chọn sản phẩm</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="posSearch" placeholder="Tìm tên, mã, barcode…"></div></div></div>
+        <div id="posProdList" style="max-height:calc(100vh - 260px);overflow-y:auto"></div>
+      </div>
+      <div class="panel" style="width:390px;position:sticky;top:78px">
+        <div class="panel-head"><h3>Thông tin đơn hàng</h3></div>
+        <div style="padding:16px 18px">
+          <div class="grid2" style="gap:10px;margin-bottom:6px">
+            <div class="field" style="margin:0"><label>Khách hàng</label><select id="ordCust">${custOpts}</select></div>
+            <div class="field" style="margin:0"><label>Ngày</label><input id="ordDate" type="date" value="${defDate}"></div>
+          </div>
+          <div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:8px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Giỏ hàng</div>
+          <div id="ordCartBody" style="max-height:230px;overflow-y:auto;margin-bottom:8px"></div>
+          <div style="border-top:1px solid var(--line);padding-top:10px">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13.5px"><span style="color:var(--muted)">Tạm tính</span><b id="ordSubtotal">0</b></div>
+            <div class="field" style="margin:8px 0"><label>Giảm giá (₫)</label><input id="ordDiscount" type="number" value="0" oninput="ORDER_PAID_EDITED=false;updateOrderTotals()"></div>
+            <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:18px;border-top:1px solid var(--line)"><b>Tổng cộng</b><b id="ordTotal" style="color:var(--gold-2)">0</b></div>
+            <div class="field" style="margin:8px 0 6px"><label>Số tiền thanh toán (₫)</label><input id="ordPaid" type="number" placeholder="0" oninput="ORDER_PAID_EDITED=true;updateOrderTotals()"></div>
+            <div style="display:flex;gap:5px;margin-bottom:11px">
+              <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid('full')">Đủ</button>
+              <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid(50000)">+50k</button>
+              <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid(100000)">+100k</button>
+              <button class="btn btn-ghost btn-sm" style="flex:1;padding:6px 4px" onclick="setPaid(500000)">+500k</button>
+              <button class="btn btn-ghost btn-sm" style="padding:6px 9px" onclick="setPaid('clear')">✕</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Còn nợ đơn này</span><b id="ordConNo" style="color:var(--danger)">0</b></div>
+            <div class="field" style="margin:11px 0 8px"><label>Phương thức TT</label><input id="ordPttt" value="Tiền mặt" placeholder="Tiền mặt / CK…"></div>
+            <div class="field" style="margin:0 0 12px"><label>Ghi chú</label><input id="ordNote" placeholder="Ghi chú đơn"></div>
+            <button class="btn btn-primary btn-block" id="saveOrdBtn" onclick="saveOrder()" style="padding:13px;font-size:14.5px">💾 Lưu đơn & thu tiền</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  $('posSearch').oninput=e=>renderPosProducts(e.target.value);
+  renderPosProducts('');
   renderCart();
 }
-function addCartItem(){
-  const val=$('ordProdInput').value.trim();if(!val)return;
-  const maSP=val.split(' — ')[0].trim();
-  let p=PRODUCTS.find(x=>String(x.maSP)===maSP)||PRODUCTS.find(x=>(x.maSP+' — '+x.tenSP)===val)||PRODUCTS.find(x=>x.tenSP===val);
-  if(!p){toast('Không tìm thấy sản phẩm. Chọn từ gợi ý.','warn');return;}
-  const exist=ORDER_CART.find(it=>it.id===p._id);
-  if(exist){exist.qty++;}else{ORDER_CART.push({id:p._id,maSP:p.maSP,ten:p.tenSP,donGia:Number(p.giaBan)||0,qty:1,laDichVu:!!p.laDichVu,tonKho:Number(p.tonKho)||0});}
-  $('ordProdInput').value='';renderCart();
+function renderPosProducts(q){
+  const el=$('posProdList');if(!el)return;q=(q||'').toLowerCase().trim();
+  let list=PRODUCTS.filter(p=>(p.trangThai||'Active')==='Active');
+  if(q)list=list.filter(p=>[p.maSP,p.tenSP,p.barcode,p.danhMuc].join(' ').toLowerCase().includes(q));
+  const show=list.slice(0,80);
+  if(show.length===0){el.innerHTML='<div class="empty" style="padding:34px"><div class="em-ic">🔍</div><h4>Không tìm thấy</h4><p>Thử từ khóa khác.</p></div>';return;}
+  el.innerHTML=show.map(p=>{const cur=Number(p.tonKho)||0;const inCart=ORDER_CART.find(it=>it.id===p._id);
+    return `<div onclick="addCartById('${esc(p._id)}')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #f0f2f6;cursor:pointer;transition:.1s" onmouseover="this.style.background='#fbfcfe'" onmouseout="this.style.background=''">
+      <span class="pavatar">${p.laDichVu?'🛠':'♪'}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.tenSP)}</div><small style="color:var(--muted-2)">${esc(p.maSP)} · ${esc(p.donVi||'—')} · ${p.laDichVu?'dịch vụ':(cur<=0?'<span style="color:var(--danger)">hết hàng</span>':'tồn '+money(cur))}</small></div>
+      <div style="text-align:right"><div class="t-price">${money(p.giaBan)}₫</div><div style="font-size:11px;color:${inCart?'var(--ok)':'var(--gold-2)'};font-weight:600">${inCart?'✓ trong giỏ ('+inCart.qty+')':'+ Thêm'}</div></div>
+    </div>`;}).join('')+(list.length>80?`<div style="padding:12px;text-align:center;color:var(--muted-2);font-size:12px">Hiển thị 80/${money(list.length)} — gõ để lọc thêm</div>`:'');
 }
-function removeCartItem(i){ORDER_CART.splice(i,1);renderCart();}
+function addCartById(id){
+  const p=PRODUCTS.find(x=>x._id===id);if(!p)return;
+  const ex=ORDER_CART.find(it=>it.id===p._id);
+  if(ex)ex.qty++;else ORDER_CART.push({id:p._id,maSP:p.maSP,ten:p.tenSP,donGia:Number(p.giaBan)||0,qty:1,laDichVu:!!p.laDichVu,tonKho:Number(p.tonKho)||0});
+  renderCart();if($('posSearch'))renderPosProducts($('posSearch').value);
+}
+function removeCartItem(i){ORDER_CART.splice(i,1);renderCart();if($('posSearch'))renderPosProducts($('posSearch').value);}
 function renderCart(){
   const body=$('ordCartBody');if(!body)return;
-  if(ORDER_CART.length===0){body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted-2);padding:20px">Chưa có sản phẩm. Gõ tên sản phẩm ở trên rồi bấm Thêm.</td></tr>';updateOrderTotals();return;}
-  body.innerHTML=ORDER_CART.map((it,i)=>`<tr>
-    <td><div style="font-weight:600">${esc(it.ten)}</div><small style="color:var(--muted-2)">${esc(it.maSP)}${it.laDichVu?' · dịch vụ':` · tồn ${money(it.tonKho)}`}</small></td>
-    <td><input type="number" value="${it.donGia}" oninput="ORDER_CART[${i}].donGia=Number(this.value)||0;ORDER_PAID_EDITED=false;updateOrderTotals()" style="width:110px;padding:6px 8px;border:1.5px solid var(--line);border-radius:7px;text-align:right"></td>
-    <td><input type="number" min="1" value="${it.qty}" oninput="ORDER_CART[${i}].qty=Number(this.value)||0;ORDER_PAID_EDITED=false;updateOrderTotals()" style="width:64px;padding:6px;border:1.5px solid var(--line);border-radius:7px;text-align:center"></td>
-    <td class="t-num t-price" id="cartTt${i}">${money(it.donGia*it.qty)}</td>
-    <td><button class="icon-btn del" onclick="removeCartItem(${i})">🗑</button></td>
-  </tr>`).join('');
+  if(ORDER_CART.length===0){body.innerHTML='<div style="text-align:center;color:var(--muted-2);padding:24px 10px;font-size:13px">🛒 Giỏ trống.<br>Bấm sản phẩm bên trái để thêm.</div>';updateOrderTotals();return;}
+  body.innerHTML=ORDER_CART.map((it,i)=>`<div style="display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid #f0f2f6">
+    <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.ten)}</div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:5px">
+        <input type="number" value="${it.donGia}" oninput="ORDER_CART[${i}].donGia=Number(this.value)||0;ORDER_PAID_EDITED=false;updateOrderTotals()" style="width:92px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;text-align:right;font-size:12px">
+        <span style="color:var(--muted-2);font-size:12px">×</span>
+        <input type="number" min="1" value="${it.qty}" oninput="ORDER_CART[${i}].qty=Number(this.value)||0;ORDER_PAID_EDITED=false;updateOrderTotals()" style="width:46px;padding:4px;border:1px solid var(--line);border-radius:6px;text-align:center;font-size:12px">
+      </div>
+    </div>
+    <div style="text-align:right"><div class="t-price" id="cartTt${i}" style="font-size:13px">${money(it.donGia*it.qty)}</div><button class="icon-btn del" onclick="removeCartItem(${i})" style="width:24px;height:24px;font-size:12px;margin-top:3px;margin-left:auto">🗑</button></div>
+  </div>`).join('');
   updateOrderTotals();
+}
+function setPaid(mode){
+  const sub=ORDER_CART.reduce((s,it)=>s+(Number(it.donGia)||0)*(Number(it.qty)||0),0);
+  const ck=Number($('ordDiscount').value)||0;const total=Math.max(0,sub-ck);
+  let cur=Number($('ordPaid').value)||0;
+  if(mode==='full')cur=total;else if(mode==='clear')cur=0;else cur=cur+mode;
+  $('ordPaid').value=cur;ORDER_PAID_EDITED=true;updateOrderTotals();
 }
 function updateOrderTotals(){
   let sub=0;ORDER_CART.forEach((it,i)=>{const tt=(Number(it.donGia)||0)*(Number(it.qty)||0);sub+=tt;const c=$('cartTt'+i);if(c)c.textContent=money(tt);});
