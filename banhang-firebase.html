@@ -952,12 +952,14 @@ async function saveOrder(){
   const maDon=oldOrder?oldOrder.maDon:genOrderCode();
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
-    // Nếu còn nợ mà chưa có hồ sơ khách -> tự tạo hồ sơ mới để theo dõi công nợ
-    if(conNo>0&&!cust&&inName){
-      const maKH='KH'+Date.now().toString(36).toUpperCase();
-      const newC={maKH,ten:inName,dienThoai:inPhone,diaChi:inAddr,congNo:0,loai:'Cá nhân',hang:'',nhom:'',createdAt:new Date().toISOString()};
-      const ref=await db.collection(COL.customers).add(newC);cust={_id:ref.id,...newC};
-      toast('Đã tạo hồ sơ khách "'+inName+'" để theo dõi công nợ','info');
+    // Có nhập tên khách -> tự lưu/liên kết vào danh bạ (chống trùng theo SĐT rồi tên)
+    if(!cust&&inName){
+      const phoneKey=inPhone.replace(/\D/g,'');
+      let found=null;
+      if(phoneKey)found=CUSTOMERS.find(c=>(c.dienThoai||'').replace(/\D/g,'')===phoneKey);
+      if(!found)found=CUSTOMERS.find(c=>(c.ten||'').trim().toLowerCase()===inName.toLowerCase());
+      if(found){cust=found;const upd={};if(inPhone&&!found.dienThoai)upd.dienThoai=inPhone;if(inAddr&&!found.diaChi)upd.diaChi=inAddr;if(Object.keys(upd).length){try{await db.collection(COL.customers).doc(found._id).set(upd,{merge:true});}catch(e){}}}
+      else{const maKH='KH'+Date.now().toString(36).toUpperCase();const newC={maKH,ten:inName,dienThoai:inPhone,diaChi:inAddr,congNo:0,loai:'Cá nhân',hang:'',nhom:'',createdAt:new Date().toISOString()};const ref=await db.collection(COL.customers).add(newC);cust={_id:ref.id,...newC};toast('Đã thêm "'+inName+'" vào danh bạ khách hàng','info');}
     }
     const khachTen=inName||(cust?cust.ten:'')||'Khách lẻ';
     const khachSDT=inPhone||(cust?cust.dienThoai:'')||'';
