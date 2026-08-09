@@ -938,7 +938,7 @@ async function saveOrder(){
   const bhDen=bhThang>0?fmtDate(addMonthsToDate($('ordDate').value,bhThang)):'';
   const oldOrder=EDITING_ORDER_ID?ORDERS.find(x=>x._id===EDITING_ORDER_ID):null;
   const maDon=oldOrder?oldOrder.maDon:genOrderCode();
-  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:oldOrder?(oldOrder.ngaySort||d.sort||Date.now()):(d.sort||Date.now()),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,trangThai:oldOrder?(oldOrder.trangThai||'Hoàn thành'):'Hoàn thành',ghiChu:$('ordNote').value.trim(),createdBy:oldOrder?(oldOrder.createdBy||CURRENT_USER.hoTen):CURRENT_USER.hoTen,createdAt:oldOrder?(oldOrder.createdAt||new Date().toISOString()):new Date().toISOString()};
+  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:oldOrder?(oldOrder.ngaySort||d.sort||Date.now()):(d.sort||Date.now()),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',khachDiaChi:cust?(cust.diaChi||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,trangThai:oldOrder?(oldOrder.trangThai||'Hoàn thành'):'Hoàn thành',ghiChu:$('ordNote').value.trim(),createdBy:oldOrder?(oldOrder.createdBy||CURRENT_USER.hoTen):CURRENT_USER.hoTen,createdAt:oldOrder?(oldOrder.createdAt||new Date().toISOString()):new Date().toISOString()};
   if(oldOrder)order.updatedAt=new Date().toISOString();
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
@@ -1060,6 +1060,9 @@ function invoiceDocHTML(o,withBtn){
     return `<tr><td style="text-align:center">${i+1}</td><td style="text-align:center">${esc(it.maSP)}</td><td>${esc(it.ten)}</td><td style="text-align:center">${esc(dvt)}</td><td style="text-align:center">${money(it.qty)}</td><td class="r">${money(it.donGia)}</td><td class="r">${money(it.thanhTien)}</td></tr>`;}).join('');
   const feeRows=(o.phiItems&&o.phiItems.length)?o.phiItems.map(f=>`<tr><td colspan="6">${esc(f.label)}:</td><td class="r">${money(f.amount)}</td></tr>`).join(''):(o.phiVanChuyen>0?`<tr><td colspan="6">Phí:</td><td class="r">${money(o.phiVanChuyen)}</td></tr>`:'');
   const qrBlock=(BANK_INFO&&BANK_INFO.accountNo)?`<div style="text-align:center;margin-top:12px"><img src="${buildQrUrl(o.conNo>0?o.conNo:o.tongCong,'TT don '+o.maDon)}" style="width:120px;height:120px;object-fit:contain"><div style="font-size:12px;margin-top:4px;font-weight:bold">${esc(BANK_INFO.bankName||BANK_INFO.bankCode)} - ${esc(BANK_INFO.accountNo)}</div><div style="font-size:11.5px">${esc(SHOP.company)}</div></div>`:'';
+  const _cust=o.khachId?CUSTOMERS.find(c=>c._id===o.khachId):null;
+  const _sdt=o.khachSDT||(_cust?_cust.dienThoai:'')||'';
+  const _diaChi=o.khachDiaChi||(_cust?_cust.diaChi:'')||'';
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hóa đơn ${esc(o.maDon)}</title>
     <style>
       @page{size:A4;margin:12mm}*{box-sizing:border-box}
@@ -1079,11 +1082,12 @@ function invoiceDocHTML(o,withBtn){
       <div style="display:flex;justify-content:space-between;margin:10px 0;font-size:12.5px">
         <div style="flex:1">
           <div><b>Khách hàng:</b> ${esc(o.khachTen||'Khách lẻ')}</div>
+          ${_diaChi?`<div><b>Địa chỉ:</b> ${esc(_diaChi)}</div>`:''}
           ${o.baoHanhThang>0?`<div><b>Bảo hành:</b> ${warrantyText(o)} từ ${esc(o.baoHanhTu||'')} đến ${esc(o.baoHanhDen||'')}</div>`:''}
           ${o.ghiChu?`<div><b>Ghi chú:</b> ${esc(o.ghiChu)}</div>`:''}
         </div>
         <div style="width:230px">
-          <div><b>SĐT:</b> ${esc(o.khachSDT||'')}</div>
+          <div><b>SĐT:</b> ${esc(_sdt)}</div>
           <div><b>Thanh toán:</b> ${esc(o.phuongThuc||'')}</div>
           <div><b>NVBH:</b> ${esc(o.createdBy||'')}</div>
         </div>
