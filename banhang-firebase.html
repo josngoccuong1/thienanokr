@@ -775,10 +775,13 @@ function openOrderForm(editId){
       <div class="panel" style="flex:0 0 400px;min-width:330px;position:sticky;top:78px">
         <div class="panel-head"><h3>Thông tin đơn hàng</h3></div>
         <div style="padding:16px 18px">
-          <div class="grid2" style="gap:10px;margin-bottom:6px">
-            <div class="field" style="margin:0"><label>Khách hàng</label><select id="ordCust">${custOpts}</select></div>
+          <div class="field" style="margin:0 0 8px"><label>Chọn khách có sẵn (tùy chọn)</label><select id="ordCust" onchange="fillCustFromSelect()">${custOpts}</select></div>
+          <div class="field" style="margin:0 0 8px"><label>Tên khách hàng</label><input id="ordCustName" placeholder="Gõ tên khách (để trống = Khách lẻ)"></div>
+          <div class="grid2" style="gap:10px;margin-bottom:8px">
+            <div class="field" style="margin:0"><label>SĐT</label><input id="ordCustPhone" placeholder="Số điện thoại"></div>
             <div class="field" style="margin:0"><label>Ngày</label><input id="ordDate" type="date" value="${defDate}"></div>
           </div>
+          <div class="field" style="margin:0"><label>Địa chỉ</label><input id="ordCustAddr" placeholder="Địa chỉ khách"></div>
           <div style="border-top:1px solid var(--line);margin:12px 0 8px;padding-top:8px;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Giỏ hàng</div>
           <div id="ordCartBody" style="max-height:250px;overflow-y:auto;margin-bottom:8px"></div>
           <div style="border-top:1px solid var(--line);padding-top:10px">
@@ -810,6 +813,9 @@ function openOrderForm(editId){
     ORDER_CART=(oEdit.items||[]).map(it=>{const p=PRODUCTS.find(pp=>pp._id===it.prodId)||PRODUCTS.find(pp=>String(pp.maSP)===String(it.maSP));return {id:it.prodId||(p?p._id:it.maSP),maSP:it.maSP,ten:it.ten,donGia:Number(it.donGia)||0,qty:Number(it.qty)||0,laDichVu:!!it.laDichVu,tonKho:p?(Number(p.tonKho)||0):0};});
     ORDER_FEES=(oEdit.phiItems||[]).map(f=>({label:f.label||'',amount:Number(f.amount)||0}));
     $('ordCust').value=oEdit.khachId||'le';
+    $('ordCustName').value=oEdit.khachTen&&oEdit.khachTen!=='Khách lẻ'?oEdit.khachTen:'';
+    $('ordCustPhone').value=oEdit.khachSDT||'';
+    $('ordCustAddr').value=oEdit.khachDiaChi||'';
     $('ordDate').value=oEdit.ngay||defDate;
     $('ordDiscount').value=oEdit.chietKhau||0;
     $('ordPttt').value=oEdit.phuongThuc||'Tiền mặt';
@@ -828,6 +834,11 @@ function addFirstMatch(){
   const f=PRODUCTS.filter(p=>(p.trangThai||'Active')==='Active').filter(p=>[p.maSP,p.tenSP,p.barcode,p.danhMuc].join(' ').toLowerCase().includes(q));
   if(f.length===0){toast('Không tìm thấy sản phẩm','warn');return;}
   addCartById(f[0]._id);$('posSearch').value='';$('posSearch').focus();renderPosProducts('');
+}
+function fillCustFromSelect(){
+  const v=$('ordCust').value;if(v==='le')return;
+  const c=CUSTOMERS.find(x=>x._id===v);
+  if(c){$('ordCustName').value=c.ten||'';$('ordCustPhone').value=c.dienThoai||'';$('ordCustAddr').value=c.diaChi||'';}
 }
 function renderPosProducts(q){
   const el=$('posProdList');if(!el)return;q=(q||'').toLowerCase().trim();
@@ -923,7 +934,8 @@ function updatePayUI(){
 function genOrderCode(){const d=new Date();const ymd=`${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;const r=Math.random().toString(36).slice(2,6).toUpperCase();return 'DH'+ymd+'-'+r;}
 async function saveOrder(){
   if(ORDER_CART.length===0){toast('Chưa có sản phẩm trong đơn','warn');return;}
-  const custId=$('ordCust').value;const cust=custId==='le'?null:CUSTOMERS.find(c=>c._id===custId);
+  const custId=$('ordCust').value;let cust=custId==='le'?null:CUSTOMERS.find(c=>c._id===custId);
+  const inName=$('ordCustName').value.trim(),inPhone=$('ordCustPhone').value.trim(),inAddr=$('ordCustAddr').value.trim();
   const d=parseVNDate($('ordDate').value);
   const items=ORDER_CART.map(it=>({maSP:it.maSP,ten:it.ten,donGia:Number(it.donGia)||0,qty:Number(it.qty)||0,thanhTien:(Number(it.donGia)||0)*(Number(it.qty)||0),laDichVu:!!it.laDichVu,prodId:it.id}));
   const sub=items.reduce((s,it)=>s+it.thanhTien,0);
@@ -933,15 +945,25 @@ async function saveOrder(){
   const total=Math.max(0,sub-ck+phi);
   const paid=Number($('ordPaid').value)||0;
   const conNo=Math.max(0,total-paid);
-  if(conNo>0&&!cust){toast('Khách lẻ phải thanh toán đủ. Chọn khách hàng nếu muốn ghi nợ.','warn');return;}
+  if(conNo>0&&!cust&&!inName){toast('Còn nợ — hãy nhập TÊN khách (để lưu công nợ) hoặc chọn khách có sẵn.','warn');return;}
   const bhSo=Number($('ordBaoHanhSo').value)||0;const bhDv=$('ordBaoHanhDv').value;const bhThang=bhDv==='nam'?bhSo*12:bhSo;
   const bhDen=bhThang>0?fmtDate(addMonthsToDate($('ordDate').value,bhThang)):'';
   const oldOrder=EDITING_ORDER_ID?ORDERS.find(x=>x._id===EDITING_ORDER_ID):null;
   const maDon=oldOrder?oldOrder.maDon:genOrderCode();
-  const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:oldOrder?(oldOrder.ngaySort||d.sort||Date.now()):(d.sort||Date.now()),khachId:cust?cust._id:'',khachTen:cust?cust.ten:'Khách lẻ',khachSDT:cust?(cust.dienThoai||''):'',khachDiaChi:cust?(cust.diaChi||''):'',items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,trangThai:oldOrder?(oldOrder.trangThai||'Hoàn thành'):'Hoàn thành',ghiChu:$('ordNote').value.trim(),createdBy:oldOrder?(oldOrder.createdBy||CURRENT_USER.hoTen):CURRENT_USER.hoTen,createdAt:oldOrder?(oldOrder.createdAt||new Date().toISOString()):new Date().toISOString()};
-  if(oldOrder)order.updatedAt=new Date().toISOString();
   const btn=$('saveOrdBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
+    // Nếu còn nợ mà chưa có hồ sơ khách -> tự tạo hồ sơ mới để theo dõi công nợ
+    if(conNo>0&&!cust&&inName){
+      const maKH='KH'+Date.now().toString(36).toUpperCase();
+      const newC={maKH,ten:inName,dienThoai:inPhone,diaChi:inAddr,congNo:0,loai:'Cá nhân',hang:'',nhom:'',createdAt:new Date().toISOString()};
+      const ref=await db.collection(COL.customers).add(newC);cust={_id:ref.id,...newC};
+      toast('Đã tạo hồ sơ khách "'+inName+'" để theo dõi công nợ','info');
+    }
+    const khachTen=inName||(cust?cust.ten:'')||'Khách lẻ';
+    const khachSDT=inPhone||(cust?cust.dienThoai:'')||'';
+    const khachDiaChi=inAddr||(cust?cust.diaChi:'')||'';
+    const order={maDon,ngay:$('ordDate').value,ngayHienThi:d.disp||$('ordDate').value,ngaySort:oldOrder?(oldOrder.ngaySort||d.sort||Date.now()):(d.sort||Date.now()),khachId:cust?cust._id:'',khachTen,khachSDT,khachDiaChi,items,tongHang:sub,chietKhau:ck,phiItems:fees,phiVanChuyen:phi,tongCong:total,daTra:paid,conNo,phuongThuc:$('ordPttt').value||'Tiền mặt',baoHanhSo:bhSo,baoHanhDonVi:bhDv,baoHanhThang:bhThang,baoHanhTu:bhThang>0?(d.disp||$('ordDate').value):'',baoHanhDen:bhDen,trangThai:oldOrder?(oldOrder.trangThai||'Hoàn thành'):'Hoàn thành',ghiChu:$('ordNote').value.trim(),createdBy:oldOrder?(oldOrder.createdBy||CURRENT_USER.hoTen):CURRENT_USER.hoTen,createdAt:oldOrder?(oldOrder.createdAt||new Date().toISOString()):new Date().toISOString()};
+    if(oldOrder)order.updatedAt=new Date().toISOString();
     // 0) nếu SỬA: hoàn tác nghiệp vụ của đơn cũ trước
     if(oldOrder){
       const rb=db.batch();
