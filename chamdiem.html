@@ -19,7 +19,7 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
-.wrap{max-width:900px;margin:0 auto;padding:0 12px 90px}
+.wrap{max-width:1320px;margin:0 auto;padding:0 12px 90px}
 .hidden{display:none!important}
 .center{text-align:center}
 
@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v32 · Check-in dạng bảng gọn</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v33 · SBD = số thứ tự · bảng rộng hơn</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -722,12 +722,12 @@ async function post(payload){
 
     if(payload.action === "checkin"){
       const c = DATA.contestants.find(x=>String(x.row)===String(row));
-      let sbd = c && c.sbd;
-      if(!sbd){                                  // cấp SBD = số lớn nhất hiện có + 1
-        let max = 0;
-        DATA.contestants.forEach(x=>{ const n = parseInt(x.sbd,10); if(!isNaN(n) && n>max) max = n; });
-        sbd = max + 1;
-      }
+      // SBD chính là SỐ THỨ TỰ biểu diễn của em đó trong buổi
+      let sbd = 0;
+      { const ds = DATA.contestants.filter(inSession);
+        let k = 0;
+        groupByUnit(ds).forEach(g=>g.items.forEach(x=>{ k++; if(String(x.row)===String(row)) sbd = k; })); }
+      if(!sbd) sbd = (c && c.sbd) ? c.sbd : 0;
       const stamp = "Đã check-in " + _gio();
       await window.FS.update(row, { sbd: Number(sbd), checkin: stamp });
       if(c){ c.sbd = Number(sbd); c.checkin = stamp; }
@@ -1012,7 +1012,7 @@ function renderCheckin(){
     const sttMap = {};
     { let k = 0; groupByUnit(all).forEach(g=>g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; })); }
     let html = `<div style="overflow-x:auto"><table class="tbl-ci"><thead><tr>
-        <th style="width:40px;text-align:center">STT</th><th>Họ tên</th><th style="width:120px">Đơn vị</th>
+        <th style="width:48px;text-align:center">SBD</th><th style="width:200px">Họ tên</th><th style="width:120px">Đơn vị</th>
         <th>Tác phẩm</th><th style="width:105px">SĐT</th><th style="width:52px;text-align:center">C-in</th>
         <th style="width:140px">Buổi</th><th style="width:76px;text-align:center">Giờ diễn</th><th style="width:118px"></th>
       </tr></thead><tbody>`;
@@ -1033,7 +1033,7 @@ function renderCheckin(){
         const nenDong = done ? "#F3FBF6" : ((canEdit()&&noPiece) ? "#FFFDF5" : (i%2 ? "#FAFBFC" : "#fff"));
         html += `<tr style="background:${nenDong}">
           <td class="tdc" style="text-align:center;font-weight:800;color:var(--navy)">${stt}</td>
-          <td class="tdc"><b>${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</b>${c.sbd?` <span style="color:var(--muted);font-weight:600">·${c.sbd}</span>`:""}${dsThanhVien(c)}</td>
+          <td class="tdc" style="white-space:nowrap"><b>${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</b>${dsThanhVien(c)}</td>
           <td class="tdc">${esc(c.unit||"Cá nhân")}</td>
           <td class="tdc">${noPiece
             ? `<span style="color:#C0202A;font-weight:700">⚠️ chưa có</span>`
