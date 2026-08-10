@@ -220,7 +220,7 @@ window.FS = {
         regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
-        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
+        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
         checkin: v.checkin||"", done: v.done||"",
         session: String(v.session||"").trim()
@@ -332,7 +332,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v30 · Đổi buổi thì về cuối, không chen giữa</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v31 · File tải về dạng bảng · Giờ diễn</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -760,6 +760,7 @@ async function post(payload){
       if(payload.category != null) data.category = payload.category;
       if(payload.unit     != null) data.unit     = payload.unit;
       if(payload.phone    != null) data.phone    = payload.phone;
+      if(payload.gio      != null) data.gio      = payload.gio;
       if(payload.order    != null) data.order    = Number(payload.order);
       if(payload.members  != null) data.members  = payload.members;
       if(payload.memberIds!= null) data.memberIds= payload.memberIds;
@@ -839,14 +840,12 @@ function napThuVienExcel(){
    Nếu không tải được thư viện thì tự chuyển về CSV có BOM. */
 async function exportCSV(rows, filename){
   if(!rows.length){ alert("Không có dữ liệu để xuất."); return; }
-  const cols = ["STT","SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","Số phút","Giới tính","Ngày sinh",
-                "SĐT","Người phụ trách","Giáo viên HD","Thành viên hòa tấu","Check-in","Trạng thái phí","Buổi"];
+  const cols = ["STT","Họ tên","Đơn vị","Tác phẩm","SĐT","Check-in","Buổi","Giờ diễn"];
   const data = rows.map((c,i)=>[
-    i+1, c.sbd||"", c.name||"", c.unit||"Cá nhân", c.category||"",
-    c.piece||"", c.minutes||"", c.gender||"", c.dob||"",
-    c.phone?String(c.phone).trim():"", c.contact||"", c.teacher||"",
-    c.members||"", c.checkin?"Đã check-in":"Chưa", c.fee||"",
-    c.session?tenBuoi(c.session):"" ]);
+    i+1, c.name||"", c.unit||"Cá nhân", c.piece||"",
+    c.phone?String(c.phone).trim():"",
+    c.checkin?"Đã check-in":"Chưa",
+    c.session?tenBuoi(c.session):"", c.gio||"" ]);
 
   const ten = String(filename||"DanhSach").replace(/\.(csv|xlsx)$/i,"");
   showLoading("Đang tạo file Excel…");
@@ -856,11 +855,15 @@ async function exportCSV(rows, filename){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
       data.forEach((r,i)=>{                                     // SĐT giữ dạng chữ
-        const o = XLSX.utils.encode_cell({c:9, r:i+1});
+        const o = XLSX.utils.encode_cell({c:4, r:i+1});
         if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
       });
-      ws["!cols"] = [{wch:5},{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:9},{wch:8},{wch:12},
-                     {wch:13},{wch:18},{wch:16},{wch:40},{wch:16},{wch:14},{wch:12}];
+      // Tô đậm dòng tiêu đề
+      cols.forEach((_,ci)=>{
+        const o = XLSX.utils.encode_cell({c:ci, r:0});
+        if(ws[o]) ws[o].s = { font:{ bold:true }, alignment:{ horizontal:"center" } };
+      });
+      ws["!cols"] = [{wch:5},{wch:26},{wch:20},{wch:34},{wch:14},{wch:11},{wch:22},{wch:12}];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Danh sách");
       XLSX.writeFile(wb, ten + ".xlsx");
@@ -914,6 +917,8 @@ function openEditInfo(row){
           <input id="ei_mem" value="${esc(c.members||"")}" placeholder="Gõ tay hoặc bấm Chọn →" style="flex:1;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px"/>
           <button type="button" id="ei_pick" style="background:#1A1A2E;color:#fff;border:none;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap">👥 Chọn</button>
         </div>`:""}
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">🕐 Giờ diễn</label>
+        <input id="ei_gio" value="${esc(c.gio||"")}" placeholder="VD: 07h-08h" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">📞 Số điện thoại</label>
         <input id="ei_phone" type="tel" value="${esc(c.phone||"")}" placeholder="VD: 0912345678" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">Đơn vị / Trung tâm</label>
@@ -951,13 +956,14 @@ function openEditInfo(row){
     const btn = ov.querySelector("#ei_save"); btn.disabled=true; btn.textContent="Đang lưu…";
     try{
       const phone = ov.querySelector("#ei_phone").value.trim();
+      const gio = ov.querySelector("#ei_gio").value.trim();
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
       const memberIds = memInp ? eiIds : null;
       const doiDonVi = (norm(unit||"Cá nhân") !== norm(c.unit||"Cá nhân"));
-      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, members, memberIds});
+      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, gio, members, memberIds});
       if(d.ok){
-        c.name=name; c.piece=piece; c.category=category; c.phone=phone;
+        c.name=name; c.piece=piece; c.category=category; c.phone=phone; c.gio=gio;
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         if(doiDonVi){
           // Giữ NGUYÊN thứ tự các đơn vị đang có, chỉ chuyển em này xuống CUỐI đơn vị mới.
@@ -1031,6 +1037,7 @@ function renderCheckin(){
                 : `<span style="color:var(--gold-dark);font-weight:600">🎵 ${esc(c.piece)}</span>`}
               ${c.minutes?`<span style="color:#C9CEDA">|</span> ⏱${esc(c.minutes)}`:""}
               <span style="color:#C9CEDA">|</span> ${c.session?`<b style="color:var(--navy)">${esc(tenBuoi(c.session))}</b>`:`<span style="color:#C0202A;font-weight:700">chưa chia buổi</span>`}
+              ${c.gio?`<span style="color:#C9CEDA">|</span> <b style="color:#2980B9">🕐 ${esc(c.gio)}</b>`:""}
               <span style="color:#C9CEDA">|</span> ${done?`<span style="color:var(--green);font-weight:700">✓ ${esc(c.checkin)}</span>`:`<span style="color:var(--muted)">chưa đến</span>`}
               <span style="color:#C9CEDA">|</span> ${feeOk?`<span style="color:var(--green);font-weight:700">✓ phí</span>`:`<span style="color:var(--amber);font-weight:700">phí chờ duyệt</span>`}
             </div>
@@ -1287,6 +1294,7 @@ function renderManage(){
             ${c.piece?`<span style="color:#C9CEDA">|</span> <span style="color:var(--gold-dark)">🎵 ${esc(c.piece)}</span>`:""}
             ${c.minutes?`<span style="color:#C9CEDA">|</span> ⏱${esc(c.minutes)}`:""}
             ${c.phone?`<span style="color:#C9CEDA">|</span> <a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">📞${esc(c.phone)}</a>`:""}
+            ${c.gio?`<span style="color:#C9CEDA">|</span> <b style="color:#2980B9">🕐 ${esc(c.gio)}</b>`:""}
           </div>
           ${dsThanhVien(c)}
         </div>
