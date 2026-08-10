@@ -180,6 +180,7 @@ tbody tr:hover{background:#fbfcfe}tbody tr:last-child td{border-bottom:none}
 <div id="app">
   <aside class="sidebar" id="sidebar">
     <div class="sb-brand"><div class="mk">TA</div><div><b>Thiên Ân</b><small>Quản lý bán hàng</small></div></div>
+    <div style="padding:10px 14px 4px"><label style="display:block;font-size:10.5px;font-weight:700;color:var(--muted-2,#8a93a6);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">🏢 Cơ sở làm việc</label><select id="csSelect" onchange="setCoSo(this.value)" style="width:100%;padding:9px 11px;border:1.5px solid var(--line,#e6e9ef);border-radius:9px;font-weight:600;font-size:13px;background:#fff;cursor:pointer"><option value="cs1">Cơ sở 1 — Bà Triệu</option><option value="cs2">Cơ sở 2 — Lam Kinh</option></select></div>
     <nav class="sb-nav" id="navMenu"></nav>
     <div class="sb-user"><div class="av" id="userAv">?</div><div class="info"><b id="userName">—</b><small id="userRole">—</small></div><button onclick="logout()" title="Đăng xuất">⏻</button></div>
   </aside>
@@ -200,8 +201,11 @@ const firebaseConfig = {
   messagingSenderId: "1065254649793",
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
-const P="bh_";
-const COL={users:P+"users",products:P+"products",categories:P+"categories",customers:P+"customers",transactions:P+"transactions",orders:P+"orders",suppliers:P+"suppliers",purchases:P+"purchases",stockchecks:P+"stockchecks",settings:P+"settings",baohanh:P+"baohanh"};
+const CS_PREFIX={cs1:'bh_',cs2:'cs2_'};
+const CS_NAME={cs1:'Cơ sở 1',cs2:'Cơ sở 2'};
+let ACTIVE_CS=(typeof sessionStorage!=='undefined'&&sessionStorage.getItem('bh_cs'))||'cs1';
+function buildCOL(){const p=CS_PREFIX[ACTIVE_CS]||'bh_';return {users:'bh_users',products:p+"products",categories:p+"categories",customers:p+"customers",transactions:p+"transactions",orders:p+"orders",suppliers:p+"suppliers",purchases:p+"purchases",stockchecks:p+"stockchecks",settings:p+"settings",baohanh:p+"baohanh"};}
+let COL=buildCOL();
 let db=null,ready=false,CURRENT_USER=null,BANK_INFO=null;
 let PRODUCTS=[],CATEGORIES=[],CUSTOMERS=[],TRANSACTIONS=[],ORDERS=[],ORDER_CART=[],ORDER_PAID_EDITED=false;
 let SUPPLIERS=[],PURCHASES=[],PURCHASE_CART=[],PUR_PAID_EDITED=false,STOCKCHECKS=[],ORDER_FEES=[],EDITING_ORDER_ID=null,BAOHANH=[];
@@ -285,7 +289,16 @@ function navigate(id){
   const [t,s]=titles[id]||[id,''];$('pageTitle').textContent=t;$('pageSub').textContent=s;
   if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();if(id==='warranty')renderWarranty();
 }
-async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases(),loadSettings(),loadBaoHanh()]);await loadCategories();refreshCurrent();}
+function updateCsUI(){const sel=document.getElementById('csSelect');if(sel)sel.value=ACTIVE_CS;}
+function setCoSo(cs){
+  if(cs===ACTIVE_CS)return;
+  ACTIVE_CS=cs;try{sessionStorage.setItem('bh_cs',cs);}catch(e){}
+  COL=buildCOL();BANK_INFO=null;
+  updateCsUI();
+  toast('Đã chuyển sang '+CS_NAME[cs]+' — dữ liệu riêng','ok');
+  loadAll();
+}
+async function loadAll(){navigate('dashboard');await Promise.all([loadProducts(),loadCustomers(),loadTransactions(),loadOrders(),loadSuppliers(),loadPurchases(),loadSettings(),loadBaoHanh()]);await loadCategories();updateCsUI();refreshCurrent();}
 function refreshCurrent(){if(CURRENT_VIEW==='dashboard')renderDashboard();if(CURRENT_VIEW==='products')renderProducts();if(CURRENT_VIEW==='customers')renderCustomers();if(CURRENT_VIEW==='finance')renderFinance();if(CURRENT_VIEW==='orders')renderOrders();if(CURRENT_VIEW==='suppliers')renderSuppliers();if(CURRENT_VIEW==='purchases')renderPurchases();if(CURRENT_VIEW==='inventory')renderInventory();if(CURRENT_VIEW==='warranty')renderWarranty();}
 async function loadProducts(){try{const s=await db.collection(COL.products).get();PRODUCTS=s.docs.map(d=>({_id:d.id,...d.data()}));PRODUCTS.sort((a,b)=>String(a.maSP||'').localeCompare(String(b.maSP||''),'vi',{numeric:true}));}catch(e){console.error(e);toast('Lỗi tải sản phẩm: '+e.message,'err');PRODUCTS=[];}}
 async function loadCustomers(){try{const s=await db.collection(COL.customers).get();CUSTOMERS=s.docs.map(d=>({_id:d.id,...d.data()}));CUSTOMERS.sort((a,b)=>{const ta=a.createdAt?Date.parse(a.createdAt)||0:0,tb=b.createdAt?Date.parse(b.createdAt)||0:0;if(tb!==ta)return tb-ta;return String(b.maKH||'').localeCompare(String(a.maKH||''),'vi',{numeric:true});});}catch(e){console.error(e);toast('Lỗi tải khách hàng: '+e.message,'err');CUSTOMERS=[];}}
