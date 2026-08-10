@@ -294,23 +294,80 @@ async function loadCategories(){try{const s=await db.collection(COL.categories).
 
 /* ===== DASHBOARD ===== */
 function renderDashboard(){
-  const total=PRODUCTS.length,active=PRODUCTS.filter(p=>(p.trangThai||'Active')==='Active').length;
-  const stockUnits=PRODUCTS.reduce((s,p)=>s+(Number(p.tonKho)||0),0);
-  const stockValue=PRODUCTS.reduce((s,p)=>s+(Number(p.tonKho)||0)*(Number(p.giaBan)||0),0);
-  const custCount=CUSTOMERS.length,totalDebt=CUSTOMERS.reduce((s,c)=>s+(Number(c.congNo)||0),0),debtCount=CUSTOMERS.filter(c=>(Number(c.congNo)||0)>0).length;
-  const thu=TRANSACTIONS.filter(t=>t.loai==='Thu').reduce((s,t)=>s+(Number(t.soTien)||0),0);
-  const chi=TRANSACTIONS.filter(t=>t.loai==='Chi').reduce((s,t)=>s+(Number(t.soTien)||0),0);
+  const P=PRODUCTS,C=CUSTOMERS,O=ORDERS,T=TRANSACTIONS;
+  const now=new Date();const curMonKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const thu=T.filter(t=>t.loai==='Thu').reduce((s,t)=>s+(Number(t.soTien)||0),0);
+  const chi=T.filter(t=>t.loai==='Chi').reduce((s,t)=>s+(Number(t.soTien)||0),0);
+  const loiNhuan=thu-chi;
+  const phaiThu=C.reduce((s,c)=>s+(Number(c.congNo)||0),0);
+  const stockValue=P.reduce((s,p)=>s+(Number(p.tonKho)||0)*(Number(p.giaBan)||0),0);
+  // theo tháng (6 tháng gần nhất)
+  const months=[];for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({key:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:'T'+(d.getMonth()+1),thu:0,chi:0});}
+  const mMap={};months.forEach(m=>mMap[m.key]=m);
+  T.forEach(t=>{if(!t.ngaySort)return;const d=new Date(t.ngaySort);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(mMap[k]){if(t.loai==='Thu')mMap[k].thu+=Number(t.soTien)||0;else if(t.loai==='Chi')mMap[k].chi+=Number(t.soTien)||0;}});
+  const thuThang=mMap[curMonKey]?mMap[curMonKey].thu:0;
+  const donThang=O.filter(o=>{if(!o.ngaySort)return false;const d=new Date(o.ngaySort);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')===curMonKey;}).length;
+  const maxV=Math.max(1,...months.map(m=>Math.max(m.thu,m.chi)));
+  const cw=620,base=170,gw=cw/months.length;let bars='';
+  months.forEach((m,i)=>{const x=i*gw+gw/2;const th=m.thu/maxV*140,chh=m.chi/maxV*140;
+    bars+=`<rect x="${x-30}" y="${base-th}" width="27" height="${Math.max(th,1)}" rx="4" fill="url(#gThu)"/><rect x="${x+3}" y="${base-chh}" width="27" height="${Math.max(chh,1)}" rx="4" fill="url(#gChi)"/><text x="${x}" y="${base+20}" text-anchor="middle" font-size="12.5" fill="#8a93a6" font-weight="600">${m.label}</text>`;
+    if(m.thu>0)bars+=`<text x="${x-16}" y="${base-th-6}" text-anchor="middle" font-size="10" fill="#1c8a4d" font-weight="700">${(m.thu/1e6).toFixed(m.thu>=1e7?0:1)}tr</text>`;});
+  // đơn gần đây
+  const recent=O.slice(0,6).map(o=>{const tt=o.trangThai||'Hoàn thành';const cls={'Hoàn thành':'ok','Mới':'cn','Đang xử lý':'vip','Đã hủy':'low'}[tt]||'cn';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('orders');setTimeout(()=>openOrderDetail('${esc(o._id)}'),60)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.khachTen||'Khách lẻ')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(o.maDon)} · ${esc(o.ngayHienThi||'')}</div></div><div style="text-align:right"><div class="t-price" style="font-size:13.5px">${money(o.tongCong)}₫</div><span class="chip ${cls}" style="font-size:10px">${esc(tt)}</span></div></div>`;}).join('')||'<div style="color:var(--muted-2);padding:16px;text-align:center">Chưa có đơn hàng</div>';
+  // khách nợ nhiều nhất
+  const topDebt=C.filter(c=>(Number(c.congNo)||0)>0).sort((a,b)=>(b.congNo||0)-(a.congNo||0)).slice(0,5);
+  const debtList=topDebt.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.ten)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(c.dienThoai||'')}</div></div><div style="color:var(--danger);font-weight:700;font-size:13.5px;white-space:nowrap">${money(c.congNo)}₫</div></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Không có khách nợ</div>';
+  // sắp hết hàng
+  const lowStock=P.filter(p=>!p.laDichVu&&(Number(p.tonToiThieu)||0)>0&&(Number(p.tonKho)||0)<=(Number(p.tonToiThieu)||0)).slice(0,6);
+  const hetHang=P.filter(p=>!p.laDichVu&&(Number(p.tonKho)||0)<=0).length;
+  const lowList=lowStock.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.tenSP)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(p.maSP)}</div></div><div style="white-space:nowrap"><span style="color:${(Number(p.tonKho)||0)<=0?'var(--danger)':'var(--warn)'};font-weight:700;font-size:13.5px">Tồn ${money(p.tonKho)}</span></div></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Tồn kho ổn định</div>';
+  // bảo hành sắp hết
+  const bhSoon=BAOHANH.map(o=>({o,dl:bhDaysLeft(o)})).filter(x=>x.dl!==null&&x.dl>=0&&x.dl<=60).sort((a,b)=>a.dl-b.dl).slice(0,5);
+  const bhList=bhSoon.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('warranty');setTimeout(()=>openWarrantyDetail('${esc(x.o._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.o.tenSanPham||'')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(x.o.khachTen||'')} · ${esc(x.o.baoHanhDen||'')}</div></div><div style="white-space:nowrap"><span class="chip ${x.dl<=30?'low':'vip'}" style="font-size:10.5px">Còn ${x.dl} ngày</span></div></div>`).join('')||'<div style="color:var(--muted-2);padding:16px;text-align:center;font-size:13px">Không có bảo hành sắp hết</div>';
+
   $('view').innerHTML=`
-    <div class="stat-grid">
-      <div class="stat g1"><div class="ic">♪</div><div class="lbl">Tổng sản phẩm</div><div class="val">${money(total)}</div><div class="sub">${active} đang bán</div></div>
-      <div class="stat g5"><div class="ic">👤</div><div class="lbl">Khách hàng</div><div class="val">${money(custCount)}</div><div class="sub">${debtCount} khách có nợ</div></div>
-      <div class="stat g2"><div class="ic">📈</div><div class="lbl">Tổng thu</div><div class="val">${money(thu)}</div><div class="sub">₫ từ ${TRANSACTIONS.filter(t=>t.loai==='Thu').length} giao dịch</div></div>
-      <div class="stat g4"><div class="ic">📉</div><div class="lbl">Tổng chi</div><div class="val">${money(chi)}</div><div class="sub">₫ từ ${TRANSACTIONS.filter(t=>t.loai==='Chi').length} giao dịch</div></div>
-      <div class="stat g6"><div class="ic">💰</div><div class="lbl">Chênh lệch thu-chi</div><div class="val">${money(thu-chi)}</div><div class="sub">₫ dòng tiền ròng</div></div>
-      <div class="stat g3"><div class="ic">📦</div><div class="lbl">Giá trị kho</div><div class="val">${money(stockValue)}</div><div class="sub">₫ theo giá bán · ${money(stockUnits)} đv tồn</div></div>
+    <div style="background:linear-gradient(120deg,#12203c 0%,#1c2f52 55%,#2a4270 100%);border-radius:18px;padding:26px 28px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
+      <div style="position:absolute;right:-30px;top:-30px;width:180px;height:180px;background:radial-gradient(circle,rgba(212,175,110,.25),transparent 70%)"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;position:relative">
+        <div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:.3px">Xin chào, ${esc(CURRENT_USER.hoTen)} 👋</div>
+          <div style="color:#a9b8d4;font-size:13.5px;margin-top:4px">${['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'][now.getDay()]}, ${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} · Doanh thu tháng này: <b style="color:#f0d79a">${money(thuThang)}₫</b> · ${donThang} đơn</div>
+        </div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <button class="btn" style="background:#d4af6e;color:#12203c;font-weight:700" onclick="navigate('orders');setTimeout(openOrderForm,60)">＋ Tạo đơn</button>
+          <button class="btn" style="background:rgba(255,255,255,.12);color:#fff" onclick="navigate('purchases');setTimeout(openPurchaseForm,60)">📥 Nhập hàng</button>
+          <button class="btn" style="background:rgba(255,255,255,.12);color:#fff" onclick="navigate('warranty');setTimeout(openWarrantyForm,60)">🛡 Bảo hành</button>
+        </div>
+      </div>
     </div>
-    <div class="panel"><div class="panel-head"><h3>Chào mừng trở lại, ${esc(CURRENT_USER.hoTen)} 👋</h3></div>
-      <div style="padding:22px 24px;color:var(--muted);line-height:1.7;font-size:13.5px">Hệ thống chạy trên <b>Firebase</b> — nhanh, ổn định. Đã có: <b>Sản phẩm</b>, <b>Khách hàng</b>, <b>Thu chi</b>. Các module tiếp theo (Đơn hàng, Nhập kho, Bảo hành, Báo cáo…) sẽ xây dần.</div>
+
+    <div class="stat-grid">
+      <div class="stat g2"><div class="ic">📈</div><div class="lbl">Doanh thu (đã thu)</div><div class="val" style="font-size:20px">${money(thu)}<span style="font-size:12px"> ₫</span></div><div class="sub">Từ ${T.filter(t=>t.loai==='Thu').length} giao dịch thu</div></div>
+      <div class="stat g4"><div class="ic">📉</div><div class="lbl">Tổng chi</div><div class="val" style="font-size:20px">${money(chi)}<span style="font-size:12px"> ₫</span></div><div class="sub">Nhập hàng, chi phí…</div></div>
+      <div class="stat g5"><div class="ic">💰</div><div class="lbl">Dòng tiền ròng</div><div class="val" style="font-size:20px;color:${loiNhuan>=0?'var(--ok)':'var(--danger)'}">${money(loiNhuan)}<span style="font-size:12px"> ₫</span></div><div class="sub">Thu − Chi</div></div>
+      <div class="stat g1"><div class="ic">🧾</div><div class="lbl">Đơn hàng</div><div class="val">${money(O.length)}</div><div class="sub">${donThang} đơn tháng này</div></div>
+      <div class="stat g3"><div class="ic">👤</div><div class="lbl">Khách hàng</div><div class="val">${money(C.length)}</div><div class="sub">${C.filter(c=>(Number(c.congNo)||0)>0).length} khách có nợ</div></div>
+      <div class="stat g6"><div class="ic">⏳</div><div class="lbl">Công nợ phải thu</div><div class="val" style="font-size:20px;color:var(--danger)">${money(phaiThu)}<span style="font-size:12px"> ₫</span></div><div class="sub">Cần thu hồi</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start;margin-top:4px">
+      <div class="panel">
+        <div class="panel-head"><h3>Thu & Chi 6 tháng gần nhất</h3><div style="display:flex;gap:14px;font-size:12px"><span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#22a35a;display:inline-block"></span>Thu</span><span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:#e0574a;display:inline-block"></span>Chi</span></div></div>
+        <div style="padding:16px 18px 8px">
+          <svg viewBox="0 0 ${cw} 200" style="width:100%;height:auto"><defs><linearGradient id="gThu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2fbd6e"/><stop offset="1" stop-color="#1c8a4d"/></linearGradient><linearGradient id="gChi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee6b5e"/><stop offset="1" stop-color="#c0392b"/></linearGradient></defs><line x1="0" y1="${base}" x2="${cw}" y2="${base}" stroke="#e6e9ef" stroke-width="1.5"/>${bars}</svg>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Khách nợ nhiều nhất</h3><button class="btn btn-ghost btn-sm" onclick="navigate('customers')">Xem tất cả</button></div>
+        <div style="padding:6px 18px 14px">${debtList}</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-top:18px">
+      <div class="panel"><div class="panel-head"><h3>Đơn hàng gần đây</h3><button class="btn btn-ghost btn-sm" onclick="navigate('orders')">Xem tất cả</button></div><div style="padding:6px 18px 14px">${recent}</div></div>
+      <div class="panel"><div class="panel-head"><h3>Sắp hết hàng ${hetHang>0?`<span class="chip low" style="font-size:10px;margin-left:6px">${hetHang} hết hàng</span>`:''}</h3><button class="btn btn-ghost btn-sm" onclick="navigate('products')">Kho</button></div><div style="padding:6px 18px 14px">${lowList}</div></div>
+      <div class="panel"><div class="panel-head"><h3>Bảo hành sắp hết</h3><button class="btn btn-ghost btn-sm" onclick="navigate('warranty')">Xem</button></div><div style="padding:6px 18px 14px">${bhList}</div></div>
     </div>`;
 }
 
