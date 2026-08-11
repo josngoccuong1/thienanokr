@@ -180,7 +180,7 @@ tbody tr:hover{background:#fbfcfe}tbody tr:last-child td{border-bottom:none}
 <div id="app">
   <aside class="sidebar" id="sidebar">
     <div class="sb-brand"><div class="mk">TA</div><div><b>Thiên Ân</b><small>Quản lý bán hàng</small></div></div>
-    <div style="padding:10px 14px 4px"><label style="display:block;font-size:10.5px;font-weight:700;color:var(--muted-2,#8a93a6);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">🏢 Cơ sở làm việc</label><select id="csSelect" onchange="setCoSo(this.value)" style="width:100%;padding:9px 11px;border:1.5px solid var(--line,#e6e9ef);border-radius:9px;font-weight:600;font-size:13px;background:#fff;cursor:pointer"><option value="cs1">Cơ sở 1 — Bà Triệu</option><option value="cs2">Cơ sở 2 — Lam Kinh</option></select></div>
+    <div id="csSelectWrap" style="padding:10px 14px 4px"><label style="display:block;font-size:10.5px;font-weight:700;color:var(--muted-2,#8a93a6);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">🏢 Cơ sở làm việc</label><select id="csSelect" onchange="setCoSo(this.value)" style="width:100%;padding:9px 11px;border:1.5px solid var(--line,#e6e9ef);border-radius:9px;font-weight:600;font-size:13px;background:#fff;cursor:pointer"><option value="cs1">Cơ sở 1 — Bà Triệu</option><option value="cs2">Cơ sở 2 — Lam Kinh</option></select></div>
     <nav class="sb-nav" id="navMenu"></nav>
     <div class="sb-user"><div class="av" id="userAv">?</div><div class="info"><b id="userName">—</b><small id="userRole">—</small></div><button onclick="logout()" title="Đăng xuất">⏻</button></div>
   </aside>
@@ -246,7 +246,7 @@ async function doLogin(){
   if(!u||!p){showLoginMsg('Nhập đủ tên đăng nhập và mật khẩu.','err');return;}
   $('liBtn').textContent='Đang xử lý…';$('liBtn').disabled=true;
   try{
-    if(mode==='setup'){const name=$('liName').value.trim()||u;await db.collection(COL.users).doc(u).set({username:u,password:p,hoTen:name,role:'admin',trangThai:'Active',createdAt:new Date().toISOString()});toast('Đã tạo tài khoản admin','ok');loginSuccess({username:u,hoTen:name,role:'admin'});return;}
+    if(mode==='setup'){const name=$('liName').value.trim()||u;await db.collection(COL.users).doc(u).set({username:u,password:p,hoTen:name,role:'admin',coSo:'all',trangThai:'Active',createdAt:new Date().toISOString()});toast('Đã tạo tài khoản admin','ok');loginSuccess({username:u,hoTen:name,role:'admin',coSo:'all'});return;}
     const doc=await db.collection(COL.users).doc(u).get();
     if(!doc.exists){showLoginMsg('Tài khoản không tồn tại.','err');return resetBtn();}
     const data=doc.data();
@@ -257,10 +257,13 @@ async function doLogin(){
 }
 function resetBtn(){const b=$('liBtn');b.disabled=false;b.textContent=(b.dataset.mode==='setup'?'Tạo tài khoản admin':'Đăng nhập');}
 function loginSuccess(u){
-  CURRENT_USER={username:u.username,hoTen:u.hoTen||u.username,role:u.role||'nhanvien'};
+  CURRENT_USER={username:u.username,hoTen:u.hoTen||u.username,role:u.role||'nhanvien',coSo:u.coSo||'all'};
   try{sessionStorage.setItem('bh_session',JSON.stringify(CURRENT_USER));}catch(e){}
+  const wrap=document.getElementById('csSelectWrap');
+  if(CURRENT_USER.coSo&&CURRENT_USER.coSo!=='all'){ACTIVE_CS=CURRENT_USER.coSo;try{sessionStorage.setItem('bh_cs',ACTIVE_CS);}catch(e){}COL=buildCOL();if(wrap)wrap.style.display='none';}
+  else{if(wrap)wrap.style.display='';}
   $('loginScreen').style.display='none';$('app').style.display='block';
-  $('userName').textContent=CURRENT_USER.hoTen;$('userRole').textContent=roleLabel(CURRENT_USER.role);
+  $('userName').textContent=CURRENT_USER.hoTen;$('userRole').textContent=roleLabel(CURRENT_USER.role)+(CURRENT_USER.coSo&&CURRENT_USER.coSo!=='all'?' · '+CS_NAME[CURRENT_USER.coSo]:'');
   $('userAv').textContent=(CURRENT_USER.hoTen||'?').trim().charAt(0).toUpperCase();
   buildNav();loadAll();
 }
@@ -274,7 +277,7 @@ const NAV=[
   {group:'Kho & Nhập hàng',items:[{id:'purchases',ic:'📥',label:'Nhập hàng'},{id:'suppliers',ic:'🏭',label:'Nhà cung cấp'},{id:'inventory',ic:'📦',label:'Kiểm kho'},{id:'serial',ic:'#️⃣',label:'Serial',soon:true}]},
   {group:'Dịch vụ',items:[{id:'warranty',ic:'🛡',label:'Bảo hành'},{id:'returns',ic:'↩',label:'Trả hàng',soon:true}]},
   {group:'Tài chính & Báo cáo',items:[{id:'finance',ic:'💰',label:'Thu chi'},{id:'reports',ic:'📊',label:'Báo cáo',soon:true}]},
-  {group:'Hệ thống',items:[{id:'users',ic:'⚙',label:'Người dùng',soon:true}]},
+  {group:'Hệ thống',items:[{id:'users',ic:'⚙',label:'Người dùng'}]},
 ];
 let CURRENT_VIEW='dashboard';
 function buildNav(){
@@ -285,12 +288,13 @@ function buildNav(){
 }
 function navigate(id){
   CURRENT_VIEW=id;buildNav();document.getElementById('sidebar').classList.remove('open');
-  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn'],suppliers:['Nhà cung cấp','Đối tác cung cấp hàng'],purchases:['Nhập hàng','Phiếu nhập & công nợ nhà cung cấp'],inventory:['Kiểm kho','Đối chiếu & điều chỉnh tồn kho'],warranty:['Bảo hành','Phiếu bảo hành & mã QR dán đàn']};
+  const titles={dashboard:['Tổng quan','Bảng điều khiển'],products:['Sản phẩm','Quản lý kho hàng & danh mục sản phẩm'],customers:['Khách hàng','Danh bạ & công nợ khách hàng'],finance:['Thu chi','Quản lý thu chi & dòng tiền'],orders:['Đơn hàng','Bán hàng & hóa đơn'],suppliers:['Nhà cung cấp','Đối tác cung cấp hàng'],purchases:['Nhập hàng','Phiếu nhập & công nợ nhà cung cấp'],inventory:['Kiểm kho','Đối chiếu & điều chỉnh tồn kho'],warranty:['Bảo hành','Phiếu bảo hành & mã QR dán đàn'],users:['Người dùng','Tài khoản & phân quyền cơ sở']};
   const [t,s]=titles[id]||[id,''];$('pageTitle').textContent=t;$('pageSub').textContent=s;
-  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();if(id==='warranty')renderWarranty();
+  if(id==='dashboard')renderDashboard();if(id==='products')renderProducts();if(id==='customers')renderCustomers();if(id==='finance')renderFinance();if(id==='orders')renderOrders();if(id==='suppliers')renderSuppliers();if(id==='purchases')renderPurchases();if(id==='inventory')renderInventory();if(id==='warranty')renderWarranty();if(id==='users')renderUsers();
 }
 function updateCsUI(){const sel=document.getElementById('csSelect');if(sel)sel.value=ACTIVE_CS;}
 function setCoSo(cs){
+  if(CURRENT_USER&&CURRENT_USER.coSo&&CURRENT_USER.coSo!=='all'){toast('Tài khoản của bạn chỉ dùng được '+CS_NAME[CURRENT_USER.coSo],'warn');updateCsUI();return;}
   if(cs===ACTIVE_CS)return;
   ACTIVE_CS=cs;try{sessionStorage.setItem('bh_cs',cs);}catch(e){}
   COL=buildCOL();BANK_INFO=null;
@@ -1822,6 +1826,52 @@ async function saveBankSettings(){
   const btn=$('saveBkBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{await db.collection(COL.settings).doc('bank').set(data);BANK_INFO=data;toast('Đã lưu tài khoản','ok');closeModal();if(typeof updatePayUI==='function')updatePayUI();}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='💾 Lưu tài khoản';}
 }
+
+/* ===== NGƯỜI DÙNG ===== */
+let USERS=[];
+async function loadUsers(){try{const s=await db.collection(COL.users).get();USERS=s.docs.map(d=>({_id:d.id,...d.data()}));USERS.sort((a,b)=>(a.username||'').localeCompare(b.username||''));}catch(e){console.error(e);USERS=[];}}
+function renderUsers(){
+  if(!(CURRENT_USER.role==='admin'||CURRENT_USER.role==='quanly')){$('view').innerHTML='<div class="empty" style="padding:60px"><div class="em-ic">🔒</div><h4>Không có quyền</h4><p>Chỉ Quản trị / Quản lý mới xem được mục Người dùng.</p></div>';return;}
+  $('view').innerHTML=`<div class="panel"><div class="panel-head"><h3>Tài khoản người dùng</h3><button class="btn btn-primary btn-sm" onclick="openUserForm()">＋ Thêm người dùng</button></div><div id="uTableWrap"><div class="spin"></div></div></div>
+    <div class="panel" style="margin-top:16px"><div style="padding:16px 20px;font-size:13px;color:var(--muted);line-height:1.7">💡 <b>Phân quyền cơ sở:</b> tài khoản gán <b>"Cả 2 cơ sở"</b> (thầy/quản lý) mới thấy nút chuyển cơ sở và xem được cả hai. Tài khoản gán <b>Cơ sở 1</b> hoặc <b>Cơ sở 2</b> sẽ bị <b>khóa cứng</b> ở cơ sở đó — đăng nhập vào chỉ thấy dữ liệu cơ sở của mình, không xem được cơ sở kia.</div></div>`;
+  loadUsers().then(drawUserTable);
+}
+function drawUserTable(){
+  const wrap=$('uTableWrap');if(!wrap)return;
+  if(USERS.length===0){wrap.innerHTML='<div class="empty"><div class="em-ic">⚙</div><h4>Chưa có người dùng</h4></div>';return;}
+  wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Vai trò</th><th>Cơ sở</th><th>Trạng thái</th><th style="text-align:right">Thao tác</th></tr></thead><tbody>${USERS.map(userRow).join('')}</tbody></table></div>`;
+}
+function userRow(u){
+  const csTxt=u.coSo==='cs1'?'Cơ sở 1':u.coSo==='cs2'?'Cơ sở 2':'Cả 2 cơ sở';
+  const csCls=u.coSo==='all'?'ok':'vip';
+  const active=(u.trangThai||'Active')==='Active';
+  const isMe=u.username===CURRENT_USER.username;
+  return `<tr><td class="t-code">${esc(u.username)}${isMe?' <span style="color:var(--gold-2);font-size:11px">(bạn)</span>':''}</td><td class="t-name">${esc(u.hoTen||'')}</td><td>${esc(roleLabel(u.role))}</td><td><span class="chip ${csCls}">${csTxt}</span></td><td>${active?'<span class="chip ok">● Hoạt động</span>':'<span class="chip low">○ Đã khóa</span>'}</td><td><div class="row-act"><button class="icon-btn" title="Sửa" onclick="openUserForm('${esc(u._id)}')">✎</button>${isMe?'':`<button class="icon-btn del" title="Xóa" onclick="deleteUser('${esc(u._id)}')">🗑</button>`}</div></td></tr>`;
+}
+function openUserForm(id){
+  const u=id?USERS.find(x=>x._id===id):{},edit=!!id;
+  openModal(`<div class="modal-head"><h3>${edit?'Sửa người dùng':'Thêm người dùng'}</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body"><div class="grid2">
+      <div class="field"><label>Tên đăng nhập <span class="req">*</span></label><input id="fuUser" value="${esc(u.username||'')}" ${edit?'readonly style="background:#f0f2f6;color:var(--muted)"':''} placeholder="VD: nhanvien_cs2"></div>
+      <div class="field"><label>Họ tên</label><input id="fuName" value="${esc(u.hoTen||'')}"></div>
+      <div class="field"><label>Mật khẩu <span class="req">*</span></label><input id="fuPass" value="${esc(u.password||'')}" placeholder="Mật khẩu đăng nhập"></div>
+      <div class="field"><label>Vai trò</label><select id="fuRole"><option value="admin" ${u.role==='admin'?'selected':''}>Quản trị</option><option value="quanly" ${u.role==='quanly'?'selected':''}>Quản lý</option><option value="nhanvien" ${(!u.role||u.role==='nhanvien')?'selected':''}>Nhân viên</option><option value="ktv" ${u.role==='ktv'?'selected':''}>Kỹ thuật</option></select></div>
+      <div class="field"><label>Cơ sở làm việc <span class="req">*</span></label><select id="fuCoSo"><option value="all" ${(!u.coSo||u.coSo==='all')?'selected':''}>Cả 2 cơ sở (quản lý)</option><option value="cs1" ${u.coSo==='cs1'?'selected':''}>Chỉ Cơ sở 1 — Bà Triệu</option><option value="cs2" ${u.coSo==='cs2'?'selected':''}>Chỉ Cơ sở 2 — Lam Kinh</option></select></div>
+      <div class="field"><label>Trạng thái</label><select id="fuStatus"><option value="Active" ${(!u.trangThai||u.trangThai==='Active')?'selected':''}>Hoạt động</option><option value="Locked" ${u.trangThai==='Locked'?'selected':''}>Khóa</option></select></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveUserBtn" onclick="saveUser('${edit?esc(id):''}')">${edit?'Lưu':'Thêm'}</button></div>`);
+}
+async function saveUser(id){
+  const user=$('fuUser').value.trim(),pass=$('fuPass').value;
+  if(!user){toast('Nhập tên đăng nhập','warn');return;}if(!pass){toast('Nhập mật khẩu','warn');return;}
+  const data={username:user,hoTen:$('fuName').value.trim()||user,password:pass,role:$('fuRole').value,coSo:$('fuCoSo').value,trangThai:$('fuStatus').value,updatedAt:new Date().toISOString()};
+  const btn=$('saveUserBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{if(id){await db.collection(COL.users).doc(id).set(data,{merge:true});toast('Đã cập nhật','ok');}
+    else{const ex=await db.collection(COL.users).doc(user).get();if(ex.exists){toast('Tên đăng nhập đã tồn tại','err');btn.disabled=false;btn.textContent='Thêm';return;}data.createdAt=new Date().toISOString();await db.collection(COL.users).doc(user).set(data);toast('Đã thêm người dùng','ok');}
+    closeModal();await loadUsers();drawUserTable();}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent=id?'Lưu':'Thêm';}
+}
+function deleteUser(id){const u=USERS.find(x=>x._id===id);if(!u)return;openModal(`<div class="modal-head"><h3>Xóa người dùng</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.6">Xóa tài khoản <b>${esc(u.username)}</b> (${esc(u.hoTen||'')})?</p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delUserBtn" onclick="confirmDeleteUser('${esc(id)}')">Xóa</button></div>`,'sm');}
+async function confirmDeleteUser(id){const b=$('delUserBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.users).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadUsers();drawUserTable();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
 
 /* ===== KHỞI ĐỘNG ===== */
 const _bhCode=new URLSearchParams(location.search).get('bh');
