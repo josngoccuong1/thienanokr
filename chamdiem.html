@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v34 · File Excel có định dạng sẵn</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v33 · SBD = số thứ tự · bảng rộng hơn</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -832,7 +832,7 @@ function napThuVienExcel(){
   if(window.XLSX) return Promise.resolve(true);
   return new Promise(res=>{
     const s=document.createElement("script");
-    s.src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     s.onload=()=>res(!!window.XLSX);
     s.onerror=()=>res(false);
     document.head.appendChild(s);
@@ -857,27 +857,16 @@ async function exportCSV(rows, filename){
   if(ok){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
-      const CAM   = "F4A460";                                  // màu cam tiêu đề & cột SBD
-      const vien  = { style:"thin", color:{rgb:"000000"} };
-      const KHUNG = { top:vien, bottom:vien, left:vien, right:vien };
-      const FONT  = { name:"Times New Roman", sz:8 };
-      // Toàn bộ ô: Times New Roman cỡ 8 + khung viền; tiêu đề và cột SBD tô cam
-      for(let r=0; r<=data.length; r++){
-        for(let c=0; c<cols.length; c++){
-          const o = XLSX.utils.encode_cell({c:c, r:r});
-          if(!ws[o]) ws[o] = { t:"s", v:"" };
-          const laTieuDe = (r===0), laSBD = (c===0);
-          ws[o].s = {
-            font: Object.assign({}, FONT, laTieuDe ? {bold:true} : {}),
-            border: KHUNG,
-            alignment: { vertical:"center", horizontal:(laTieuDe||laSBD) ? "center" : "left" },
-            fill: (laTieuDe || laSBD) ? { patternType:"solid", fgColor:{rgb:CAM} } : undefined
-          };
-          if(r>0 && c===4){ ws[o].t="s"; ws[o].z="@"; }        // SĐT giữ dạng chữ
-        }
-      }
+      data.forEach((r,i)=>{                                     // SĐT giữ dạng chữ
+        const o = XLSX.utils.encode_cell({c:4, r:i+1});
+        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
+      });
+      // Tô đậm dòng tiêu đề
+      cols.forEach((_,ci)=>{
+        const o = XLSX.utils.encode_cell({c:ci, r:0});
+        if(ws[o]) ws[o].s = { font:{ bold:true }, alignment:{ horizontal:"center" } };
+      });
       ws["!cols"] = [{wch:5},{wch:26},{wch:20},{wch:34},{wch:14},{wch:11},{wch:22},{wch:12}];
-      ws["!rows"] = Array.from({length:data.length+1}, ()=>({ hpt:11 }));   // chiều cao dòng 11
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Danh sách");
       XLSX.writeFile(wb, ten + ".xlsx");
@@ -959,7 +948,11 @@ function openEditInfo(row){
     ov.querySelector("#ei_unit_moi").style.display = moi ? "block" : "none";
     if(moi) ov.querySelector("#ei_unit_moi").focus();
   });
-  ov.addEventListener("click", e=>{ if(e.target===ov) close(); });
+  // Chỉ đóng khi bấm-và-thả ĐỀU ở nền. Bôi đen chữ trong ô rồi thả tay ra ngoài
+  // sẽ KHÔNG bị tính là bấm nền -> không thoát mất nội dung đang sửa.
+  let batDauONen = false;
+  ov.addEventListener("mousedown", e=>{ batDauONen = (e.target===ov); });
+  ov.addEventListener("click", e=>{ if(batDauONen && e.target===ov) close(); batDauONen=false; });
   ov.querySelector("#ei_save").onclick = async ()=>{
     const name = ov.querySelector("#ei_name").value.trim();
     const piece = ov.querySelector("#ei_piece").value.trim();
@@ -2038,25 +2031,12 @@ $("btnCsv").addEventListener("click", async ()=>{
   if(ok){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
-      const CAM2="F4A460", v2={style:"thin",color:{rgb:"000000"}};
-      const K2={top:v2,bottom:v2,left:v2,right:v2}, F2={name:"Times New Roman",sz:8};
-      for(let r=0; r<=data.length; r++){
-        for(let c=0; c<cols.length; c++){
-          const o = XLSX.utils.encode_cell({c:c, r:r});
-          if(!ws[o]) ws[o] = { t:"s", v:"" };
-          const td = (r===0), c0 = (c===0);
-          ws[o].s = {
-            font: Object.assign({}, F2, td?{bold:true}:{}),
-            border: K2,
-            alignment: { vertical:"center", horizontal:(td||c0)?"center":"left" },
-            fill: (td||c0) ? { patternType:"solid", fgColor:{rgb:CAM2} } : undefined
-          };
-          if(r>0 && c===5){ ws[o].t="s"; ws[o].z="@"; }   // SĐT giữ dạng chữ
-        }
-      }
+      data.forEach((r,i)=>{                       // SĐT giữ dạng chữ
+        const o = XLSX.utils.encode_cell({c:5, r:i+1});
+        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
+      });
       ws["!cols"]=[{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:13},{wch:12},
                    {wch:10},{wch:9},{wch:12},{wch:12},{wch:10}];
-      ws["!rows"]=Array.from({length:data.length+1},()=>({hpt:11}));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Kết quả");
       XLSX.writeFile(wb, "KetQua_MusicFestival2026.xlsx");
