@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thiên Ân · Chỉnh Tone Giọng Hát</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0A1730; --panel:#122540; --panel-2:#183255; --line:#24406b; --gold:#E0B84C; --gold-dim:#b8933a;
+  --paper:#EAF0F8; --muted:#8FA3BF; --good:#5FCB8E; --warn:#E08A4C;
+  --shadow:0 10px 40px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, #16294a 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, #10203a 0%, transparent 55%),
+    var(--ink);
+  color:var(--paper);
+  font-family:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.5;
+  min-height:100vh;
+}
+.wrap{max-width:1040px;margin:0 auto;padding:32px 22px 80px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--gold);
+  display:grid;place-items:center;color:var(--gold);font-family:"Fraunces",serif;font-weight:600;font-size:20px;
+  box-shadow:inset 0 0 18px rgba(224,184,76,.14)}
+.brand small{display:block;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-size:10.5px}
+.brand strong{font-family:"Fraunces",serif;font-weight:600;font-size:18px;letter-spacing:.01em}
+h1{font-family:"Fraunces",serif;font-weight:600;font-size:34px;line-height:1.08;margin:22px 0 6px;letter-spacing:-.01em}
+h1 .em{color:var(--gold);font-style:italic}
+.lede{color:var(--muted);max-width:60ch;margin:0 0 8px}
+.scope{display:inline-flex;gap:8px;align-items:center;margin-top:10px;padding:7px 12px;border:1px solid var(--line);
+  border-radius:999px;font-size:12.5px;color:var(--muted);background:rgba(255,255,255,.02)}
+.scope b{color:var(--paper);font-weight:600}
+
+.card{background:linear-gradient(180deg,rgba(24,50,85,.55),rgba(18,37,64,.55));
+  border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:20px;box-shadow:var(--shadow)}
+.card h2{font-family:"Fraunces",serif;font-weight:600;font-size:15px;letter-spacing:.02em;margin:0 0 14px;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.16em;font-size:12px}
+
+.drop{border:1.5px dashed var(--line);border-radius:14px;padding:34px 20px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s}
+.drop:hover,.drop.hot{border-color:var(--gold);background:rgba(224,184,76,.05)}
+.drop .big{font-size:16px;margin-bottom:4px}
+.drop .sub{color:var(--muted);font-size:13px}
+input[type=file]{display:none}
+
+.modes{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.chk{display:inline-flex;align-items:center;gap:9px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;cursor:pointer;user-select:none;font-size:13.5px}
+.chk input{accent-color:var(--gold);width:16px;height:16px}
+.chk:has(input:checked){border-color:var(--gold);background:rgba(224,184,76,.06);color:var(--gold)}
+.badge-guide{display:inline-block;font-size:10px;font-weight:600;color:#20160a;background:var(--gold);padding:2px 7px;border-radius:5px;margin-left:8px;letter-spacing:.04em}
+.tag{display:inline-block;font-size:10.5px;color:var(--muted);border:1px solid var(--line);padding:1px 6px;border-radius:5px;margin-left:6px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+.field label{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+select,button{font-family:inherit;font-size:14px}
+select{width:100%;background:var(--ink);color:var(--paper);border:1px solid var(--line);border-radius:9px;padding:10px 12px;appearance:none}
+.range-row{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--gold)}
+.range-val{min-width:46px;text-align:right;color:var(--gold);font-variant-numeric:tabular-nums;font-weight:600}
+
+.btn{background:var(--gold);color:#20160a;border:none;border-radius:10px;padding:11px 18px;font-weight:600;cursor:pointer;
+  transition:transform .06s,filter .15s}
+.btn:hover{filter:brightness(1.06)} .btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--paper);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--gold);color:var(--gold);filter:none}
+.btn.sm{padding:7px 12px;font-size:12.5px;border-radius:8px}
+
+.ribbon-wrap{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#08122a}
+canvas{display:block;width:100%;height:220px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:10px}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row.between{justify-content:space-between}
+.spacer{flex:1}
+
+.list{margin-top:6px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.item:first-child{border-top:none}
+.item .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.item .meta{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.done{background:var(--good)} .dot.busy{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.progress{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:14px;display:none}
+.progress.on{display:block}
+.progress > i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+
+.note{color:var(--muted);font-size:12.5px;line-height:1.55;margin-top:14px}
+.note b{color:var(--paper)}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:40px}
+.hidden{display:none!important}
+@media (max-width:560px){h1{font-size:26px}.wrap{padding:22px 16px 60px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="mark">T</div>
+      <div><small>Học viện Âm nhạc Thiên Ân</small><strong>Xưởng thu · Công cụ</strong></div>
+    </div>
+    <div class="scope"><b>Tone</b> + <b>Nhịp</b> · 1 giọng mỗi track</div>
+  </header>
+
+  <h1>Chỉnh <span class="em">tone</span> &amp; <span class="em">nhịp</span><br>giọng hát sau khi thu</h1>
+  <p class="lede">Kéo các file thu vào, chọn một giọng chuẩn làm <b>Guide</b>, app căn nhịp các giọng còn lại bám theo Guide (DTW) rồi nắn cao độ về đúng nốt của gam. Nghe & tải từng file.</p>
+
+  <div class="card">
+    <h2>Nạp file thu</h2>
+    <div class="drop" id="drop">
+      <div class="big">Kéo thả file audio vào đây</div>
+      <div class="sub">WAV / MP3 / M4A · chọn nhiều file để xử lý theo lô · hoặc bấm để duyệt</div>
+    </div>
+    <input type="file" id="file" accept="audio/*" multiple>
+  </div>
+
+  <div class="card" id="panel" style="display:none">
+    <h2>Cài đặt chỉnh</h2>
+    <div class="modes">
+      <label class="chk"><input type="checkbox" id="optTone" checked><span>Chỉnh cao độ (tone)</span></label>
+      <label class="chk"><input type="checkbox" id="optTiming"><span>Căn nhịp theo Guide</span></label>
+    </div>
+    <div class="controls">
+      <div class="field"><label>Tông (nốt gốc)</label>
+        <select id="key"></select></div>
+      <div class="field"><label>Gam</label>
+        <select id="scale">
+          <option value="major">Trưởng (Major)</option>
+          <option value="minor">Thứ tự nhiên (Minor)</option>
+          <option value="pentatonic">Ngũ cung (Pentatonic)</option>
+          <option value="chromatic">Chromatic (nắn drift, giữ mọi nốt)</option>
+        </select></div>
+      <div class="field"><label>Độ mạnh chỉnh</label>
+        <div class="range-row"><input type="range" id="strength" min="0" max="100" value="85">
+        <span class="range-val" id="strengthV">85%</span></div></div>
+      <div class="field"><label>Dải giọng</label>
+        <select id="vrange">
+          <option value="75,1000">Chung (75–1000 Hz)</option>
+          <option value="65,500">Nam / trầm</option>
+          <option value="140,1200">Nữ / cao</option>
+        </select></div>
+    </div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn" id="processAll">Chỉnh tất cả</button>
+      <span class="spacer"></span>
+      <span class="note" id="hint" style="margin:0"></span>
+    </div>
+    <div class="progress" id="prog"><i></i></div>
+  </div>
+
+  <div class="card" id="viz" style="display:none">
+    <h2>Đường cao độ · <span id="vizName" style="color:var(--paper);text-transform:none;letter-spacing:0;font-family:Inter"></span></h2>
+    <div class="ribbon-wrap"><canvas id="ribbon"></canvas></div>
+    <div class="legend">
+      <span><i style="border-color:var(--gold)"></i>Nốt của gam</span>
+      <span><i style="border-color:#3f5c8a"></i>Nốt ngoài gam</span>
+      <span><i style="border-color:#6f86a8"></i>Cao độ gốc</span>
+      <span><i style="border-color:var(--good)"></i>Sau khi chỉnh</span>
+    </div>
+    <div class="row between" style="margin-top:16px">
+      <div class="row">
+        <button class="btn ghost sm" id="playOrig">▶ Nghe gốc</button>
+        <button class="btn ghost sm" id="playTuned">▶ Nghe đã chỉnh</button>
+        <button class="btn ghost sm" id="stop">■ Dừng</button>
+      </div>
+      <button class="btn sm" id="dlOne">⬇ Tải file đã chỉnh</button>
+    </div>
+  </div>
+
+  <div class="card" id="listCard" style="display:none">
+    <h2>Danh sách file</h2>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Đọc kỹ trước khi dùng</h2>
+    <p class="note"><b>Quy trình đúng (như VocAlign):</b> nạp tất cả các track → bấm <b>Đặt Guide</b> cho giọng chuẩn nhịp/đúng tone nhất → tick <b>Căn nhịp</b> (và <b>Chỉnh tone</b> nếu muốn) → <b>Chỉnh tất cả</b>. App căn nhịp trước, chỉnh tone sau — đúng thứ tự chuyên nghiệp.</p>
+    <p class="note"><b>Làm được:</b> căn nhịp từng giọng bám theo Guide (DTW trên đặc trưng phổ) và nắn cao độ cho <b>một giọng mỗi track</b>. Hợp lý nhất với hợp xướng <b>đồng âm</b> — các bè hát cùng lời, cùng tiết tấu.</p>
+    <p class="note"><b>Giới hạn cần biết:</b> nếu các bè có <b>tiết tấu/lời khác nhau</b> nhiều so với Guide thì DTW căn theo một Guide sẽ không đúng. Nhiều giọng blend chung trên một track vẫn không tách sửa được. Về độ mượt của kéo giãn thời gian và độ tinh của tone, <b>VocAlign Pro / Melodyne vẫn hơn một bậc</b> — đây là bản tự làm để xử lý nhanh và đánh giá trần của giải pháp.</p>
+    <p class="note">Mẹo: độ mạnh tone 80–90% cho tự nhiên, hạ 50–70% nếu nghe "máy". Đoạn nhiều luyến láy chọn Chromatic. Guide và các Dub nên hát <b>cùng câu, cùng lời</b> thì căn nhịp mới chuẩn.</p>
+  </div>
+
+  <footer>Thiên Ân · công cụ nội bộ xưởng thu — xử lý hoàn toàn trên máy Thầy, không tải file lên đâu cả.</footer>
+</div>
+
+<script>
+/* ---------------- DSP core (đã kiểm thử trên tín hiệu tổng hợp) ---------------- */
+const NOTE_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const SCALES={major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],pentatonic:[0,2,4,7,9],chromatic:[0,1,2,3,4,5,6,7,8,9,10,11]};
+function allowedSet(rootPC,scaleName){const s=new Set();SCALES[scaleName].forEach(iv=>s.add((iv+rootPC)%12));return s;}
+
+function decimate(x,factor){
+  const n=Math.floor(x.length/factor);const y=new Float32Array(n);
+  for(let i=0;i<n;i++){let a=0;for(let j=0;j<factor;j++)a+=x[i*factor+j]||0;y[i]=a/factor;}
+  return y;
+}
+function acAt(buf,start,N,lag){let ac=0;for(let i=0;i<N;i++)ac+=(buf[start+i]||0)*(buf[start+i+lag]||0);return ac;}
+function detectF0Frame(buf,start,N,sr,minF0,maxF0){
+  const maxLag=Math.floor(sr/minF0),minLag=Math.floor(sr/maxF0);
+  let e=0;for(let i=0;i<N;i++){const s=buf[start+i]||0;e+=s*s;}
+  if(e<1e-7)return{f0:0,clarity:0};
+  let bestLag=-1,bestVal=0;
+  for(let lag=minLag;lag<=maxLag;lag++){
+    let ac=0,e2=0;
+    for(let i=0;i<N;i++){const a=buf[start+i]||0,b=buf[start+i+lag]||0;ac+=a*b;e2+=b*b;}
+    const norm=ac/(Math.sqrt(e*e2)+1e-9);
+    if(norm>bestVal){bestVal=norm;bestLag=lag;}
+  }
+  if(bestLag<0)return{f0:0,clarity:0};
+  for(const div of [2,3]){
+    const cand=Math.round(bestLag/div);
+    if(cand>=minLag){
+      let ac=0,e2=0;for(let i=0;i<N;i++){const a=buf[start+i]||0,b=buf[start+i+cand]||0;ac+=a*b;e2+=b*b;}
+      const norm=ac/(Math.sqrt(e*e2)+1e-9);
+      if(norm>=0.82*bestVal){bestLag=cand;bestVal=norm;}
+    }
+  }
+  const y0=acAt(buf,start,N,bestLag-1),y1=acAt(buf,start,N,bestLag),y2=acAt(buf,start,N,bestLag+1);
+  const denom=(y0-2*y1+y2);let shift=denom!==0?0.5*(y0-y2)/denom:0;shift=Math.max(-1,Math.min(1,shift));
+  return{f0:sr/(bestLag+shift),clarity:bestVal};
+}
+// Detect on decimated signal for speed; positions returned in full-rate samples.
+async function detectF0Track(full,sr,minF0,maxF0,onProg){
+  const factor=4,d=decimate(full,factor),dsr=sr/factor;
+  const N=1024,hop=220,guard=Math.floor(dsr/minF0);
+  const track=[];const total=d.length;
+  for(let p=0;p+N+guard<d.length;p+=hop){
+    const r=detectF0Frame(d,p,N,dsr,minF0,maxF0);
+    track.push({pos:(p+N/2)*factor,f0:r.clarity>0.55?r.f0:0,clarity:r.clarity});
+    if((track.length&255)===0){if(onProg)onProg(p/total);await Promise.resolve();}
+  }
+  return track;
+}
+function f0At(track,pos){
+  if(!track.length)return 0;
+  let idx=track.length-1;
+  for(let i=0;i<track.length;i++){if(track[i].pos>=pos){idx=i;break;}}
+  const lo=Math.max(0,idx-1),hi=idx,a=track[lo],b=track[hi];
+  if(a.f0&&b.f0){const t=b.pos===a.pos?0:(pos-a.pos)/(b.pos-a.pos);return a.f0*(1-t)+b.f0*t;}
+  return a.f0||b.f0||0;
+}
+function snapFreq(f0,allowed,strength){
+  if(f0<=0)return f0;
+  const midi=69+12*Math.log2(f0/440),base=Math.round(midi);
+  let best=midi,bd=1e9;
+  for(let m=base-2;m<=base+2;m++){const pc=((m%12)+12)%12;if(allowed.has(pc)){const d=Math.abs(m-midi);if(d<bd){bd=d;best=m;}}}
+  const corrected=midi+(best-midi)*strength;
+  return 440*Math.pow(2,(corrected-69)/12);
+}
+function psolaCorrect(samples,sr,track,allowed,strength){
+  const defPeriod=Math.floor(sr/160);
+  const marks=[];let p=0;
+  while(p<samples.length){const f0=f0At(track,p);const Ta=f0>0?sr/f0:defPeriod;
+    marks.push({pos:Math.round(p),period:Ta});p+=Math.max(8,Ta);}
+  if(!marks.length)return samples.slice();
+  const out=new Float32Array(samples.length),norm=new Float32Array(samples.length);
+  const nearest=(pos)=>{let lo=0,hi=marks.length-1;while(lo<hi){const m=(lo+hi)>>1;if(marks[m].pos<pos)lo=m+1;else hi=m;}
+    if(lo>0&&Math.abs(marks[lo-1].pos-pos)<Math.abs(marks[lo].pos-pos))return marks[lo-1];return marks[lo];};
+  let sp=0;
+  while(sp<samples.length){
+    const f0=f0At(track,sp);const tf=f0>0?snapFreq(f0,allowed,strength):0;const Ts=tf>0?sr/tf:defPeriod;
+    const m=nearest(sp),half=Math.max(4,Math.round(m.period)),gLen=half*2;
+    for(let i=0;i<gLen;i++){
+      const src=m.pos-half+i,dst=sp-half+i;
+      if(src<0||src>=samples.length||dst<0||dst>=out.length)continue;
+      const w=0.5-0.5*Math.cos((2*Math.PI*i)/(gLen-1));
+      out[dst]+=samples[src]*w;norm[dst]+=w;
+    }
+    sp+=Math.max(8,Math.round(Ts));
+  }
+  for(let i=0;i<out.length;i++)out[i]=norm[i]>1e-4?out[i]/norm[i]:samples[i];
+  return out;
+}
+
+/* ---------------- Time alignment (DTW → OLA warp) ---------------- */
+function resampleLinear(x,srIn,srOut){if(srIn===srOut)return x.slice();const ratio=srIn/srOut,n=Math.floor(x.length/ratio),y=new Float32Array(n);for(let i=0;i<n;i++){const t=i*ratio,i0=Math.floor(t),frac=t-i0;y[i]=(x[i0]||0)*(1-frac)+(x[i0+1]||0)*frac;}return y;}
+function downsampleTo(x,srIn,srOut){if(srOut>=srIn)return{y:x.slice(),sr:srIn};const ratio=srIn/srOut,n=Math.floor(x.length/ratio),y=new Float32Array(n);for(let i=0;i<n;i++){const a=Math.floor(i*ratio),b=Math.floor((i+1)*ratio);let s=0,c=0;for(let j=a;j<b&&j<x.length;j++){s+=x[j];c++;}y[i]=c?s/c:0;}return{y,sr:srOut};}
+function fftMag(re){const n=re.length,im=new Float32Array(n);for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){const t=re[i];re[i]=re[j];re[j]=t;}}for(let len=2;len<=n;len<<=1){const ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);for(let i=0;i<n;i+=len){let cwr=1,cwi=0;for(let k=0;k<len/2;k++){const ur=re[i+k],ui=im[i+k];const vr=re[i+k+len/2]*cwr-im[i+k+len/2]*cwi;const vi=re[i+k+len/2]*cwi+im[i+k+len/2]*cwr;re[i+k]=ur+vr;im[i+k]=ui+vi;re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;const ncwr=cwr*wr-cwi*wi;cwi=cwr*wi+cwi*wr;cwr=ncwr;}}}const half=n/2,mag=new Float32Array(half);for(let i=0;i<half;i++)mag[i]=Math.sqrt(re[i]*re[i]+im[i]*im[i]);return mag;}
+function melFilterbank(nBands,fftSize,sr){const hz2mel=f=>2595*Math.log10(1+f/700),mel2hz=m=>700*(Math.pow(10,m/2595)-1);const half=fftSize/2,mMin=hz2mel(50),mMax=hz2mel(sr/2);const pts=[];for(let i=0;i<nBands+2;i++)pts.push(mel2hz(mMin+(mMax-mMin)*i/(nBands+1)));const bins=pts.map(f=>Math.floor((fftSize+1)*f/sr));const fb=[];for(let b=1;b<=nBands;b++){const f=new Float32Array(half);for(let k=bins[b-1];k<bins[b];k++)if(k<half)f[k]=(k-bins[b-1])/(bins[b]-bins[b-1]||1);for(let k=bins[b];k<bins[b+1];k++)if(k<half)f[k]=(bins[b+1]-k)/(bins[b+1]-bins[b]||1);fb.push(f);}return fb;}
+function features(x,sr){const featSr=16000,d=downsampleTo(x,sr,featSr),sig=d.y,s=d.sr;const frame=512,hop=200,nMel=20;const fb=melFilterbank(nMel,frame,s);const win=new Float32Array(frame);for(let i=0;i<frame;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(frame-1));const frames=[];for(let p=0;p+frame<sig.length;p+=hop){const buf=new Float32Array(frame);for(let i=0;i<frame;i++)buf[i]=(sig[p+i]||0)*win[i];const mag=fftMag(buf);const feat=new Float32Array(nMel);for(let b=0;b<nMel;b++){let e=0;const f=fb[b];for(let k=0;k<f.length;k++)e+=mag[k]*f[k];feat[b]=Math.log(e+1e-6);}frames.push(feat);}return{frames,hopSec:hop/s};}
+function fdist(a,b){let s=0;for(let i=0;i<a.length;i++){const d=a[i]-b[i];s+=d*d;}return Math.sqrt(s);}
+function dtw(G,D,band){const n=G.length,m=D.length,INF=1e18;const jloArr=new Int32Array(n),widthArr=new Int32Array(n);const btRows=new Array(n);let prevCost=null,prevJlo=0,prevW=0;for(let i=0;i<n;i++){const center=Math.round(i*(m-1)/(n-1||1));const jlo=Math.max(0,center-band),jhi=Math.min(m-1,center+band),w=jhi-jlo+1;jloArr[i]=jlo;widthArr[i]=w;const cur=new Float64Array(w).fill(INF),bt=new Int8Array(w);for(let jj=0;jj<w;jj++){const j=jlo+jj;if(i===0&&j===0){cur[jj]=fdist(G[0],D[0]);bt[jj]=0;continue;}const dc=fdist(G[i],D[j]);let best=INF,dir=0;if(i>0&&j>0){const pj=j-1-prevJlo;if(pj>=0&&pj<prevW&&prevCost[pj]<best){best=prevCost[pj];dir=0;}}if(i>0){const pj=j-prevJlo;if(pj>=0&&pj<prevW&&prevCost[pj]<best){best=prevCost[pj];dir=1;}}if(j>0){const cj=jj-1;if(cj>=0&&cur[cj]<best){best=cur[cj];dir=2;}}cur[jj]=dc+(best===INF?0:best);bt[jj]=dir;}btRows[i]=bt;prevCost=cur;prevJlo=jlo;prevW=w;}let i=n-1,j=m-1;const path=[];while(i>0||j>0){path.push([i,j]);const jj=j-jloArr[i];const d=(jj>=0&&jj<widthArr[i])?btRows[i][jj]:0;if(i===0){j--;}else if(j===0){i--;}else if(d===0){i--;j--;}else if(d===1){i--;}else{j--;}}path.push([0,0]);path.reverse();return path;}
+function buildMap(path,hopSec){const gx=[],dx=[];let lastG=-1;for(const [gi,di] of path){const gs=gi*hopSec;if(gs>lastG){gx.push(gs);dx.push(di*hopSec);lastG=gs;}}return function(gsec){if(gsec<=gx[0])return dx[0];if(gsec>=gx[gx.length-1])return dx[dx.length-1];let lo=0,hi=gx.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(gx[mid]<gsec)lo=mid+1;else hi=mid;}const i=Math.max(1,lo);const t=(gsec-gx[i-1])/((gx[i]-gx[i-1])||1e-9);return dx[i-1]+(dx[i]-dx[i-1])*t;};}
+function olaWarp(dub,sr,mapFn,guideLen){const out=new Float32Array(guideLen),norm=new Float32Array(guideLen);const Hs=256,N=512;const win=new Float32Array(N);for(let i=0;i<N;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(N-1));for(let k=0;k*Hs<guideLen;k++){const outCenter=k*Hs,dubCenter=Math.round(mapFn(outCenter/sr)*sr);for(let i=0;i<N;i++){const o=outCenter-N/2+i,ss=dubCenter-N/2+i;if(o<0||o>=guideLen||ss<0||ss>=dub.length)continue;out[o]+=dub[ss]*win[i];norm[o]+=win[i];}}for(let i=0;i<guideLen;i++)out[i]=norm[i]>1e-4?out[i]/norm[i]:0;return out;}
+async function alignDubToGuide(guide,dub,sr){const fg=features(guide,sr);await Promise.resolve();const fd=features(dub,sr);await Promise.resolve();const band=Math.max(30,Math.round(2.0/fg.hopSec));const path=dtw(fg.frames,fd.frames,band);const map=buildMap(path,fg.hopSec);return olaWarp(dub,sr,map,guide.length);}
+
+/* ---------------- WAV encode ---------------- */
+function encodeWAV(samples,sr){
+  const n=samples.length,buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,"RIFF");v.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+  w(36,"data");v.setUint32(40,n*2,true);
+  let o=44;for(let i=0;i<n;i++){let s=Math.max(-1,Math.min(1,samples[i]));v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);o+=2;}
+  return new Blob([buf],{type:"audio/wav"});
+}
+
+/* ---------------- App state & UI ---------------- */
+const ctx=new (window.AudioContext||window.webkitAudioContext)();
+let items=[]; let current=-1; let srcNode=null;
+const $=id=>document.getElementById(id);
+const keySel=$("key");NOTE_NAMES.forEach((n,i)=>{const o=document.createElement("option");o.value=i;o.textContent=n+(i===0?" (Đô)":"");keySel.appendChild(o);});
+
+$("strength").addEventListener("input",e=>$("strengthV").textContent=e.target.value+"%");
+
+const drop=$("drop"),fileInput=$("file");
+drop.addEventListener("click",()=>fileInput.click());
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hot");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("hot");}));
+drop.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
+fileInput.addEventListener("change",e=>handleFiles(e.target.files));
+
+async function handleFiles(files){
+  for(const f of files){
+    try{
+      const arr=await f.arrayBuffer();
+      const audio=await ctx.decodeAudioData(arr.slice(0));
+      // mix to mono
+      const ch=audio.numberOfChannels,len=audio.length,mono=new Float32Array(len);
+      for(let c=0;c<ch;c++){const d=audio.getChannelData(c);for(let i=0;i<len;i++)mono[i]+=d[i]/ch;}
+      items.push({name:f.name,sr:audio.sampleRate,samples:mono,track:null,corrected:null,status:"new"});
+    }catch(err){alert("Không đọc được file: "+f.name+"\n"+err.message);}
+  }
+  $("panel").style.display="block";$("listCard").style.display=items.length?"block":"none";
+  renderList();
+  $("hint").textContent=items.length+" file · bấm “Chỉnh tất cả” để xử lý";
+}
+
+function renderList(){
+  const el=$("list");el.innerHTML="";
+  items.forEach((it,idx)=>{
+    const row=document.createElement("div");row.className="item";
+    const dot=document.createElement("span");dot.className="dot"+(it.status==="done"?" done":it.status==="busy"?" busy":"");
+    const name=document.createElement("div");name.className="name";
+    name.textContent=it.name;
+    if(it.guide){const b=document.createElement("span");b.className="badge-guide";b.textContent="GUIDE";name.appendChild(b);}
+    if(it.status==="done"&&it.applied&&it.applied.length){const t=document.createElement("span");t.className="tag";t.textContent=it.applied.join(" + ");name.appendChild(t);}
+    const meta=document.createElement("div");meta.className="meta";
+    meta.textContent=(it.samples.length/it.sr).toFixed(1)+"s";
+    const gb=document.createElement("button");gb.className="btn sm "+(it.guide?"":"ghost");gb.textContent=it.guide?"★ Guide":"Đặt Guide";
+    gb.onclick=()=>{const was=it.guide;items.forEach(x=>x.guide=false);it.guide=!was;renderList();};
+    const view=document.createElement("button");view.className="btn ghost sm";view.textContent="Xem";
+    view.onclick=()=>showItem(idx);
+    const dl=document.createElement("button");dl.className="btn sm";dl.textContent="⬇";dl.disabled=it.status!=="done";
+    dl.onclick=()=>download(idx);
+    row.append(dot,name,meta,gb,view,dl);el.appendChild(row);
+  });
+}
+
+function currentSettings(){
+  const root=parseInt(keySel.value);
+  const allowed=allowedSet(root,$("scale").value);
+  const strength=parseInt($("strength").value)/100;
+  const [minF0,maxF0]=$("vrange").value.split(",").map(Number);
+  const doTone=$("optTone").checked, doTiming=$("optTiming").checked;
+  const guideIndex=items.findIndex(x=>x.guide);
+  return {root,allowed,strength,minF0,maxF0,doTone,doTiming,guideIndex};
+}
+
+async function processItem(idx,onProg){
+  const it=items[idx],s=currentSettings();
+  it.status="busy";it.applied=[];renderList();
+  let work=it.samples, workSr=it.sr;
+  // 1) TIMING first (dubs only) — align to Guide
+  if(s.doTiming && s.guideIndex>=0 && idx!==s.guideIndex){
+    const g=items[s.guideIndex];
+    const dub = workSr===g.sr ? work : resampleLinear(work,workSr,g.sr);
+    if(onProg)onProg(0.1);
+    work = await alignDubToGuide(g.samples, dub, g.sr); workSr=g.sr;
+    it.applied.push("nhịp");
+  }
+  // 2) TONE second
+  it.track = await detectF0Track(work, workSr, s.minF0, s.maxF0, onProg);
+  if(s.doTone){
+    work = psolaCorrect(work, workSr, it.track, s.allowed, s.strength);
+    it.toneApplied=true; it.applied.push("tone");
+  } else { it.toneApplied=false; }
+  it.corrected=work; it.correctedSr=workSr;
+  it.status="done";renderList();
+}
+
+$("processAll").addEventListener("click",async()=>{
+  const s=currentSettings();
+  if(!s.doTone && !s.doTiming){alert("Chọn ít nhất một chế độ: Chỉnh cao độ hoặc Căn nhịp.");return;}
+  if(s.doTiming){
+    if(s.guideIndex<0){alert("Bật “Căn nhịp theo Guide” thì phải chọn 1 file làm Guide — bấm “Đặt Guide” ở danh sách.");return;}
+    if(items.length<2){alert("Căn nhịp cần tối thiểu 2 file: 1 Guide + (các) giọng cần căn theo.");return;}
+  }
+  if(ctx.state==="suspended")await ctx.resume();
+  const btn=$("processAll");btn.disabled=true;
+  const prog=$("prog");prog.classList.add("on");
+  for(let i=0;i<items.length;i++){
+    $("hint").textContent="Đang xử lý "+(i+1)+"/"+items.length+"…";
+    await processItem(i,fr=>{prog.firstElementChild.style.width=Math.round(((i+fr)/items.length)*100)+"%";});
+    prog.firstElementChild.style.width=Math.round(((i+1)/items.length)*100)+"%";
+  }
+  prog.classList.remove("on");prog.firstElementChild.style.width="0";
+  btn.disabled=false;$("hint").textContent="Xong. Bấm “Xem” để nghe & tải từng file.";
+  if(items.length)showItem(0);
+});
+
+/* ---------------- Visualization ---------------- */
+function showItem(idx){
+  current=idx;const it=items[idx];
+  if(!it.track){alert("File này chưa được xử lý.");return;}
+  $("viz").style.display="block";$("vizName").textContent=it.name;
+  drawRibbon(it);
+  $("viz").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function drawRibbon(it){
+  const c=$("ribbon"),dpr=window.devicePixelRatio||1;
+  const W=c.clientWidth,H=220;c.width=W*dpr;c.height=H*dpr;
+  const g=c.getContext("2d");g.scale(dpr,dpr);g.clearRect(0,0,W,H);
+  const s=currentSettings();
+  const voiced=it.track.filter(t=>t.f0>0);
+  if(!voiced.length){g.fillStyle="#8FA3BF";g.fillText("Không phát hiện giọng hát rõ ràng.",16,H/2);return;}
+  let lo=1e9,hi=-1e9;voiced.forEach(t=>{const m=69+12*Math.log2(t.f0/440);lo=Math.min(lo,m);hi=Math.max(hi,m);});
+  lo=Math.floor(lo)-2;hi=Math.ceil(hi)+2;
+  const y=m=>H-8-((m-lo)/(hi-lo))*(H-16);
+  // semitone grid
+  for(let m=lo;m<=hi;m++){
+    const pc=((m%12)+12)%12,inScale=s.allowed.has(pc);
+    g.strokeStyle=inScale?"rgba(224,184,76,.55)":"rgba(63,92,138,.35)";
+    g.lineWidth=inScale?1.2:0.8;g.beginPath();g.moveTo(40,y(m));g.lineTo(W,y(m));g.stroke();
+    if(inScale){g.fillStyle="rgba(224,184,76,.8)";g.font="10px Inter";g.fillText(NOTE_NAMES[pc],6,y(m)+3);}
+  }
+  const n=it.track.length,x=i=>40+(i/(n-1))*(W-46);
+  // original
+  g.strokeStyle="rgba(111,134,168,.9)";g.lineWidth=1.4;g.beginPath();let started=false;
+  it.track.forEach((t,i)=>{if(t.f0>0){const m=69+12*Math.log2(t.f0/440);if(!started){g.moveTo(x(i),y(m));started=true;}else g.lineTo(x(i),y(m));}else started=false;});
+  g.stroke();
+  // corrected (only if tone correction was actually applied)
+  if(it.toneApplied){
+    g.strokeStyle="#5FCB8E";g.lineWidth=1.8;g.beginPath();started=false;
+    it.track.forEach((t,i)=>{if(t.f0>0){const cf=snapFreq(t.f0,s.allowed,s.strength);const m=69+12*Math.log2(cf/440);if(!started){g.moveTo(x(i),y(m));started=true;}else g.lineTo(x(i),y(m));}else started=false;});
+    g.stroke();
+  }
+}
+window.addEventListener("resize",()=>{if(current>=0&&items[current]&&items[current].track)drawRibbon(items[current]);});
+
+/* ---------------- Playback ---------------- */
+function play(samples,sr){
+  stopPlay();
+  const b=ctx.createBuffer(1,samples.length,sr);b.copyToChannel(samples,0);
+  srcNode=ctx.createBufferSource();srcNode.buffer=b;srcNode.connect(ctx.destination);srcNode.start();
+}
+function stopPlay(){if(srcNode){try{srcNode.stop();}catch(e){}srcNode=null;}}
+$("playOrig").onclick=async()=>{await ctx.resume();if(current>=0)play(items[current].samples,items[current].sr);};
+$("playTuned").onclick=async()=>{await ctx.resume();if(current>=0&&items[current].corrected)play(items[current].corrected,items[current].correctedSr||items[current].sr);};
+$("stop").onclick=stopPlay;
+$("dlOne").onclick=()=>{if(current>=0)download(current);};
+
+function download(idx){
+  const it=items[idx];if(!it.corrected)return;
+  const blob=encodeWAV(it.corrected,it.correctedSr||it.sr);
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=it.name.replace(/\.[^.]+$/,"")+"_tuned.wav";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+
+// re-draw when settings change (preview target grid live)
+["key","scale","strength","vrange"].forEach(id=>$(id).addEventListener("input",()=>{if(current>=0&&items[current]&&items[current].track)drawRibbon(items[current]);}));
+</script>
+</body>
+</html>
