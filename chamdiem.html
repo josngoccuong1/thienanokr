@@ -70,7 +70,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 
 /* LIST ITEM */
 .tbl-ci{width:100%;border-collapse:collapse;font-size:12px}
-.tbl-ci th{background:#E8A33D;color:#fff;font-weight:800;font-size:11px;padding:6px 8px;text-align:left;border:1px solid #D08F2E;position:sticky;top:var(--dinh,104px);z-index:20}
+.tbl-ci th{background:#E8A33D;color:#fff;font-weight:800;font-size:11px;padding:6px 8px;text-align:left;border:1px solid #D08F2E;white-space:nowrap}
 .tbl-ci .tdc{padding:4px 8px;border:1px solid #E8EAEE;vertical-align:middle;line-height:1.35}
 .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:center;gap:11px}
 .item .sbd{min-width:44px;height:44px;border-radius:10px;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v40 · Sửa tiêu đề bảng đè giữa danh sách</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v41 · Bỏ thanh vàng lơ lửng</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -829,6 +829,15 @@ function bangSTT(ds){
   }
   return map;
 }
+/* Hàng tiêu đề cột của bảng Check-in */
+function hangTieuDe(){
+  return `<tr class="hdr">
+    <th style="width:48px;text-align:center">SBD</th><th style="width:200px">Họ tên</th>
+    <th style="width:120px">Đơn vị</th><th>Tác phẩm</th><th style="width:105px">SĐT</th>
+    <th style="width:52px;text-align:center">C-in</th><th style="width:140px">Buổi</th>
+    <th style="width:76px;text-align:center">Giờ diễn</th><th style="width:118px"></th>
+  </tr>`;
+}
 function unitKeyOf(c){ return norm((c.unit||"Cá nhân").trim()); }
 function unitLabelOf(c){ const u=(c.unit||"").trim(); return u || "Cá nhân"; }
 function groupByUnit(list){
@@ -1057,15 +1066,13 @@ function renderCheckin(){
     // Số thứ tự CỐ ĐỊNH theo danh sách đầy đủ của buổi đang xem —
     // tìm kiếm hay lọc bảng đều không làm đổi số của thí sinh.
     const sttMap = bangSTT(all);
-    let html = `<div style="overflow-x:auto"><table class="tbl-ci"><thead><tr>
-        <th style="width:48px;text-align:center">SBD</th><th style="width:200px">Họ tên</th><th style="width:120px">Đơn vị</th>
-        <th>Tác phẩm</th><th style="width:105px">SĐT</th><th style="width:52px;text-align:center">C-in</th>
-        <th style="width:140px">Buổi</th><th style="width:76px;text-align:center">Giờ diễn</th><th style="width:118px"></th>
-      </tr></thead><tbody>`;
+    let html = `<div style="overflow-x:auto"><table class="tbl-ci"><tbody>` + hangTieuDe();
     const groups = groupByUnit(list);
     window.__ciGroups = groups;
     groups.forEach((g,gi)=>{
       const dn = g.items.filter(x=>x.checkin).length;
+      // Lặp tiêu đề cột ở đầu mỗi đơn vị cho dễ đọc khi danh sách dài
+      if(gi > 0) html += hangTieuDe();
       html += `<tr><td colspan="9" style="background:linear-gradient(135deg,#1A1A2E,#0F3460);padding:6px 10px">
         <span style="color:#fff;font-weight:800;font-size:12px">🏫 ${esc(g.label)}</span>
         <span style="color:#D4AF37;font-weight:700;font-size:11px;margin-left:10px">${dn}/${g.items.length} check-in</span>
