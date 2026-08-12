@@ -70,7 +70,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 
 /* LIST ITEM */
 .tbl-ci{width:100%;border-collapse:collapse;font-size:12px}
-.tbl-ci th{background:#E8A33D;color:#fff;font-weight:800;font-size:11px;padding:6px 8px;text-align:left;border:1px solid #D08F2E;position:sticky;top:112px;z-index:20}
+.tbl-ci th{background:#E8A33D;color:#fff;font-weight:800;font-size:11px;padding:6px 8px;text-align:left;border:1px solid #D08F2E;position:sticky;top:var(--dinh,104px);z-index:20}
 .tbl-ci .tdc{padding:4px 8px;border:1px solid #E8EAEE;vertical-align:middle;line-height:1.35}
 .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px;display:flex;align-items:center;gap:11px}
 .item .sbd{min-width:44px;height:44px;border-radius:10px;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v39 · Thanh buổi và tiêu đề luôn dính trên</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v40 · Sửa tiêu đề bảng đè giữa danh sách</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -349,7 +349,7 @@ ensureAuth();
   </div>
 
   <!-- ============ THANH CHỌN BUỔI ============ -->
-  <div id="sessionBar" class="hidden" style="position:sticky;top:56px;z-index:32;background:#F0F2F5;padding:8px 0 4px">
+  <div id="sessionBar" class="hidden" style="position:sticky;top:var(--dinh1,52px);z-index:32;background:#F0F2F5;padding:8px 0 4px">
     <div style="background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:9px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-size:12px;font-weight:800;color:var(--navy)">🗓️ Buổi:</span>
       <div id="sessionChips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1"></div>
@@ -591,6 +591,17 @@ async function login(){
 $("btnLogin").addEventListener("click", login);
 $("pin").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
 
+/* Đo chiều cao thật của 2 thanh dính trên, để tiêu đề bảng nằm đúng ngay bên dưới
+   (số buổi nhiều làm thanh xuống 2 hàng -> chiều cao thay đổi). */
+function doChieuCaoThanh(){
+  const vb = $("viewBar"), sb = $("sessionBar");
+  const h1 = (vb && !vb.classList.contains("hidden")) ? vb.offsetHeight : 0;
+  const h2 = (sb && !sb.classList.contains("hidden")) ? sb.offsetHeight : 0;
+  document.documentElement.style.setProperty("--dinh1", h1 + "px");
+  document.documentElement.style.setProperty("--dinh",  (h1 + h2) + "px");
+}
+window.addEventListener("resize", doChieuCaoThanh);
+
 function showRole(){
   if(!VIEW) VIEW = ROLE;
   ["loginView","checkinView","judgeView","scoreView","resultView","manageView"].forEach(v=>$(v).classList.add("hidden"));
@@ -601,6 +612,7 @@ function showRole(){
   if(VIEW!=="manage") renderSessionBar();
   const me = ROLES.find(r=>r.key===ROLE);
   $("barInfo").textContent = (me? me.ic+" "+(ROLE==="judge"?JUDGE:me.nm) : "") + (canEdit()? "" : " · đang xem");
+  setTimeout(doChieuCaoThanh, 0);
   if(VIEW==="checkin"){ $("checkinView").classList.remove("hidden"); renderCheckin(); }
   else if(VIEW==="judge"){ $("judgeView").classList.remove("hidden"); renderJudge(); }
   else if(VIEW==="manage"){ $("manageView").classList.remove("hidden"); renderManage(); }
@@ -655,6 +667,7 @@ function renderSessionBar(){
     html += `<button class="btn-out${SESSION===String(i)?" active":""}" data-ss="${i}">${tenBuoi(i)}${n?` <b style="color:var(--gold-dark)">${n}</b>`:""}</button>`;
   }
   $("sessionChips").innerHTML = html;
+  setTimeout(doChieuCaoThanh, 0);
   $("sessionChips").querySelectorAll("[data-ss]").forEach(b=>b.addEventListener("click",()=>{
     SESSION = b.dataset.ss;
     renderSessionBar();
