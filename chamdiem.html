@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v43 · Dán từ buổi khác về cuối buổi</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v45 · Tự giữ chỗ trống · khác buổi về cuối</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1394,6 +1394,8 @@ function renderManage(){
     sel.disabled = true;
     showLoading("Đang chuyển buổi…");
     try{
+      await damBaoChotSo(c.session);               // giữ nguyên số các em ở buổi cũ
+      if(val) await damBaoChotSo(val);             // buổi mới cũng chốt để cấp số tiếp theo
       // Buổi đích đã chốt số -> cấp số tiếp theo; chưa chốt -> bỏ số để tự đánh lại
       const dsDich = DATA.contestants.filter(x=>String(x.row)!==String(row) && String(x.session||"")===String(val));
       let sttMoi = 0;
@@ -1433,6 +1435,7 @@ function renderManage(){
     if(String(pw).trim() !== CONFIG.ADMIN_PASSWORD){ alert("❌ Sai mật khẩu — chưa xóa gì cả."); return; }
     showLoading("Đang xóa…");
     try{
+      await damBaoChotSo(c.session);               // xóa xong chỗ đó bỏ trống, không dồn
       const judges = DATA.scores.filter(s=>String(s.row)===String(row)).map(s=>s.judge);
       await window.FS.remove(row, judges);
       // Xóa xong KHÔNG dồn số: chỗ của em đó để trống, số các em khác giữ nguyên
@@ -1468,16 +1471,22 @@ function renderManage(){
     }
     if(giDen < 0 || !gs[giDen]){ mgCut=null; renderManage(); return; }
 
-    // Em ở BUỔI KHÁC dán sang -> về CUỐI BUỔI đang xem, KHÔNG chen vào giữa.
-    // Các em đã chốt số giữ nguyên vị trí và số của mình.
+    // Xác định buổi ĐÍCH theo em bị dán vào (hoặc theo bộ lọc nếu dán cuối đơn vị)
+    let buoiDich = "";
+    if(rowDich){
+      const tsDich = DATA.contestants.find(x=>String(x.row)===String(rowDich));
+      buoiDich = tsDich ? String(tsDich.session||"") : "";
+    }else if(mgSess && mgSess !== "0"){ buoiDich = String(mgSess); }
+
+    // Em ở BUỔI KHÁC dán sang -> luôn về CUỐI BUỔI ĐÍCH, KHÔNG chen vào bất kỳ đơn vị nào.
     const buoiCu = String(ts.session||"");
-    if(mgSess && mgSess !== "0" && buoiCu !== String(mgSess)){
+    if(buoiDich && buoiCu !== buoiDich){
       if(!confirm(
           "Chuyển \"" + ts.name + "\"\n"
           + "từ: " + (buoiCu ? tenBuoi(buoiCu) : "chưa chia buổi") + "\n"
-          + "sang: " + tenBuoi(mgSess) + "\n\n"
-          + "Thí sinh sẽ nằm CUỐI buổi mới, không chen vào giữa.")) return;
-      const dsDich = DATA.contestants.filter(x=>String(x.row)!==String(ts.row) && String(x.session||"")===String(mgSess));
+          + "sang: " + tenBuoi(buoiDich) + "\n\n"
+          + "Thí sinh sẽ nằm CUỐI buổi mới, không chen vào đơn vị nào.")) return;
+      const dsDich = DATA.contestants.filter(x=>String(x.row)!==String(ts.row) && String(x.session||"")===buoiDich);
       let sttMoi = 0;
       if(dsDich.some(x=>Number(x.stt)>0)){
         dsDich.forEach(x=>{ const s=Number(x.stt)||0; if(s>sttMoi) sttMoi=s; });
@@ -1485,10 +1494,12 @@ function renderManage(){
       }
       let maxO = 0;
       DATA.contestants.forEach(x=>{ const o=Number(x.order)||0; if(o>maxO) maxO=o; });
-      showLoading("Đang chuyển sang " + tenBuoi(mgSess) + "…");
+      showLoading("Đang chuyển sang " + tenBuoi(buoiDich) + "…");
       try{
-        await window.FS.update(ts.row, { session: String(mgSess), order: maxO+1, stt: sttMoi });
-        ts.session = String(mgSess); ts.order = maxO+1; ts.stt = sttMoi;
+        await damBaoChotSo(buoiCu);
+        await damBaoChotSo(buoiDich);
+        await window.FS.update(ts.row, { session: buoiDich, order: maxO+1, stt: sttMoi });
+        ts.session = buoiDich; ts.order = maxO+1; ts.stt = sttMoi;
         DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0));
         mgCut = null;
         doneLoading("Đã chuyển ✓");
@@ -1833,6 +1844,22 @@ function chonThanhVien(idsDangChon, xong){
 }
 
 /* Thêm tiết mục hòa tấu (biểu diễn nhóm, không phải thí sinh dự thi) */
+/* Tự CHỐT SỐ cho một buổi nếu buổi đó chưa chốt.
+   Gọi trước khi có ai rời buổi (xóa / chuyển buổi) -> số các em còn lại đứng yên,
+   chỗ của em vừa đi BỎ TRỐNG, thầy không phải nhớ bấm nút nào. */
+async function damBaoChotSo(buoi){
+  const s = String(buoi||"").trim();
+  if(!s) return;
+  const ds = [];
+  groupByUnit(DATA.contestants.filter(c=>String(c.session||"")===s))
+    .forEach(g=>g.items.forEach(c=>ds.push(c)));
+  if(!ds.length) return;
+  if(ds.some(c=>Number(c.stt)>0)) return;          // đã chốt rồi thì thôi
+  const items = [];
+  ds.forEach((c,i)=>{ items.push({ row:c.row, data:{ stt:i+1 } }); c.stt = i+1; });
+  await window.FS.bulkUpdate(items);
+}
+
 /* Chốt số thứ tự / Dồn số: gán số 1..N theo đúng thứ tự đang hiện của buổi đang chọn.
    Sau khi chốt, ai chuyển đi thì chỗ đó BỎ TRỐNG, các số khác giữ nguyên. */
 $("btnDonSo").addEventListener("click", async ()=>{
