@@ -223,7 +223,7 @@ window.FS = {
         regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
-        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
+        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
         checkin: v.checkin||"", done: v.done||"",
         session: String(v.session||"").trim()
@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v33 · SBD = số thứ tự · bảng rộng hơn</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v37 · Số cố định · để trống khi chuyển đi</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -401,6 +401,8 @@ ensureAuth();
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
           <button class="btn btn-out" id="btnRenameSess" style="padding:9px 13px;font-size:12px">🗓️ Đổi tên buổi</button>
           <button class="btn btn-out" id="btnAddHoaTau" style="padding:9px 13px;font-size:12px">🎼 Thêm tiết mục hòa tấu</button>
+          <button class="btn btn-out" id="btnChiaGio" style="padding:9px 13px;font-size:12px">🕐 Chia khung giờ</button>
+          <button class="btn btn-out" id="btnDonSo" style="padding:9px 13px;font-size:12px">🔢 Chốt / dồn số</button>
         </div>
         <input id="mgSearch" placeholder="🔎 Tìm theo tên / đơn vị…"/>
         <div id="mgHint" style="margin-top:8px;font-size:11px;color:var(--muted);font-weight:600"></div>
@@ -800,6 +802,20 @@ async function post(payload){
 function allCats(){ return [...new Set(DATA.contestants.map(c=>c.category).filter(Boolean))].sort(); }
 
 /* Gom TẤT CẢ thí sinh cùng đơn vị về 1 nhóm (chuẩn hóa: "Cá nhân"="Cá Nhân") */
+/* Bảng SỐ THỨ TỰ của một buổi.
+   - Buổi đã CHỐT SỐ (có em mang số cố định) -> dùng số đã chốt; em chuyển đi thì chỗ đó BỎ TRỐNG.
+   - Chưa chốt -> đánh số theo vị trí hiện tại (tự dịch như trước). */
+function bangSTT(ds){
+  const map = {};
+  const daChot = ds.some(c => Number(c.stt) > 0);
+  if(daChot){
+    ds.forEach(c => { map[String(c.row)] = Number(c.stt) > 0 ? Number(c.stt) : ""; });
+  }else{
+    let k = 0;
+    groupByUnit(ds).forEach(g => g.items.forEach(c => { map[String(c.row)] = ++k; }));
+  }
+  return map;
+}
 function unitKeyOf(c){ return norm((c.unit||"Cá nhân").trim()); }
 function unitLabelOf(c){ const u=(c.unit||"").trim(); return u || "Cá nhân"; }
 function groupByUnit(list){
@@ -832,7 +848,7 @@ function napThuVienExcel(){
   if(window.XLSX) return Promise.resolve(true);
   return new Promise(res=>{
     const s=document.createElement("script");
-    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
     s.onload=()=>res(!!window.XLSX);
     s.onerror=()=>res(false);
     document.head.appendChild(s);
@@ -857,16 +873,30 @@ async function exportCSV(rows, filename){
   if(ok){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
-      data.forEach((r,i)=>{                                     // SĐT giữ dạng chữ
-        const o = XLSX.utils.encode_cell({c:4, r:i+1});
-        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
-      });
-      // Tô đậm dòng tiêu đề
-      cols.forEach((_,ci)=>{
-        const o = XLSX.utils.encode_cell({c:ci, r:0});
-        if(ws[o]) ws[o].s = { font:{ bold:true }, alignment:{ horizontal:"center" } };
-      });
+      const CAM="F4A460", XANH="9FE0E6", DO="C00000";
+      const v1={style:"thin",color:{rgb:"000000"}};
+      const KHUNG={top:v1,bottom:v1,left:v1,right:v1};
+      const FONT={name:"Times New Roman",sz:8};
+      for(let r=0; r<=data.length; r++){
+        for(let c=0; c<cols.length; c++){
+          const o = XLSX.utils.encode_cell({c:c, r:r});
+          if(!ws[o]) ws[o] = { t:"s", v:"" };
+          const laTieuDe=(r===0), laSBD=(c===0);
+          // dòng MỞ ĐẦU khung giờ (cột Giờ diễn có chữ) -> nền xanh, chữ đỏ đậm
+          const moKhung = (r>0 && String(data[r-1][7]||"").trim() !== "");
+          let nen = null;
+          if(laTieuDe || laSBD) nen = CAM; else if(moKhung) nen = XANH;
+          ws[o].s = {
+            font: Object.assign({}, FONT, laTieuDe?{bold:true}:(moKhung?{bold:true,color:{rgb:DO}}:{})),
+            border: KHUNG,
+            alignment: { vertical:"center", horizontal:(laTieuDe||laSBD)?"center":"left" },
+            fill: nen ? { patternType:"solid", fgColor:{rgb:nen} } : undefined
+          };
+          if(r>0 && c===4){ ws[o].t="s"; ws[o].z="@"; }
+        }
+      }
       ws["!cols"] = [{wch:5},{wch:26},{wch:20},{wch:34},{wch:14},{wch:11},{wch:22},{wch:12}];
+      ws["!rows"] = Array.from({length:data.length+1}, ()=>({ hpt:11 }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Danh sách");
       XLSX.writeFile(wb, ten + ".xlsx");
@@ -1012,9 +1042,7 @@ function renderCheckin(){
   else {
     // Số thứ tự CỐ ĐỊNH theo danh sách đầy đủ của buổi đang xem —
     // tìm kiếm hay lọc bảng đều không làm đổi số của thí sinh.
-    // Số thứ tự chạy LIÊN TỤC trong buổi đang xem: hết đơn vị này sang đơn vị kia
-    const sttMap = {};
-    { let k = 0; groupByUnit(all).forEach(g=>g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; })); }
+    const sttMap = bangSTT(all);
     let html = `<div style="overflow-x:auto"><table class="tbl-ci"><thead><tr>
         <th style="width:48px;text-align:center">SBD</th><th style="width:200px">Họ tên</th><th style="width:120px">Đơn vị</th>
         <th>Tác phẩm</th><th style="width:105px">SĐT</th><th style="width:52px;text-align:center">C-in</th>
@@ -1034,7 +1062,9 @@ function renderCheckin(){
         const done = !!c.checkin;
         const feeOk = String(c.fee).indexOf("Đã")===0;
         const noPiece = !c.piece || !String(c.piece).trim();
-        const nenDong = done ? "#F3FBF6" : ((canEdit()&&noPiece) ? "#FFFDF5" : (i%2 ? "#FAFBFC" : "#fff"));
+        const moKhungGio = !!String(c.gio||"").trim();
+        const nenDong = moKhungGio ? "#D6F2F5"
+                      : (done ? "#F3FBF6" : ((canEdit()&&noPiece) ? "#FFFDF5" : (i%2 ? "#FAFBFC" : "#fff")));
         html += `<tr style="background:${nenDong}">
           <td class="tdc" style="text-align:center;font-weight:800;color:var(--navy)">${stt}</td>
           <td class="tdc" style="white-space:nowrap"><b>${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</b>${dsThanhVien(c)}</td>
@@ -1045,7 +1075,7 @@ function renderCheckin(){
           <td class="tdc">${c.phone?`<a href="tel:${esc(String(c.phone).replace(/\D/g,""))}" style="color:#2980B9;font-weight:700;text-decoration:none">${esc(c.phone)}</a>`:"—"}</td>
           <td class="tdc" style="text-align:center">${done?`<span style="color:var(--green);font-weight:800">✓</span>`:`<span style="color:var(--muted)">Chưa</span>`}</td>
           <td class="tdc">${c.session?esc(tenBuoi(c.session)):`<span style="color:#C0202A">chưa chia</span>`}</td>
-          <td class="tdc" style="text-align:center;color:#2980B9;font-weight:700">${c.gio?esc(c.gio):""}</td>
+          <td class="tdc" style="text-align:center;color:#C00000;font-weight:800;white-space:nowrap">${c.gio?esc(c.gio):""}</td>
           <td class="tdc" style="text-align:center;white-space:nowrap">
             ${!canEdit()? (done?"✓":"—") :
             `<button class="btn ${done?"btn-out":"btn-gold"}" style="padding:4px 8px;font-size:11px" data-ci="${c.row}" data-un="${done?1:0}">${done?"Hủy":"Check-in"}</button>
@@ -1111,9 +1141,7 @@ function renderJudge(){
 
   if(list.length===0){ $("jvList").innerHTML = `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>`; }
   else {
-    // Số thứ tự chạy LIÊN TỤC trong buổi đang xem
-    const sttMap = {};
-    { let k = 0; groupByUnit(toanBo).forEach(g=>g.items.forEach(c=>{ sttMap[String(c.row)] = ++k; })); }
+    const sttMap = bangSTT(toanBo);
     let html="";
     const jvGroups = groupByUnit(list);
     window.__jvGroups = jvGroups;
@@ -1261,10 +1289,8 @@ function renderManage(){
   const hopBuoi = c => (mgSess==="" ? true : (mgSess==="0" ? !String(c.session||"").trim() : String(c.session||"")===mgSess));
   const hop = c => hopBuoi(c) && (!q || norm(c.name).includes(q) || norm(c.unit||"").includes(q));
 
-  // Số thứ tự GIỐNG HỆT màn Check-in: chạy liên tục qua các đơn vị theo buổi đang lọc.
-  // Không phụ thuộc ô tìm kiếm -> tìm tên vẫn giữ đúng số.
-  const mgStt = {};
-  { let k = 0; groups.forEach(g=>g.items.forEach(c=>{ if(hopBuoi(c)) mgStt[String(c.row)] = ++k; })); }
+  // Giống hệt màn Check-in
+  const mgStt = bangSTT(DATA.contestants.filter(hopBuoi));
   let html = "", hienThi = 0;
   groups.forEach((g, gi)=>{
     const items = g.items.filter(hop);
@@ -1347,8 +1373,15 @@ function renderManage(){
     sel.disabled = true;
     showLoading("Đang chuyển buổi…");
     try{
-      await window.FS.update(row, { session: val });
-      c.session = val;
+      // Buổi đích đã chốt số -> cấp số tiếp theo; chưa chốt -> bỏ số để tự đánh lại
+      const dsDich = DATA.contestants.filter(x=>String(x.row)!==String(row) && String(x.session||"")===String(val));
+      let sttMoi = 0;
+      if(val && dsDich.some(x=>Number(x.stt)>0)){
+        dsDich.forEach(x=>{ const s=Number(x.stt)||0; if(s>sttMoi) sttMoi=s; });
+        sttMoi += 1;
+      }
+      await window.FS.update(row, { session: val, stt: sttMoi });
+      c.session = val; c.stt = sttMoi;
       // ĐẨY VỀ CUỐI đơn vị của em đó, giữ nguyên thứ tự các đơn vị và mọi em khác
       const gs = groupByUnit(DATA.contestants);
       gs.forEach(g=>{ const k=g.items.findIndex(x=>String(x.row)===String(row)); if(k>=0) g.items.splice(k,1); });
@@ -1751,6 +1784,99 @@ function chonThanhVien(idsDangChon, xong){
 }
 
 /* Thêm tiết mục hòa tấu (biểu diễn nhóm, không phải thí sinh dự thi) */
+/* Chốt số thứ tự / Dồn số: gán số 1..N theo đúng thứ tự đang hiện của buổi đang chọn.
+   Sau khi chốt, ai chuyển đi thì chỗ đó BỎ TRỐNG, các số khác giữ nguyên. */
+$("btnDonSo").addEventListener("click", async ()=>{
+  if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới làm được."); return; }
+  if(mgSess === "" || mgSess === "0"){
+    alert("Hãy chọn một BUỔI cụ thể trước khi chốt / dồn số.\n(Bấm nút Buổi 1 / Buổi 2… ở trên)");
+    return;
+  }
+  const ds = [];
+  mgGroups().forEach(g=>g.items.forEach(c=>{ if(String(c.session||"")===String(mgSess)) ds.push(c); }));
+  if(!ds.length){ alert("Buổi này chưa có thí sinh."); return; }
+  const daChot = ds.some(c=>Number(c.stt)>0);
+  const soTrong = ds.filter(c=>!(Number(c.stt)>0)).length;
+  if(!confirm(
+      (daChot ? "DỒN SỐ cho " : "CHỐT SỐ cho ")
+      + tenBuoi(mgSess) + " — " + ds.length + " thí sinh.\n\n"
+      + (daChot ? "Đánh lại số 1.." + ds.length + ", xóa hết chỗ trống.\n" : "Từ nay số cố định: ai chuyển đi thì chỗ đó bỏ trống.\n")
+      + (soTrong ? ("Có " + soTrong + " em chưa có số sẽ được cấp.\n") : "")
+      + "\nTiếp tục?")) return;
+  showLoading("Đang đánh số…");
+  try{
+    const items = [];
+    ds.forEach((c,i)=>{ const s=i+1; if(Number(c.stt)!==s){ items.push({row:c.row, data:{stt:s}}); c.stt=s; } });
+    if(items.length) await window.FS.bulkUpdate(items);
+    doneLoading("Đã đánh số ✓");
+    renderManage();
+  }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+});
+
+/* Chia khung giờ tự động: cứ N thí sinh là 1 tiếng, ghi giờ vào em MỞ ĐẦU mỗi khung */
+$("btnChiaGio").addEventListener("click", ()=>{
+  if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới chia được."); return; }
+  if(mgSess === "" || mgSess === "0"){
+    alert("Hãy chọn một BUỔI cụ thể trước khi chia khung giờ.\n(Bấm nút Buổi 1 / Buổi 2… ở trên)");
+    return;
+  }
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+  const ip = 'style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:10px"';
+  const lb = 'style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px"';
+  ov.innerHTML =
+    '<div style="background:#fff;border-radius:16px;padding:18px;max-width:400px;width:100%">'
+    + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:4px">🕐 Chia khung giờ</div>'
+    + '<div style="font-size:11px;color:#6B7280;margin-bottom:12px">Áp dụng cho <b>' + esc(tenBuoi(mgSess)) + '</b>. Ghi giờ vào thí sinh mở đầu mỗi khung.</div>'
+    + '<label ' + lb + '>Giờ bắt đầu</label>'
+    + '<input id="cg_bd" value="07:00" placeholder="VD: 07:00" ' + ip + '/>'
+    + '<label ' + lb + '>Số thí sinh mỗi khung</label>'
+    + '<input id="cg_so" type="number" value="25" min="1" ' + ip + '/>'
+    + '<label ' + lb + '>Mỗi khung kéo dài (phút)</label>'
+    + '<input id="cg_phut" type="number" value="60" min="5" ' + ip + '/>'
+    + '<div id="cg_msg" style="font-size:12px;margin-bottom:6px"></div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button id="cg_ok" style="flex:1;background:#D4AF37;color:#1A1A2E;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">✔ Chia</button>'
+    + '<button id="cg_huy" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>'
+    + '</div></div>';
+  document.body.appendChild(ov);
+  const close = ()=>ov.remove();
+  ov.querySelector("#cg_huy").onclick = close;
+
+  ov.querySelector("#cg_ok").onclick = async ()=>{
+    const bd = String(ov.querySelector("#cg_bd").value||"").trim();
+    const m = bd.match(/^(\d{1,2})[:h.]?(\d{0,2})$/);
+    if(!m){ ov.querySelector("#cg_msg").innerHTML='<span style="color:#C0202A">Giờ bắt đầu chưa đúng (VD 07:00)</span>'; return; }
+    let phutBD = Number(m[1])*60 + Number(m[2]||0);
+    const soMoiKhung = Math.max(1, Number(ov.querySelector("#cg_so").value)||25);
+    const dai = Math.max(5, Number(ov.querySelector("#cg_phut").value)||60);
+    const dinhDang = p => {
+      const gg = Math.floor((p%1440)/60), pp = p%60;
+      return String(gg).padStart(2,"0") + "h" + (pp ? String(pp).padStart(2,"0") : "");
+    };
+    // danh sách thí sinh của buổi này, đúng thứ tự biểu diễn
+    const ds = [];
+    mgGroups().forEach(g=>g.items.forEach(c=>{ if(String(c.session||"")===String(mgSess)) ds.push(c); }));
+    if(!ds.length){ ov.querySelector("#cg_msg").innerHTML='<span style="color:#C0202A">Buổi này chưa có thí sinh</span>'; return; }
+
+    const items = [];
+    ds.forEach((c,i)=>{
+      const moKhung = (i % soMoiKhung === 0);
+      const p = phutBD + Math.floor(i/soMoiKhung)*dai;
+      const gioMoi = moKhung ? (dinhDang(p) + "-" + dinhDang(p+dai)) : "";
+      if(String(c.gio||"") !== gioMoi){ items.push({ row:c.row, data:{ gio:gioMoi } }); c.gio = gioMoi; }
+    });
+    const soKhung = Math.ceil(ds.length/soMoiKhung);
+    close();
+    showLoading("Đang chia " + soKhung + " khung giờ…");
+    try{
+      if(items.length) await window.FS.bulkUpdate(items);
+      doneLoading("Đã chia ✓");
+      renderManage();
+    }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); }
+  };
+});
+
 $("btnAddHoaTau").addEventListener("click", ()=>{
   if(!canEdit()){ alert("Chỉ mục Check-in / Kết quả / In bằng mới thêm được."); return; }
   const ov = document.createElement("div");
@@ -2031,10 +2157,23 @@ $("btnCsv").addEventListener("click", async ()=>{
   if(ok){
     try{
       const ws = XLSX.utils.aoa_to_sheet([cols].concat(data));
-      data.forEach((r,i)=>{                       // SĐT giữ dạng chữ
-        const o = XLSX.utils.encode_cell({c:5, r:i+1});
-        if(ws[o]){ ws[o].t="s"; ws[o].z="@"; }
-      });
+      const C2="F4A460", w2={style:"thin",color:{rgb:"000000"}};
+      const K2={top:w2,bottom:w2,left:w2,right:w2}, F2={name:"Times New Roman",sz:8};
+      for(let r=0; r<=data.length; r++){
+        for(let c=0; c<cols.length; c++){
+          const o = XLSX.utils.encode_cell({c:c, r:r});
+          if(!ws[o]) ws[o] = { t:"s", v:"" };
+          const td=(r===0), c0=(c===0);
+          ws[o].s = {
+            font: Object.assign({}, F2, td?{bold:true}:{}),
+            border: K2,
+            alignment: { vertical:"center", horizontal:(td||c0)?"center":"left" },
+            fill: (td||c0) ? { patternType:"solid", fgColor:{rgb:C2} } : undefined
+          };
+          if(r>0 && c===5){ ws[o].t="s"; ws[o].z="@"; }
+        }
+      }
+      ws["!rows"]=Array.from({length:data.length+1},()=>({hpt:11}));
       ws["!cols"]=[{wch:6},{wch:24},{wch:18},{wch:22},{wch:26},{wch:13},{wch:12},
                    {wch:10},{wch:9},{wch:12},{wch:12},{wch:10}];
       const wb = XLSX.utils.book_new();
