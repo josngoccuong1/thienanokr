@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v42 · Chỉ 1 tiêu đề đầu bảng</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v43 · Dán từ buổi khác về cuối buổi</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1467,6 +1467,35 @@ function renderManage(){
       gs.forEach((g,gi)=>{ const k=g.items.findIndex(x=>String(x.row)===String(rowDich)); if(k>=0){ giDen=gi; iDen=k; } });
     }
     if(giDen < 0 || !gs[giDen]){ mgCut=null; renderManage(); return; }
+
+    // Em ở BUỔI KHÁC dán sang -> về CUỐI BUỔI đang xem, KHÔNG chen vào giữa.
+    // Các em đã chốt số giữ nguyên vị trí và số của mình.
+    const buoiCu = String(ts.session||"");
+    if(mgSess && mgSess !== "0" && buoiCu !== String(mgSess)){
+      if(!confirm(
+          "Chuyển \"" + ts.name + "\"\n"
+          + "từ: " + (buoiCu ? tenBuoi(buoiCu) : "chưa chia buổi") + "\n"
+          + "sang: " + tenBuoi(mgSess) + "\n\n"
+          + "Thí sinh sẽ nằm CUỐI buổi mới, không chen vào giữa.")) return;
+      const dsDich = DATA.contestants.filter(x=>String(x.row)!==String(ts.row) && String(x.session||"")===String(mgSess));
+      let sttMoi = 0;
+      if(dsDich.some(x=>Number(x.stt)>0)){
+        dsDich.forEach(x=>{ const s=Number(x.stt)||0; if(s>sttMoi) sttMoi=s; });
+        sttMoi += 1;
+      }
+      let maxO = 0;
+      DATA.contestants.forEach(x=>{ const o=Number(x.order)||0; if(o>maxO) maxO=o; });
+      showLoading("Đang chuyển sang " + tenBuoi(mgSess) + "…");
+      try{
+        await window.FS.update(ts.row, { session: String(mgSess), order: maxO+1, stt: sttMoi });
+        ts.session = String(mgSess); ts.order = maxO+1; ts.stt = sttMoi;
+        DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0));
+        mgCut = null;
+        doneLoading("Đã chuyển ✓");
+        renderManage();
+      }catch(e){ hideLoading(); alert("Lỗi: "+(e.message||e)); renderManage(); }
+      return;
+    }
 
     const doiDonVi = (giDen !== giTu);
     if(doiDonVi && !confirm(
