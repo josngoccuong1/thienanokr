@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v37 · Số cố định · để trống khi chuyển đi</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v38 · Chuyển buổi về cuối · số luôn để trống</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1003,6 +1003,7 @@ function openEditInfo(row){
         c.name=name; c.piece=piece; c.category=category; c.phone=phone; c.gio=gio;
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         if(doiDonVi){
+          // Đổi đơn vị KHÔNG đụng số đã chốt (stt) — chỉ đổi chỗ đứng.
           // Giữ NGUYÊN thứ tự các đơn vị đang có, chỉ chuyển em này xuống CUỐI đơn vị mới.
           const gsTruoc = groupByUnit(DATA.contestants);            // chụp lại thứ tự hiện tại
           gsTruoc.forEach(g=>{ const k=g.items.findIndex(x=>String(x.row)===String(row)); if(k>=0) g.items.splice(k,1); });
@@ -1244,6 +1245,8 @@ function xinMatKhauSapXep(){
 
 /* Ghi lại thứ tự mới — chỉ cập nhật những em thực sự đổi chỗ */
 async function applyOrder(flat){
+  // CHỈ đổi thứ tự hiển thị (order). KHÔNG đụng tới số đã chốt (stt) ->
+  // chỗ của em đã chuyển đi vẫn bỏ trống, số các em khác giữ nguyên.
   const changed = [];
   flat.forEach((c,i)=>{
     const want = i+1;
@@ -1382,15 +1385,13 @@ function renderManage(){
       }
       await window.FS.update(row, { session: val, stt: sttMoi });
       c.session = val; c.stt = sttMoi;
-      // ĐẨY VỀ CUỐI đơn vị của em đó, giữ nguyên thứ tự các đơn vị và mọi em khác
-      const gs = groupByUnit(DATA.contestants);
-      gs.forEach(g=>{ const k=g.items.findIndex(x=>String(x.row)===String(row)); if(k>=0) g.items.splice(k,1); });
-      const kDV = norm(c.unit||"Cá nhân");
-      let nhom = gs.find(g=>norm(g.label||"Cá nhân")===kDV);
-      if(!nhom){ nhom = { label: c.unit||"Cá nhân", items: [] }; gs.push(nhom); }
-      nhom.items.push(c);
-      const phang = []; gs.forEach(g=>g.items.forEach(x=>phang.push(x)));
-      await applyOrder(phang);
+      // ĐẨY XUỐNG CUỐI BUỔI MỚI (đứng riêng, KHÔNG chen vào đơn vị nào),
+      // giữ nguyên thứ tự và vị trí của mọi thí sinh khác.
+      let maxO = 0;
+      DATA.contestants.forEach(x=>{ const o=Number(x.order)||0; if(o>maxO) maxO=o; });
+      await window.FS.update(row, { order: maxO + 1 });
+      c.order = maxO + 1;
+      DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0));
       doneLoading("Đã chuyển ✓");
       renderManage();
     }catch(e){ hideLoading(); alert("Lỗi lưu buổi: "+(e.message||e)); sel.disabled=false; }
@@ -1416,6 +1417,7 @@ function renderManage(){
     try{
       const judges = DATA.scores.filter(s=>String(s.row)===String(row)).map(s=>s.judge);
       await window.FS.remove(row, judges);
+      // Xóa xong KHÔNG dồn số: chỗ của em đó để trống, số các em khác giữ nguyên
       DATA.contestants = DATA.contestants.filter(x=>String(x.row)!==String(row));
       DATA.scores      = DATA.scores.filter(s=>String(s.row)!==String(row));
       doneLoading("Đã xóa ✓");
