@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v45 · Tự giữ chỗ trống · khác buổi về cuối</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v46 · Sửa được số thứ tự từng em</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -779,6 +779,7 @@ async function post(payload){
       if(payload.unit     != null) data.unit     = payload.unit;
       if(payload.phone    != null) data.phone    = payload.phone;
       if(payload.gio      != null) data.gio      = payload.gio;
+      if(payload.stt      != null) data.stt      = Number(payload.stt)||0;
       if(payload.order    != null) data.order    = Number(payload.order);
       if(payload.members  != null) data.members  = payload.members;
       if(payload.memberIds!= null) data.memberIds= payload.memberIds;
@@ -972,6 +973,9 @@ function openEditInfo(row){
           <input id="ei_mem" value="${esc(c.members||"")}" placeholder="Gõ tay hoặc bấm Chọn →" style="flex:1;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px"/>
           <button type="button" id="ei_pick" style="background:#1A1A2E;color:#fff;border:none;border-radius:9px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap">👥 Chọn</button>
         </div>`:""}
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">🔢 Số thứ tự (SBD)</label>
+        <input id="ei_stt" type="number" min="0" value="${Number(c.stt)||""}" placeholder="Để trống = chưa có số" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:4px"/>
+        <div style="font-size:11px;color:#6B7280;margin-bottom:12px">Đổi số riêng em này, không ảnh hưởng ai khác. Trùng số với em khác thì app sẽ báo.</div>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">🕐 Giờ diễn</label>
         <input id="ei_gio" value="${esc(c.gio||"")}" placeholder="VD: 07h-08h" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:12px"/>
         <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px">📞 Số điện thoại</label>
@@ -1016,13 +1020,22 @@ function openEditInfo(row){
     try{
       const phone = ov.querySelector("#ei_phone").value.trim();
       const gio = ov.querySelector("#ei_gio").value.trim();
+      const sttMoi = Number(ov.querySelector("#ei_stt").value) || 0;
+      if(sttMoi !== (Number(c.stt)||0)){
+        const trung = DATA.contestants.find(x=>String(x.row)!==String(row)
+                     && String(x.session||"")===String(c.session||"")
+                     && Number(x.stt) === sttMoi && sttMoi > 0);
+        if(trung && !confirm("Số " + sttMoi + " đang là của \"" + trung.name + "\".\n\nVẫn đặt số này? (sẽ có 2 em trùng số)")){
+          btn.disabled=false; btn.textContent="💾 Lưu"; return;
+        }
+      }
       const memInp = ov.querySelector("#ei_mem");
       const members = memInp ? memInp.value.trim() : null;
       const memberIds = memInp ? eiIds : null;
       const doiDonVi = (norm(unit||"Cá nhân") !== norm(c.unit||"Cá nhân"));
-      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, gio, members, memberIds});
+      const d = await post({action:"editinfo", row, name, piece, category, unit, phone, gio, stt:sttMoi, members, memberIds});
       if(d.ok){
-        c.name=name; c.piece=piece; c.category=category; c.phone=phone; c.gio=gio;
+        c.name=name; c.piece=piece; c.category=category; c.phone=phone; c.gio=gio; c.stt=sttMoi;
         if(members!==null){ c.members=members; c.memberIds=memberIds||[]; }
         if(doiDonVi){
           // Đổi đơn vị KHÔNG đụng số đã chốt (stt) — chỉ đổi chỗ đứng.
