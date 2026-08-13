@@ -179,7 +179,7 @@ input:focus,select:focus{outline:none;border-color:var(--gold)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, getDocs, updateDoc, setDoc, writeBatch, deleteDoc }
+import { getFirestore, collection, doc, getDocs, updateDoc, setDoc, writeBatch, deleteDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ⚠️ NẾU BÁO "invalid-api-key": dán đè khối này bằng firebaseConfig từ Firebase Console */
@@ -199,6 +199,22 @@ const fbApp = initializeApp(firebaseConfig);
 const auth  = getAuth(fbApp);
 const db    = getFirestore(fbApp);
 const C_TS  = "festival_contestants";
+/* Đọc 1 bản ghi thí sinh từ Firestore về dạng app dùng */
+function docTS(d){
+  const v = d.data();
+  return {
+    row: d.id, order: Number(v.order) || 0,
+    regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
+    name: v.name||"", dob: v.dob||"", gender: v.gender||"",
+    category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
+    minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau,
+    members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, boThi: !!v.boThi,
+    memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
+    fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
+    checkin: v.checkin||"", done: v.done||"",
+    session: String(v.session||"").trim()
+  };
+}
 const C_SC  = "festival_scores";
 
 async function ensureAuth(){
@@ -208,6 +224,29 @@ async function ensureAuth(){
 }
 
 window.FS = {
+  /* Lắng nghe thay đổi TỨC THÌ: máy khác check-in là máy này tự hiện, khỏi bấm Làm mới */
+  langNghe(khiDoi){
+    ensureAuth().then(()=>{
+      onSnapshot(collection(db, C_TS), snap=>{
+        const ds = [];
+        snap.forEach(d=>ds.push(docTS(d)));
+        ds.sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+        khiDoi({ contestants: ds });
+      }, err=>console.warn("Theo dõi thí sinh:", err.code||err.message));
+
+      onSnapshot(collection(db, C_SC), snap=>{
+        const ss = [];
+        snap.forEach(d=>{
+          const v = d.data();
+          ss.push({ row: v.contestantId, sbd: v.sbd, name: v.name, category: v.category,
+            judge: v.judge, technique: Number(v.technique)||0, music: Number(v.music)||0,
+            perform: Number(v.perform)||0, total: Number(v.total)||0 });
+        });
+        khiDoi({ scores: ss });
+      }, err=>console.warn("Theo dõi điểm:", err.code||err.message));
+    });
+  },
+
   async loadAll(){
     await ensureAuth();
     const [cs, ss] = await Promise.all([
@@ -335,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v53 · Chuyển buổi về cuối, giữ tên đơn vị</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v54 · Tự cập nhật giữa các máy</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -585,6 +624,7 @@ async function login(){
   showLoading("Đang đăng nhập…");
   await loadData(true);
   doneLoading("Đã vào ✓");
+  batDauTheoDoi();          // từ đây máy khác đổi gì là tự hiện
   b.disabled=false; b.textContent=old;
   showRole();
 }
@@ -611,7 +651,8 @@ function showRole(){
   renderViewBar();
   if(VIEW!=="manage") renderSessionBar();
   const me = ROLES.find(r=>r.key===ROLE);
-  $("barInfo").textContent = (me? me.ic+" "+(ROLE==="judge"?JUDGE:me.nm) : "") + (canEdit()? "" : " · đang xem");
+  $("barInfo").innerHTML = esc((me? me.ic+" "+(ROLE==="judge"?JUDGE:me.nm) : "") + (canEdit()? "" : " · đang xem"))
+    + (dangTheoDoi ? ' <span style="color:var(--green);font-weight:700">· 🟢 tự cập nhật</span>' : "");
   setTimeout(doChieuCaoThanh, 0);
   if(VIEW==="checkin"){ $("checkinView").classList.remove("hidden"); renderCheckin(); }
   else if(VIEW==="judge"){ $("judgeView").classList.remove("hidden"); renderJudge(); }
@@ -698,6 +739,38 @@ function doneLoading(msg){
 function hideLoading(){ $("loadingToast").style.display="none"; }
 
 /* ================= TẢI DỮ LIỆU ================= */
+/* ===== TỰ CẬP NHẬT KHI MÁY KHÁC THAY ĐỔI =====
+   Không vẽ lại khi đang mở form / đang kéo thả / đang gõ vào ô, để khỏi mất thao tác. */
+let dangTheoDoi = false, choVeLai = false;
+function dangBanRon(){
+  if(mgDrag) return true;                                        // đang kéo thả
+  if(!$("scoreView").classList.contains("hidden")) return true;   // đang chấm điểm
+  const a = document.activeElement;
+  if(a && ["INPUT","SELECT","TEXTAREA"].includes(a.tagName)) return true;  // đang gõ
+  if(document.querySelector('div[style*="z-index:99999"],div[style*="z-index:100000"]')) return true; // đang mở form
+  return false;
+}
+function veLaiManHinh(){
+  if(dangBanRon()){ choVeLai = true; return; }
+  choVeLai = false;
+  if(VIEW==="checkin") renderCheckin();
+  else if(VIEW==="judge") renderJudge();
+  else if(VIEW==="manage") renderManage();
+  else renderResults();
+  renderSessionBar();
+}
+setInterval(()=>{ if(choVeLai && !dangBanRon()) veLaiManHinh(); }, 1200);
+
+function batDauTheoDoi(){
+  if(dangTheoDoi || !window.FS || !window.FS.langNghe) return;
+  dangTheoDoi = true;
+  window.FS.langNghe(d=>{
+    if(d.contestants) DATA.contestants = d.contestants;
+    if(d.scores)      DATA.scores      = d.scores;
+    if(ROLE) veLaiManHinh();
+  });
+}
+
 async function loadData(silent){
   if(!silent) $("barInfo").textContent = "Đang tải…";
   try{
