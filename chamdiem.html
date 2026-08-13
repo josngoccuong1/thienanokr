@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v50 · Chèn dòng · gõ sửa số như Excel</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v51 · Chèn dòng chỉ cần số thứ tự</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1478,14 +1478,15 @@ function renderManage(){
       '<div style="background:#fff;border-radius:16px;padding:18px;max-width:400px;width:100%">'
       + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:4px">➕ Chèn thí sinh</div>'
       + '<div style="font-size:11px;color:#6B7280;margin-bottom:12px">Chèn ngay dưới <b>' + esc(tren.name) + '</b> · đơn vị <b>' + esc(tren.unit||"Cá nhân") + '</b> · ' + esc(tren.session?tenBuoi(tren.session):"chưa chia buổi") + '</div>'
-      + '<label ' + lb + '>Họ tên <span style="color:#C0202A">*</span></label>'
-      + '<input id="cn_ten" ' + ip + '/>'
+      + '<label ' + lb + '>Số thứ tự</label>'
+      + '<input id="cn_stt" type="number" min="0" inputmode="numeric" ' + ip + '/>'
+      + '<div style="font-size:11px;color:#6B7280;margin:-4px 0 12px">Chỉ cần số này là chèn được — các ô dưới điền sau cũng được.</div>'
+      + '<label ' + lb + '>Họ tên</label>'
+      + '<input id="cn_ten" placeholder="Điền sau cũng được" ' + ip + '/>'
       + '<label ' + lb + '>Tác phẩm</label>'
       + '<input id="cn_bai" placeholder="Tên bài" ' + ip + '/>'
       + '<label ' + lb + '>Số điện thoại</label>'
       + '<input id="cn_sdt" type="tel" ' + ip + '/>'
-      + '<label ' + lb + '>Số thứ tự (để trống nếu chưa cần)</label>'
-      + '<input id="cn_stt" type="number" min="0" ' + ip + '/>'
       + '<div id="cn_msg" style="font-size:12px;margin-bottom:6px"></div>'
       + '<div style="display:flex;gap:8px">'
       + '<button id="cn_ok" style="flex:1;background:#27AE60;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">➕ Chèn</button>'
@@ -1494,16 +1495,18 @@ function renderManage(){
     document.body.appendChild(ov);
     const close = ()=>ov.remove();
     ov.querySelector("#cn_huy").onclick = close;
-    ov.querySelector("#cn_ten").focus();
+    ov.querySelector("#cn_stt").focus();
+    ov.querySelector("#cn_stt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ov.querySelector("#cn_ok").click(); } });
     ov.querySelector("#cn_ok").onclick = async ()=>{
       const ten = ov.querySelector("#cn_ten").value.trim();
-      if(!ten){ ov.querySelector("#cn_msg").innerHTML='<span style="color:#C0202A">Chưa nhập họ tên</span>'; return; }
+      const soTT = Number(ov.querySelector("#cn_stt").value) || 0;
+      if(!soTT && !ten){ ov.querySelector("#cn_msg").innerHTML='<span style="color:#C0202A">Điền số thứ tự (hoặc họ tên)</span>'; return; }
       ov.querySelector("#cn_msg").innerHTML='<span style="color:#6B7280">Đang chèn…</span>';
       try{
         const id = await window.FS.addItem({
           order: (Number(tren.order)||0) + 0.5,          // nằm ngay dưới dòng đang chọn
-          stt: Number(ov.querySelector("#cn_stt").value) || 0,
-          name: ten,
+          stt: soTT,
+          name: ten || "(chưa có tên)",
           piece: ov.querySelector("#cn_bai").value.trim(),
           phone: ov.querySelector("#cn_sdt").value.trim(),
           unit: tren.unit || "", session: String(tren.session||""),
@@ -1512,7 +1515,7 @@ function renderManage(){
           createdAt: new Date().toISOString()
         });
         DATA.contestants.push({ row:id, order:(Number(tren.order)||0)+0.5,
-          stt: Number(ov.querySelector("#cn_stt").value) || 0, name:ten,
+          stt: soTT, name: ten || "(chưa có tên)",
           piece: ov.querySelector("#cn_bai").value.trim(),
           phone: ov.querySelector("#cn_sdt").value.trim(),
           unit: tren.unit||"", session: String(tren.session||""),
