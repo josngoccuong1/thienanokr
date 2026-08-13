@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v51 · Chèn dòng chỉ cần số thứ tự</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v52 · Chèn dòng chọn được đơn vị</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1474,6 +1474,13 @@ function renderManage(){
     ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
     const ip = 'style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:10px"';
     const lb = 'style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px"';
+    // Danh sách đơn vị đang có — mặc định lấy theo dòng phía trên
+    const dvCo = [...new Set(DATA.contestants.map(x=>(x.unit||"").trim()).filter(Boolean))]
+      .sort((a,b)=>norm(a).localeCompare(norm(b)));
+    const dvTren = (tren.unit||"").trim();
+    const dvOpts = ['<option value="">— Cá nhân —</option>']
+      .concat(dvCo.map(x=>`<option${norm(x)===norm(dvTren)?" selected":""}>${esc(x)}</option>`))
+      .concat([`<option value="__moi__">➕ Đơn vị khác (gõ tay)…</option>`]).join("");
     ov.innerHTML =
       '<div style="background:#fff;border-radius:16px;padding:18px;max-width:400px;width:100%">'
       + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:4px">➕ Chèn thí sinh</div>'
@@ -1487,6 +1494,9 @@ function renderManage(){
       + '<input id="cn_bai" placeholder="Tên bài" ' + ip + '/>'
       + '<label ' + lb + '>Số điện thoại</label>'
       + '<input id="cn_sdt" type="tel" ' + ip + '/>'
+      + '<label ' + lb + '>Đơn vị</label>'
+      + '<select id="cn_dv" ' + ip + '>' + dvOpts + '</select>'
+      + '<input id="cn_dv_moi" placeholder="Gõ tên đơn vị mới" style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:10px;display:none"/>'
       + '<div id="cn_msg" style="font-size:12px;margin-bottom:6px"></div>'
       + '<div style="display:flex;gap:8px">'
       + '<button id="cn_ok" style="flex:1;background:#27AE60;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">➕ Chèn</button>'
@@ -1495,11 +1505,18 @@ function renderManage(){
     document.body.appendChild(ov);
     const close = ()=>ov.remove();
     ov.querySelector("#cn_huy").onclick = close;
+    ov.querySelector("#cn_dv").addEventListener("change", e=>{
+      const moi = e.target.value === "__moi__";
+      ov.querySelector("#cn_dv_moi").style.display = moi ? "block" : "none";
+      if(moi) ov.querySelector("#cn_dv_moi").focus();
+    });
     ov.querySelector("#cn_stt").focus();
     ov.querySelector("#cn_stt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ov.querySelector("#cn_ok").click(); } });
     ov.querySelector("#cn_ok").onclick = async ()=>{
       const ten = ov.querySelector("#cn_ten").value.trim();
       const soTT = Number(ov.querySelector("#cn_stt").value) || 0;
+      let dvChon = ov.querySelector("#cn_dv").value;
+      if(dvChon === "__moi__") dvChon = ov.querySelector("#cn_dv_moi").value.trim();
       if(!soTT && !ten){ ov.querySelector("#cn_msg").innerHTML='<span style="color:#C0202A">Điền số thứ tự (hoặc họ tên)</span>'; return; }
       ov.querySelector("#cn_msg").innerHTML='<span style="color:#6B7280">Đang chèn…</span>';
       try{
@@ -1509,7 +1526,7 @@ function renderManage(){
           name: ten || "(chưa có tên)",
           piece: ov.querySelector("#cn_bai").value.trim(),
           phone: ov.querySelector("#cn_sdt").value.trim(),
-          unit: tren.unit || "", session: String(tren.session||""),
+          unit: dvChon || "", session: String(tren.session||""),
           category: "", dob:"", gender:"", teacher:"", contact:"", minutes:"", gio:"",
           feeStatus: "Chờ duyệt", sbd: null, checkin: "", done: "",
           createdAt: new Date().toISOString()
@@ -1518,7 +1535,7 @@ function renderManage(){
           stt: soTT, name: ten || "(chưa có tên)",
           piece: ov.querySelector("#cn_bai").value.trim(),
           phone: ov.querySelector("#cn_sdt").value.trim(),
-          unit: tren.unit||"", session: String(tren.session||""),
+          unit: dvChon||"", session: String(tren.session||""),
           category:"", dob:"", gender:"", teacher:"", contact:"", minutes:"", gio:"",
           fee:"Chờ duyệt", sbd:"", checkin:"", done:"" });
         DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0));
