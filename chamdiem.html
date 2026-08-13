@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v52 · Chèn dòng chọn được đơn vị</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v53 · Chuyển buổi về cuối, giữ tên đơn vị</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -842,23 +842,20 @@ function hangTieuDe(){
 function unitKeyOf(c){ return norm((c.unit||"Cá nhân").trim()); }
 function unitLabelOf(c){ const u=(c.unit||"").trim(); return u || "Cá nhân"; }
 function groupByUnit(list){
-  // Thứ tự các ĐƠN VỊ luôn tính trên TOÀN BỘ danh sách, không phụ thuộc đang lọc buổi nào
-  // -> mọi màn hình (Check-in, Điểm danh, Sắp xếp) đều hiện CÙNG một thứ tự đơn vị.
-  const mocDonVi = {};
-  (DATA.contestants||[]).forEach(c=>{
-    const k = unitKeyOf(c), o = Number(c.order)||999999;
-    if(!(k in mocDonVi) || o < mocDonVi[k]) mocDonVi[k] = o;
+  // Gom theo ĐOẠN LIỀN NHAU theo đúng thứ tự biểu diễn: gặp đơn vị khác thì mở cụm mới.
+  // Nhờ vậy em chuyển buổi nằm ở CUỐI BUỔI vẫn GIỮ ĐÚNG TÊN ĐƠN VỊ của mình,
+  // không bị kéo về giữa danh sách.
+  const ds = [...list].sort((x,y)=>(Number(x.order)||999999)-(Number(y.order)||999999));
+  const groups = [];
+  let cum = null;
+  ds.forEach(c=>{
+    const k = unitKeyOf(c);
+    if(!cum || cum.key !== k){
+      cum = { key:k, label:unitLabelOf(c), items:[], minRow:Number(c.order)||999999 };
+      groups.push(cum);
+    }
+    cum.items.push(c);
   });
-  const map={};
-  list.forEach(c=>{
-    const k=unitKeyOf(c);   // "Cá nhân" và "Cá Nhân" gộp làm 1
-    if(!(k in map)){ map[k]={key:k, label:unitLabelOf(c), items:[], minRow: (k in mocDonVi ? mocDonVi[k] : (Number(c.order)||999999))}; }
-    map[k].items.push(c);
-  });
-  const groups=Object.values(map);
-  groups.sort((a,b)=>a.minRow-b.minRow);
-  // Trong mỗi nhóm cũng theo thứ tự biểu diễn
-  groups.forEach(g=>g.items.sort((x,y)=>(Number(x.order)||999999)-(Number(y.order)||999999)));
   return groups;
 }
 /* Xuất danh sách ra CSV (mở bằng Excel) */
