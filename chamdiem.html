@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v48 · Chuyển đi thì chỉ để trống số</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v50 · Chèn dòng · gõ sửa số như Excel</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1348,7 +1348,12 @@ function renderManage(){
       const keo = (ed && !mgTouch);
       const dangCat = mgCut && String(mgCut)===String(c.row);
       html += `<div class="item" ${keo?`draggable="true" data-drag="${c.row}" data-gi="${gi}" style="cursor:grab"`:""} ${dangCat?'style="background:#FFF7E0;border:2px dashed #D4AF37"':""}>
-        <div class="sbd" title="Số thứ tự (giống Check-in)">${stt}</div>
+        ${ed
+          ? `<input class="o-stt" data-sttrow="${c.row}" value="${stt==="—"?"":stt}" inputmode="numeric"
+               title="Gõ số rồi bấm Enter hoặc bấm ra ngoài để lưu"
+               style="width:46px;height:38px;text-align:center;font-weight:800;font-size:14px;color:var(--navy);
+                      border:2px solid #E5E7EB;border-radius:9px;background:#fff;flex:none"/>`
+          : `<div class="sbd" title="Số thứ tự">${stt}</div>`}
         <div class="info">
           <div class="nm">${keo?'<span style="color:#C9CEDA;margin-right:5px">⠿</span>':""}${c.hoatau?'<span style="color:var(--gold-dark)">🎼 </span>':""}${esc(c.name)}</div>
           <div class="sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
@@ -1376,6 +1381,8 @@ function renderManage(){
                           style="padding:6px 10px;font-size:12px;font-weight:800;border-color:#C0202A;color:#C0202A">✕ Hủy cắt</button>`
                      : `<button class="btn-out" data-cut="${c.row}" title="Cắt để chuyển đi chỗ khác"
                           style="padding:6px 9px;font-size:13px">✂️</button>`)}
+                <button class="btn-out" data-chen="${c.row}" title="Chèn thí sinh mới ngay dưới dòng này"
+                  style="padding:6px 9px;font-size:13px;border-color:#27AE60;color:#27AE60">➕</button>
                 ${c.hoatau?`<button class="btn-out" data-mem="${c.row}" title="Chọn thí sinh vào tiết mục này"
                   style="padding:6px 9px;font-size:13px;border-color:#D4AF37;color:var(--gold-dark)">👥</button>`:""}
                 <button class="btn-out" data-del="${c.row}" title="Xóa thí sinh"
@@ -1394,8 +1401,8 @@ function renderManage(){
       + esc(tsc?tsc.name:"") + ' — bấm 📌 Dán ở vị trí muốn đặt (hoặc 📌 Dán cuối ở tên đơn vị)</span>';
   } else
   $("mgHint").textContent = ed
-    ? (mgTouch ? "Dùng ▲▼ để đổi chỗ · đổi đơn vị bằng nút ✏️ Sửa ở Check-in"
-               : "Kéo thí sinh để đổi chỗ — kéo sang đơn vị khác sẽ chuyển luôn đơn vị (có hỏi lại) · ▲▼ trên tên đơn vị để chuyển cả đơn vị")
+    ? (mgTouch ? "Gõ thẳng vào ô số để sửa · Dùng ▲▼ để đổi chỗ"
+               : "✏️ Gõ thẳng vào ô số bên trái để sửa (Enter để lưu) · Kéo thí sinh để đổi chỗ · ▲▼ trên tên đơn vị để chuyển cả đơn vị")
     : "Đang xem — không thao tác được";
   if(!ed) return;
 
@@ -1458,6 +1465,97 @@ function renderManage(){
       renderManage();
     }catch(e){ hideLoading(); alert("Lỗi khi xóa: "+(e.message||e)); }
   }));
+
+  /* --- CHÈN THÍ SINH MỚI ngay dưới một dòng (như chèn dòng trong Excel) --- */
+  $("mgList").querySelectorAll("[data-chen]").forEach(b=>b.addEventListener("click", ()=>{
+    const tren = DATA.contestants.find(x=>String(x.row)===String(b.dataset.chen));
+    if(!tren) return;
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+    const ip = 'style="width:100%;border:2px solid #E5E7EB;border-radius:9px;padding:10px;font-size:14px;margin-bottom:10px"';
+    const lb = 'style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:4px"';
+    ov.innerHTML =
+      '<div style="background:#fff;border-radius:16px;padding:18px;max-width:400px;width:100%">'
+      + '<div style="font-weight:800;font-size:16px;color:#1A1A2E;margin-bottom:4px">➕ Chèn thí sinh</div>'
+      + '<div style="font-size:11px;color:#6B7280;margin-bottom:12px">Chèn ngay dưới <b>' + esc(tren.name) + '</b> · đơn vị <b>' + esc(tren.unit||"Cá nhân") + '</b> · ' + esc(tren.session?tenBuoi(tren.session):"chưa chia buổi") + '</div>'
+      + '<label ' + lb + '>Họ tên <span style="color:#C0202A">*</span></label>'
+      + '<input id="cn_ten" ' + ip + '/>'
+      + '<label ' + lb + '>Tác phẩm</label>'
+      + '<input id="cn_bai" placeholder="Tên bài" ' + ip + '/>'
+      + '<label ' + lb + '>Số điện thoại</label>'
+      + '<input id="cn_sdt" type="tel" ' + ip + '/>'
+      + '<label ' + lb + '>Số thứ tự (để trống nếu chưa cần)</label>'
+      + '<input id="cn_stt" type="number" min="0" ' + ip + '/>'
+      + '<div id="cn_msg" style="font-size:12px;margin-bottom:6px"></div>'
+      + '<div style="display:flex;gap:8px">'
+      + '<button id="cn_ok" style="flex:1;background:#27AE60;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">➕ Chèn</button>'
+      + '<button id="cn_huy" style="flex:1;background:#EEF0F4;color:#374151;border:none;border-radius:10px;padding:12px;font-weight:800;cursor:pointer">Hủy</button>'
+      + '</div></div>';
+    document.body.appendChild(ov);
+    const close = ()=>ov.remove();
+    ov.querySelector("#cn_huy").onclick = close;
+    ov.querySelector("#cn_ten").focus();
+    ov.querySelector("#cn_ok").onclick = async ()=>{
+      const ten = ov.querySelector("#cn_ten").value.trim();
+      if(!ten){ ov.querySelector("#cn_msg").innerHTML='<span style="color:#C0202A">Chưa nhập họ tên</span>'; return; }
+      ov.querySelector("#cn_msg").innerHTML='<span style="color:#6B7280">Đang chèn…</span>';
+      try{
+        const id = await window.FS.addItem({
+          order: (Number(tren.order)||0) + 0.5,          // nằm ngay dưới dòng đang chọn
+          stt: Number(ov.querySelector("#cn_stt").value) || 0,
+          name: ten,
+          piece: ov.querySelector("#cn_bai").value.trim(),
+          phone: ov.querySelector("#cn_sdt").value.trim(),
+          unit: tren.unit || "", session: String(tren.session||""),
+          category: "", dob:"", gender:"", teacher:"", contact:"", minutes:"", gio:"",
+          feeStatus: "Chờ duyệt", sbd: null, checkin: "", done: "",
+          createdAt: new Date().toISOString()
+        });
+        DATA.contestants.push({ row:id, order:(Number(tren.order)||0)+0.5,
+          stt: Number(ov.querySelector("#cn_stt").value) || 0, name:ten,
+          piece: ov.querySelector("#cn_bai").value.trim(),
+          phone: ov.querySelector("#cn_sdt").value.trim(),
+          unit: tren.unit||"", session: String(tren.session||""),
+          category:"", dob:"", gender:"", teacher:"", contact:"", minutes:"", gio:"",
+          fee:"Chờ duyệt", sbd:"", checkin:"", done:"" });
+        DATA.contestants.sort((x,y)=>(Number(x.order)||0)-(Number(y.order)||0));
+        close(); renderManage();
+      }catch(e){
+        ov.querySelector("#cn_msg").innerHTML='<span style="color:#C0202A">Lỗi: '+esc(e.message||e)+'</span>';
+      }
+    };
+  }));
+
+  /* --- SỬA SỐ THỨ TỰ NGAY TẠI CHỖ (gõ như Excel) --- */
+  $("mgList").querySelectorAll(".o-stt").forEach(inp=>{
+    const cu = inp.value;
+    const luu = async ()=>{
+      const moi = inp.value.trim();
+      if(moi === cu) return;
+      const row = inp.dataset.sttrow;
+      const c = DATA.contestants.find(x=>String(x.row)===String(row));
+      if(!c) return;
+      const so = Number(moi) || 0;
+      inp.disabled = true; inp.style.borderColor = "#D4AF37";
+      try{
+        await window.FS.update(row, { stt: so });
+        c.stt = so;
+        inp.style.borderColor = "#27AE60";                 // xanh = đã lưu
+        setTimeout(()=>{ if(inp) inp.style.borderColor = "#E5E7EB"; }, 900);
+      }catch(e){
+        inp.value = cu; inp.style.borderColor = "#C0202A";
+        alert("Lỗi lưu số: " + (e.message||e));
+      }
+      inp.disabled = false;
+    };
+    inp.addEventListener("blur", luu);
+    inp.addEventListener("keydown", e=>{
+      if(e.key === "Enter"){ e.preventDefault(); inp.blur(); }
+      if(e.key === "Escape"){ inp.value = cu; inp.blur(); }
+    });
+    inp.addEventListener("mousedown", e=>e.stopPropagation());   // không kích hoạt kéo thả
+    inp.addEventListener("dragstart", e=>e.preventDefault());
+  });
 
   /* --- CẮT / DÁN thí sinh (nhanh hơn kéo khi đi xa) --- */
   $("mgList").querySelectorAll("[data-cut]").forEach(b=>b.addEventListener("click", ()=>{
