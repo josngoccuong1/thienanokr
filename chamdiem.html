@@ -223,7 +223,7 @@ window.FS = {
         regCode: v.regCode||"", unit: v.unit||"", phone: v.phone||"", contact: v.contact||"",
         name: v.name||"", dob: v.dob||"", gender: v.gender||"",
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
-        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
+        minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, boThi: !!v.boThi, memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
         checkin: v.checkin||"", done: v.done||"",
         session: String(v.session||"").trim()
@@ -335,7 +335,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v46 · Sửa được số thứ tự từng em</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v48 · Chuyển đi thì chỉ để trống số</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
