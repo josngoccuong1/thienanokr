@@ -374,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v65 · Sửa lỗi mất mốc thời gian bấm Xong</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v66 · Hiện đúng số check-in</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -2405,13 +2405,15 @@ function renderResults(){
                     }
                     return (Number(a.order)||0) - (Number(b.order)||0);
                   });
+  // Số check-in: lấy đúng bảng số như màn Check-in / Điểm danh
+  const soCheckIn = bangSTT(DATA.contestants.filter(inSession));
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
   let h = `<tr><th>STT diễn</th><th>Số check-in</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
   let soXong = 0;
   h += rows.map(r=>{ if(r.done) soXong++; return `<tr>
     <td style="text-align:center;font-weight:800;font-size:15px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soXong:"—"}</td>
-    <td style="text-align:center;font-weight:700;color:var(--muted)">${Number(r.stt)||"—"}</td>
+    <td style="text-align:center;font-weight:700;color:var(--muted)">${soCheckIn[String(r.row)] || "—"}</td>
     <td style="font-size:11px;color:${r.done?"var(--green)":"#bbb"};font-weight:700;white-space:nowrap">${r.done?esc(String(r.done).replace("Xong ","")):"chưa diễn"}</td>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
