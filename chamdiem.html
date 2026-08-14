@@ -374,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v55 · Danh sách chờ diễn bù</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v60 · Kết quả theo thứ tự bấm Xong</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -2383,29 +2383,28 @@ function renderResults(){
 
   // Sắp theo THỨ TỰ DIỄN THẬT: lấy giờ bấm "Xong" (VD "Xong 09:15").
   // Ai diễn trước đứng trước. Ai chưa diễn xếp cuối, theo số thứ tự.
-  // Số thứ tự ở bảng Kết quả = thứ tự bấm "Xong" bên Điểm danh (thực tế lên diễn)
-  const gioDien = r => {
+  // Sắp theo THỨ TỰ BẤM XONG bên Điểm danh: ai xong trước đứng trước.
+  // Ai chưa diễn xếp cuối, theo thứ tự dự kiến.
+  const phutXong = r => {
     const m = String(r.done||"").match(/(\d{1,2}):(\d{2})/);
     return m ? (Number(m[1])*60 + Number(m[2])) : null;
   };
   const rows = all.filter(r=>inSession(r)).filter(r=>!cur || r.category===cur)
                   .sort((a,b)=>{
-                    const ta = gioDien(a), tb = gioDien(b);
-                    if(ta!=null && tb!=null) return ta - tb;      // cả hai đã diễn -> ai sớm hơn đứng trước
-                    if(ta!=null) return -1;                        // đã diễn đứng trên chưa diễn
-                    if(tb!=null) return 1;
-                    return (Number(a.order)||0) - (Number(b.order)||0);   // chưa diễn -> theo thứ tự dự kiến
+                    const ta = phutXong(a), tb = phutXong(b);
+                    if(ta!=null && tb!=null && ta!==tb) return ta - tb;
+                    if(ta!=null && tb==null) return -1;
+                    if(ta==null && tb!=null) return 1;
+                    return (Number(a.order)||0) - (Number(b.order)||0);
                   });
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
-  let h = `<tr><th>STT</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
-  let soDien = 0;
-  h += rows.map((r,i)=>{
-    if(r.done) soDien++;
-    return `<tr>
-    <td style="text-align:center;font-weight:800;font-size:14px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soDien:"—"}</td>
-    <td style="font-size:11px;color:${r.done?"var(--green)":"#bbb"};font-weight:700;white-space:nowrap">${r.done?esc(String(r.done).replace("Xong ","")):"chưa diễn"}</td>
+  let h = `<tr><th>STT diễn</th><th>Hạng</th><th>SBD</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
+  let soXong = 0;
+  h += rows.map(r=>{ if(r.done) soXong++; return `<tr>
+    <td style="text-align:center;font-weight:800;font-size:14px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soXong:"—"}</td>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
+    <td>${r.sbd||"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
     <td style="font-size:11px">${esc(String(r.category).split("—")[0].trim())}</td>
     <td style="font-size:11px;color:var(--gold-dark)">${esc(r.piece||"—")}</td>
