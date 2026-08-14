@@ -374,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v64 · Ghi đúng thứ tự bấm Xong</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v65 · Sửa lỗi mất mốc thời gian bấm Xong</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -1311,8 +1311,8 @@ function renderJudge(){
     try{
       const d=await post({action:"setdone", row, done:val});
       if(d.ok){
-        const c=DATA.contestants.find(x=>String(x.row)===String(row));
-        if(c) c.done = val ? (d.done||"Xong") : "";
+        // KHÔNG ghi đè lại c.done ở đây — hàm post đã cập nhật kèm mốc thời gian doneAt.
+        // Ghi đè sẽ làm mất doneAt -> bảng Kết quả sắp sai thứ tự.
         renderJudge();
       } else { alert("Lỗi: "+(d.error||"")); renderJudge(); }
     }catch(err){ alert("Lỗi kết nối, thử lại"); renderJudge(); }
