@@ -211,7 +211,7 @@ function docTS(d){
     members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, boThi: !!v.boThi,
     memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
     fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
-    checkin: v.checkin||"", done: v.done||"",
+    checkin: v.checkin||"", done: v.done||"", doneAt: Number(v.doneAt)||0,
     session: String(v.session||"").trim()
   };
 }
@@ -264,7 +264,7 @@ window.FS = {
         category: v.category||"", piece: v.piece||"", teacher: v.teacher||"",
         minutes: v.minutes||"", billUrl: v.billUrl||"", hoatau: !!v.hoatau, members: v.members||"", gio: v.gio||"", stt: Number(v.stt)||0, boThi: !!v.boThi, memberIds: Array.isArray(v.memberIds)?v.memberIds:[],
         fee: v.feeStatus||"", sbd: (v.sbd==null?"":v.sbd),
-        checkin: v.checkin||"", done: v.done||"",
+        checkin: v.checkin||"", done: v.done||"", doneAt: Number(v.doneAt)||0,
         session: String(v.session||"").trim()
       });
     });
@@ -374,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v62 · Kết quả = số thứ tự lên sân khấu</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v64 · Ghi đúng thứ tự bấm Xong</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -831,9 +831,10 @@ async function post(payload){
 
     if(payload.action === "setdone"){
       const val = payload.done ? ("Xong " + _gioNgan()) : "";
-      await window.FS.update(row, { done: val });
+      const mocXong = payload.done ? Date.now() : 0;   // mốc chính xác tới mili giây
+      await window.FS.update(row, { done: val, doneAt: mocXong });
       const c = DATA.contestants.find(x=>String(x.row)===String(row));
-      if(c) c.done = val;
+      if(c){ c.done = val; c.doneAt = mocXong; }
       return { ok:true, row, done: val };
     }
 
@@ -2385,24 +2386,32 @@ function renderResults(){
   // Ai diễn trước đứng trước. Ai chưa diễn xếp cuối, theo số thứ tự.
   // Sắp theo THỨ TỰ BẤM XONG bên Điểm danh: ai xong trước đứng trước.
   // Ai chưa diễn xếp cuối, theo thứ tự dự kiến.
-  const phutXong = r => {
+  // Thứ tự lên sân khấu = thứ tự BẤM XONG. Ưu tiên mốc chính xác (doneAt);
+  // bản ghi cũ chỉ có "Xong HH:mm" thì dùng giờ:phút.
+  const mocXong = r => {
+    if(Number(r.doneAt) > 0) return Number(r.doneAt);
     const m = String(r.done||"").match(/(\d{1,2}):(\d{2})/);
     return m ? (Number(m[1])*60 + Number(m[2])) : null;
   };
+  const daDien = r => !!String(r.done||"").trim();
   const rows = all.filter(r=>inSession(r)).filter(r=>!cur || r.category===cur)
                   .sort((a,b)=>{
-                    const ta = phutXong(a), tb = phutXong(b);
-                    if(ta!=null && tb!=null && ta!==tb) return ta - tb;
-                    if(ta!=null && tb==null) return -1;
-                    if(ta==null && tb!=null) return 1;
+                    const da = daDien(a), db = daDien(b);
+                    if(da && !db) return -1;
+                    if(!da && db) return 1;
+                    if(da && db){
+                      const ta = mocXong(a), tb = mocXong(b);
+                      if(ta!=null && tb!=null && ta!==tb) return ta - tb;
+                    }
                     return (Number(a.order)||0) - (Number(b.order)||0);
                   });
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
-  let h = `<tr><th>STT</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
+  let h = `<tr><th>STT diễn</th><th>Số check-in</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
   let soXong = 0;
   h += rows.map(r=>{ if(r.done) soXong++; return `<tr>
     <td style="text-align:center;font-weight:800;font-size:15px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soXong:"—"}</td>
+    <td style="text-align:center;font-weight:700;color:var(--muted)">${Number(r.stt)||"—"}</td>
     <td style="font-size:11px;color:${r.done?"var(--green)":"#bbb"};font-weight:700;white-space:nowrap">${r.done?esc(String(r.done).replace("Xong ","")):"chưa diễn"}</td>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
@@ -2416,7 +2425,7 @@ function renderResults(){
     <td><b>${esc(r.prize||"")}</b></td>
     <td>${(canEdit() && r.avg!=null)?`<button class="btn-out" style="padding:4px 9px;font-size:11px" data-print="${r.row}">🖨️</button>`:""}</td>
   </tr>`; }).join("");
-  if(rows.length===0) h += `<tr><td colspan="13" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
+  if(rows.length===0) h += `<tr><td colspan="14" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
   $("rsTable").innerHTML = h;
 
   $("rsTable").querySelectorAll("[data-print]").forEach(b=>b.addEventListener("click",()=>{
