@@ -374,7 +374,7 @@ ensureAuth();
         <div class="msg err" id="loginMsg"></div>
       </div>
     </div>
-    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v60 · Kết quả theo thứ tự bấm Xong</span></div>
+    <div class="foot">Học viện Âm nhạc Thiên Ân · Thanh Hóa<br><span style="color:#27AE60;font-weight:700">v62 · Kết quả = số thứ tự lên sân khấu</span></div>
   </div>
 
   <!-- ============ THANH CHUYỂN MỤC (xem chéo) ============ -->
@@ -2399,12 +2399,12 @@ function renderResults(){
                   });
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
-  let h = `<tr><th>STT diễn</th><th>Hạng</th><th>SBD</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
+  let h = `<tr><th>STT</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
   let soXong = 0;
   h += rows.map(r=>{ if(r.done) soXong++; return `<tr>
-    <td style="text-align:center;font-weight:800;font-size:14px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soXong:"—"}</td>
+    <td style="text-align:center;font-weight:800;font-size:15px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soXong:"—"}</td>
+    <td style="font-size:11px;color:${r.done?"var(--green)":"#bbb"};font-weight:700;white-space:nowrap">${r.done?esc(String(r.done).replace("Xong ","")):"chưa diễn"}</td>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
-    <td>${r.sbd||"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
     <td style="font-size:11px">${esc(String(r.category).split("—")[0].trim())}</td>
     <td style="font-size:11px;color:var(--gold-dark)">${esc(r.piece||"—")}</td>
@@ -2436,10 +2436,10 @@ $("btnPrintAll").addEventListener("click", ()=>{
 $("btnCsv").addEventListener("click", async ()=>{
   const list = computeResults();
   if(!list.length){ alert("Chưa có dữ liệu"); return; }
-  const cols = ["SBD","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","SĐT","Buổi",
+  const cols = ["STT","Họ tên","Đơn vị","Bảng dự thi","Tác phẩm","SĐT","Buổi",
                 "Số GK chấm","Điểm TB","Huy chương","Giải","Hạng bảng"];
   const data = list.map(r=>[
-    r.sbd||"", r.name||"", r.unit||"", r.category||"", r.piece||"",
+    Number(r.stt)||"", r.name||"", r.unit||"", r.category||"", r.piece||"",
     r.phone?String(r.phone).trim():"", r.session?tenBuoi(r.session):"",
     r.judgeCount||0, r.avg!=null?Number(r.avg.toFixed(2)):"", r.medal||"", r.prize||"", r.rank||""
   ]);
@@ -2528,7 +2528,7 @@ function printCerts(list){
         <div class="cert-ts">THÍ SINH</div>
         <div class="name-box">
           <div class="cert-name">${esc(String(r.name).toUpperCase())}</div>
-          <div class="cert-idrow"><b>SBD:</b> ${r.sbd||"—"} &nbsp;|&nbsp; <b>BẢNG:</b> ${esc(r.category)}</div>
+          <div class="cert-idrow"><b>SBD:</b> ${Number(r.stt)||"—"} &nbsp;|&nbsp; <b>BẢNG:</b> ${esc(r.category)}</div>
         </div>
         <div class="cert-lbl">Đã đạt</div>
         <div class="cert-prize">${esc(certText(r))}</div>
