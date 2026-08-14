@@ -1245,7 +1245,8 @@ function renderJudge(){
   /* CHỜ DIỄN BÙ: em đã check-in, CHƯA diễn, mà số thứ tự đã bị đi qua rồi
      -> lúc gọi tên thì chưa tới, giờ đã có mặt, cần xếp diễn bù. */
   {
-    const soCua = c => Number(sttMap[String(c.row)]) || 0;
+    const bangSoBu = bangSTT(toanBo);                 // tự tính, không dùng biến chưa khai báo
+    const soCua = c => Number(bangSoBu[String(c.row)]) || 0;
     let daQua = 0;
     list.forEach(c=>{ if(c.done){ const s = soCua(c); if(s > daQua) daQua = s; } });
     const bu = list
