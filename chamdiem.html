@@ -423,7 +423,6 @@ ensureAuth();
         <input id="jvSearch" placeholder="🔎 Tìm theo tên / SBD / đơn vị…"/>
         <div class="toolbar" style="margin-top:10px" id="jvCats"></div>
         <div class="note" style="margin-bottom:10px">Chỉ hiện thí sinh <b>đã check-in</b>. Bấm vào tên để chấm điểm.</div>
-        <div id="jvBu"></div>
         <div id="jvList"></div>
       </div>
     </div>
@@ -1242,29 +1241,6 @@ function renderJudge(){
   const finished = list.filter(c=>c.done).length;
   $("jvCount").textContent = checkedInCount + " đã check-in · " + finished + " xong / " + list.length;
 
-  /* CHỜ DIỄN BÙ: em đã check-in, CHƯA diễn, mà số thứ tự đã bị đi qua rồi
-     -> lúc gọi tên thì chưa tới, giờ đã có mặt, cần xếp diễn bù. */
-  {
-    const bangSoBu = bangSTT(toanBo);                 // tự tính, không dùng biến chưa khai báo
-    const soCua = c => Number(bangSoBu[String(c.row)]) || 0;
-    let daQua = 0;
-    list.forEach(c=>{ if(c.done){ const s = soCua(c); if(s > daQua) daQua = s; } });
-    const bu = list
-      .filter(c=> c.checkin && !c.done && soCua(c) > 0 && soCua(c) < daQua)
-      .sort((a,b)=> soCua(a) - soCua(b));
-    $("jvBu").innerHTML = bu.length === 0 ? "" :
-      `<div style="background:#FFF3CD;border:2px solid #E8A33D;border-radius:11px;padding:10px 12px;margin-bottom:10px">
-        <div style="font-weight:800;font-size:13px;color:#8A6D00;margin-bottom:6px">
-          ⏰ Đã đến sau — chờ diễn bù (${bu.length})
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${bu.map(c=>`<span style="background:#fff;border:1px solid #E8C87A;border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--navy)">
-            <b style="color:#C0202A">${soCua(c)}</b> · ${esc(c.name)}
-            <span style="color:var(--muted);font-weight:600">${esc(c.unit||"Cá nhân")}</span>
-          </span>`).join("")}
-        </div>
-      </div>`;
-  }
 
   if(list.length===0){ $("jvList").innerHTML = `<div class="center" style="padding:26px;color:#aaa">Chưa có thí sinh nào</div>`; }
   else {
@@ -2407,6 +2383,7 @@ function renderResults(){
 
   // Sắp theo THỨ TỰ DIỄN THẬT: lấy giờ bấm "Xong" (VD "Xong 09:15").
   // Ai diễn trước đứng trước. Ai chưa diễn xếp cuối, theo số thứ tự.
+  // Số thứ tự ở bảng Kết quả = thứ tự bấm "Xong" bên Điểm danh (thực tế lên diễn)
   const gioDien = r => {
     const m = String(r.done||"").match(/(\d{1,2}):(\d{2})/);
     return m ? (Number(m[1])*60 + Number(m[2])) : null;
@@ -2421,13 +2398,12 @@ function renderResults(){
                   });
   $("rsInfo").textContent = rows.filter(r=>r.avg!=null).length + " đã có điểm";
 
-  let h = `<tr><th>STT</th><th>Diễn thật</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
+  let h = `<tr><th>STT</th><th>Diễn lúc</th><th>Hạng</th><th>Họ tên</th><th>Bảng</th><th>Tác phẩm</th><th>SĐT</th><th>Buổi</th><th>GK</th><th>Điểm TB</th><th>Huy chương</th><th>Giải</th><th></th></tr>`;
   let soDien = 0;
   h += rows.map((r,i)=>{
     if(r.done) soDien++;
     return `<tr>
-    <td style="text-align:center;font-weight:800;color:var(--navy)">${Number(r.stt)||"—"}</td>
-    <td style="text-align:center;font-weight:800;color:${r.done?"#C0202A":"#bbb"}">${r.done?soDien:"—"}</td>
+    <td style="text-align:center;font-weight:800;font-size:14px;color:${r.done?"var(--navy)":"#bbb"}">${r.done?soDien:"—"}</td>
     <td style="font-size:11px;color:${r.done?"var(--green)":"#bbb"};font-weight:700;white-space:nowrap">${r.done?esc(String(r.done).replace("Xong ","")):"chưa diễn"}</td>
     <td>${r.rank?`<b>${r.rank}</b>`:"—"}</td>
     <td><b>${esc(r.name)}</b><div style="font-size:10px;color:#888">${esc(r.unit)}</div></td>
@@ -2441,7 +2417,7 @@ function renderResults(){
     <td><b>${esc(r.prize||"")}</b></td>
     <td>${(canEdit() && r.avg!=null)?`<button class="btn-out" style="padding:4px 9px;font-size:11px" data-print="${r.row}">🖨️</button>`:""}</td>
   </tr>`; }).join("");
-  if(rows.length===0) h += `<tr><td colspan="14" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
+  if(rows.length===0) h += `<tr><td colspan="13" class="center" style="padding:26px;color:#aaa">Chưa có dữ liệu</td></tr>`;
   $("rsTable").innerHTML = h;
 
   $("rsTable").querySelectorAll("[data-print]").forEach(b=>b.addEventListener("click",()=>{
