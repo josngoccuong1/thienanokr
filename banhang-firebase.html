@@ -190,7 +190,7 @@ tbody tr:hover{background:#fbfcfe}tbody tr:last-child td{border-bottom:none}
     <div class="sb-brand"><div class="mk">TA</div><div><b>Thiên Ân</b><small>Quản lý bán hàng</small></div></div>
     <div id="csSelectWrap" style="padding:10px 14px 4px"><label style="display:block;font-size:10.5px;font-weight:700;color:var(--muted-2,#8a93a6);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">🏢 Cơ sở làm việc</label><select id="csSelect" onchange="setCoSo(this.value)" style="width:100%;padding:9px 11px;border:1.5px solid var(--line,#e6e9ef);border-radius:9px;font-weight:600;font-size:13px;background:#fff;cursor:pointer"><option value="cs1">Cơ sở 1 — Bà Triệu</option><option value="cs2">Cơ sở 2 — Lam Kinh</option></select></div>
     <nav class="sb-nav" id="navMenu"></nav>
-    <div class="sb-user"><div class="av" id="userAv">?</div><div class="info"><b id="userName">—</b><small id="userRole">—</small></div><button onclick="logout()" title="Đăng xuất">⏻</button></div>
+    <div class="sb-user"><div class="av" id="userAv">?</div><div class="info"><b id="userName">—</b><small id="userRole">—</small></div><button onclick="openMyAccount()" title="Tài khoản của tôi">🔑</button><button onclick="logout()" title="Đăng xuất">⏻</button></div>
   </aside>
   <div class="main">
     <header class="topbar"><button id="menuToggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div><h2 id="pageTitle">Tổng quan</h2><div class="sub" id="pageSub">Bảng điều khiển</div></div><div class="right"></div></header>
@@ -1860,7 +1860,7 @@ function openUserForm(id){
   const u=id?USERS.find(x=>x._id===id):{},edit=!!id;
   openModal(`<div class="modal-head"><h3>${edit?'Sửa người dùng':'Thêm người dùng'}</h3><button onclick="closeModal()">×</button></div>
     <div class="modal-body"><div class="grid2">
-      <div class="field"><label>Tên đăng nhập <span class="req">*</span></label><input id="fuUser" value="${esc(u.username||'')}" ${edit?'readonly style="background:#f0f2f6;color:var(--muted)"':''} placeholder="VD: nhanvien_cs2"></div>
+      <div class="field"><label>Tên đăng nhập <span class="req">*</span></label><input id="fuUser" value="${esc(u.username||'')}" placeholder="VD: nhanvien_cs2">${edit?'<small class="hint">Đổi tên sẽ cập nhật lại tài khoản (an toàn)</small>':''}</div>
       <div class="field"><label>Họ tên</label><input id="fuName" value="${esc(u.hoTen||'')}"></div>
       <div class="field"><label>Mật khẩu <span class="req">*</span></label><input id="fuPass" value="${esc(u.password||'')}" placeholder="Mật khẩu đăng nhập"></div>
       <div class="field"><label>Vai trò</label><select id="fuRole"><option value="admin" ${u.role==='admin'?'selected':''}>Quản trị</option><option value="quanly" ${u.role==='quanly'?'selected':''}>Quản lý</option><option value="nhanvien" ${(!u.role||u.role==='nhanvien')?'selected':''}>Nhân viên</option><option value="ktv" ${u.role==='ktv'?'selected':''}>Kỹ thuật</option></select></div>
@@ -1874,12 +1874,50 @@ async function saveUser(id){
   if(!user){toast('Nhập tên đăng nhập','warn');return;}if(!pass){toast('Nhập mật khẩu','warn');return;}
   const data={username:user,hoTen:$('fuName').value.trim()||user,password:pass,role:$('fuRole').value,coSo:$('fuCoSo').value,trangThai:$('fuStatus').value,updatedAt:new Date().toISOString()};
   const btn=$('saveUserBtn');btn.disabled=true;btn.textContent='Đang lưu…';
-  try{if(id){await db.collection(COL.users).doc(id).set(data,{merge:true});toast('Đã cập nhật','ok');}
+  try{if(id){
+      if(user!==id){const ex=await db.collection(COL.users).doc(user).get();if(ex.exists){toast('Tên đăng nhập mới đã tồn tại','err');btn.disabled=false;btn.textContent='Lưu';return;}data.createdAt=(USERS.find(x=>x._id===id)||{}).createdAt||new Date().toISOString();await db.collection(COL.users).doc(user).set(data);await db.collection(COL.users).doc(id).delete();if(CURRENT_USER.username===id){CURRENT_USER.username=user;try{sessionStorage.setItem('bh_session',JSON.stringify(CURRENT_USER));}catch(e){}}toast('Đã đổi tên đăng nhập & cập nhật','ok');}
+      else{await db.collection(COL.users).doc(id).set(data,{merge:true});toast('Đã cập nhật','ok');}}
     else{const ex=await db.collection(COL.users).doc(user).get();if(ex.exists){toast('Tên đăng nhập đã tồn tại','err');btn.disabled=false;btn.textContent='Thêm';return;}data.createdAt=new Date().toISOString();await db.collection(COL.users).doc(user).set(data);toast('Đã thêm người dùng','ok');}
     closeModal();await loadUsers();drawUserTable();}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent=id?'Lưu':'Thêm';}
 }
 function deleteUser(id){const u=USERS.find(x=>x._id===id);if(!u)return;openModal(`<div class="modal-head"><h3>Xóa người dùng</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.6">Xóa tài khoản <b>${esc(u.username)}</b> (${esc(u.hoTen||'')})?</p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delUserBtn" onclick="confirmDeleteUser('${esc(id)}')">Xóa</button></div>`,'sm');}
 async function confirmDeleteUser(id){const b=$('delUserBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.users).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadUsers();drawUserTable();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
+
+function openMyAccount(){
+  const u=CURRENT_USER;
+  openModal(`<div class="modal-head"><h3>Tài khoản của tôi</h3><button onclick="closeModal()">×</button></div>
+    <div class="modal-body"><div class="grid2">
+      <div class="field"><label>Họ tên</label><input id="maName" value="${esc(u.hoTen||'')}"></div>
+      <div class="field"><label>Tên đăng nhập</label><input id="maUser" value="${esc(u.username||'')}"></div>
+      <div class="field full"><label>Mật khẩu hiện tại <span class="req">*</span></label><input id="maCur" type="password" placeholder="Nhập để xác nhận thay đổi"></div>
+      <div class="field"><label>Mật khẩu mới</label><input id="maNew" type="password" placeholder="Để trống nếu không đổi"></div>
+      <div class="field"><label>Nhập lại mật khẩu mới</label><input id="maNew2" type="password"></div>
+    </div><div class="hint" style="margin-top:6px">Phải nhập đúng <b>mật khẩu hiện tại</b> mới lưu được. Vai trò & cơ sở do quản trị viên quản lý.</div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="maBtn" onclick="saveMyAccount()">Lưu thay đổi</button></div>`);
+}
+async function saveMyAccount(){
+  const cur=$('maCur').value;if(!cur){toast('Nhập mật khẩu hiện tại','warn');return;}
+  const newName=$('maUser').value.trim();if(!newName){toast('Tên đăng nhập không được trống','warn');return;}
+  const np=$('maNew').value,np2=$('maNew2').value;
+  if(np&&np!==np2){toast('Mật khẩu mới nhập lại không khớp','warn');return;}
+  const btn=$('maBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{
+    const oldId=CURRENT_USER.username;const doc=await db.collection(COL.users).doc(oldId).get();
+    if(!doc.exists){toast('Không tìm thấy tài khoản','err');btn.disabled=false;btn.textContent='Lưu thay đổi';return;}
+    const d=doc.data();
+    if(String(d.password)!==String(cur)){toast('Mật khẩu hiện tại không đúng','err');btn.disabled=false;btn.textContent='Lưu thay đổi';return;}
+    const data={username:newName,hoTen:$('maName').value.trim()||newName,password:np||d.password,role:d.role||'nhanvien',coSo:d.coSo||'all',trangThai:d.trangThai||'Active',createdAt:d.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    if(newName!==oldId){
+      const ex=await db.collection(COL.users).doc(newName).get();
+      if(ex.exists){toast('Tên đăng nhập đã có người khác dùng','err');btn.disabled=false;btn.textContent='Lưu thay đổi';return;}
+      await db.collection(COL.users).doc(newName).set(data);await db.collection(COL.users).doc(oldId).delete();
+    }else{await db.collection(COL.users).doc(oldId).set(data,{merge:true});}
+    CURRENT_USER.username=newName;CURRENT_USER.hoTen=data.hoTen;
+    try{sessionStorage.setItem('bh_session',JSON.stringify(CURRENT_USER));}catch(e){}
+    $('userName').textContent=CURRENT_USER.hoTen;$('userAv').textContent=(CURRENT_USER.hoTen||'?').trim().charAt(0).toUpperCase();
+    toast('Đã cập nhật tài khoản'+(np?' & mật khẩu':''),'ok');closeModal();
+  }catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='Lưu thay đổi';}
+}
 
 /* ===== KHỞI ĐỘNG ===== */
 const _bhCode=new URLSearchParams(location.search).get('bh');
