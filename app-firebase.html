@@ -128,7 +128,20 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-
+<div id="ta-splash" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(150deg,#1A1A2E,#16213E 55%,#0F3460);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .45s ease">
+  <img src="icon-192.png" alt="Thiên Ân" style="width:112px;height:112px;border-radius:26px;background:#fff;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)"/>
+  <div style="color:#fff;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:20px;font-weight:800;letter-spacing:.5px">Học viện Thiên Ân</div>
+  <div style="color:#D4AF37;font-size:12px;letter-spacing:2px;text-transform:uppercase">Hệ thống quản lý</div>
+  <div style="width:34px;height:34px;border:3px solid rgba(212,175,55,.25);border-top-color:#D4AF37;border-radius:50%;animation:taspin .8s linear infinite;margin-top:6px"></div>
+</div>
+<style>@keyframes taspin{to{transform:rotate(360deg)}}#ta-splash.hide{opacity:0;pointer-events:none}</style>
+<script>
+(function(){
+  function hideSplash(){var s=document.getElementById('ta-splash');if(s){s.classList.add('hide');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},500);}}
+  window.addEventListener('load',function(){setTimeout(hideSplash,650);});
+  setTimeout(hideSplash,4000);
+})();
+</script>
 <div id="loadingToast" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(26,26,46,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:22px 28px;box-shadow:0 10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;gap:12px;min-width:200px">
     <div id="loadSpin" style="width:44px;height:44px;border:4px solid #EEE;border-top-color:#D4AF37;border-radius:50%;animation:spin .8s linear infinite"></div>
