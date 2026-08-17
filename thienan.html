@@ -1018,7 +1018,7 @@ async function fbLayHoaDon(dl){
 async function fbBaoCaoSapHetKhoa(dl){
   var nguong=dl.nguong!==undefined?soTienJS(dl.nguong):3;
   var daHoc=await tallyBuoiDaHoc();
-  var ds=TatCaHV.filter(function(h){ if(h.TrangThai==='Đã nghỉ') return false; if(!String(h.MaKhoa||'').trim()) return false; return soTienJS(h.SoBuoiKhoa)>0; })
+  var ds=TatCaHV.filter(function(h){ if(h.TrangThai==='Đã nghỉ') return false; return soTienJS(h.SoBuoiKhoa)>0; })
     .map(function(h){ var soBuoi=soTienJS(h.SoBuoiKhoa); var conLai=soBuoi-(daHoc[h.MaHV]||0);
       return {MaHV:h.MaHV,HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),TenPhuHuynh:h.TenPhuHuynh,TenKhoa:h.TenKhoa,SoBuoi:soBuoi,DaHoc:(daHoc[h.MaHV]||0),ConLai:conLai,CoSo:h.CoSo,NgayHoc:h.NgayHoc||''}; })
     .filter(function(r){return r.ConLai<=nguong;}).sort(function(a,b){return a.ConLai-b.ConLai;});
@@ -1040,7 +1040,7 @@ async function fbSapHetKhoa(dl){
   var ds = TatCaHV.filter(function(h){
       if(!dungCoSo(h.CoSo)) return false;
       if(h.TrangThai==='Đã nghỉ') return false;
-      if(!String(h.MaKhoa||'').trim()) return false;
+      if(soTienJS(h.SoBuoiKhoa)<=0) return false;
       if(maKhoaLoc && h.MaKhoa!==maKhoaLoc) return false;
       return soTienJS(h.SoBuoiKhoa)>0;
     })
@@ -1285,7 +1285,7 @@ var CAU_HINH_XLS = {
     cots:[['MaHV','Mã HV'],['HoTen','Họ tên'],['NgaySinh','Ngày sinh'],['GioiTinh','Giới tính'],
           ['TenPhuHuynh','Tên phụ huynh'],['SDT_PhuHuynh','SĐT phụ huynh'],['DiaChi','Địa chỉ'],
           ['CoSo','Cơ sở'],['NgayNhapHoc','Ngày nhập học'],['TrangThai','Trạng thái'],
-          ['TenKhoa','Khóa học'],['NgayHoc','Ngày học'],['GhiChu','Ghi chú']] },
+          ['TenKhoa','Khóa học'],['SoBuoiKhoa','Số buổi khóa'],['DaHocKhoa','Đã học'],['NgayHocCuoi','Ngày học cuối'],['NgayHoc','Ngày học'],['GhiChu','Ghi chú']] },
   lop: { ten:'Lớp', col:'lop', maField:'MaLop', maPrefix:'LOP', tenChinh:'TenLop',
     cots:[['MaLop','Mã lớp'],['TenLop','Tên lớp'],['MonHoc','Môn học'],['CapDo','Cấp độ'],
           ['TenGV','Giáo viên'],['CoSo','Cơ sở'],['Thu','Thứ'],['GioBatDau','Giờ bắt đầu'],
@@ -1356,8 +1356,16 @@ async function nhapDL(loai, rows){
     if(loai==='hocvien'){
       if(!obj.TrangThai) obj.TrangThai='Đang học';
       obj.SDT_PhuHuynh=String(obj.SDT_PhuHuynh||'');
+      // Số buổi / đã học nhập trực tiếp từ file
+      if(obj.SoBuoiKhoa!==undefined && obj.SoBuoiKhoa!=='') obj.SoBuoiKhoa=soTienJS(obj.SoBuoiKhoa);
+      if(obj.DaHocKhoa!==undefined && obj.DaHocKhoa!=='') obj.DaHocKhoa=soTienJS(obj.DaHocKhoa);
+      var coBuoiTrucTiep = soTienJS(obj.SoBuoiKhoa)>0;
       if(obj.TenKhoa){ var k=DsKhoa.filter(function(x){return String(x.TenKhoa).trim()===String(obj.TenKhoa).trim();})[0];
-        if(k){ obj.MaKhoa=k.MaKhoa; obj.TenKhoa=k.TenKhoa; obj.SoBuoiKhoa=soTienJS(k.SoBuoi); if(obj.DaHocKhoa===undefined) obj.DaHocKhoa=0; obj.NgayBatDauKhoa=new Date().toLocaleDateString('vi-VN'); } }
+        if(k){ obj.MaKhoa=k.MaKhoa; obj.TenKhoa=k.TenKhoa;
+          if(!coBuoiTrucTiep) obj.SoBuoiKhoa=soTienJS(k.SoBuoi);
+          if(obj.DaHocKhoa===undefined||obj.DaHocKhoa==='') obj.DaHocKhoa=0;
+          obj.NgayBatDauKhoa=new Date().toLocaleDateString('vi-VN'); } }
+      if(coBuoiTrucTiep && (obj.DaHocKhoa===undefined||obj.DaHocKhoa==='')) obj.DaHocKhoa=0;
     }
     if(loai==='khoahoc'){ obj.SoBuoi=soTienJS(obj.SoBuoi); obj.GiaTien=soTienJS(obj.GiaTien); if(!obj.TrangThai) obj.TrangThai='Đang mở'; }
     if(loai==='lop' && !obj.TrangThai) obj.TrangThai='Đang mở';
@@ -2615,7 +2623,7 @@ function napTrangChu(){
     var tt=h.TrangThai||'Đang học';
     if(tt==='Đã nghỉ')daNghi++; else if(tt==='Bảo lưu')baoLuu++; else dangHoc++;
     if((h.ThangTao||_thangCuaNgay(h.NgayNhapHoc))===thangNay) hsMoiThang++;
-    if(String(h.MaKhoa||'').trim() && soTienJS(h.SoBuoiKhoa)>0){
+    if(soTienJS(h.SoBuoiKhoa)>0){
       var conLai=soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa);
       if(tt!=='Đã nghỉ' && conLai<=3) sapHet++;
     }
@@ -2638,7 +2646,7 @@ function napTrangChu(){
   }).catch(function(){});
   // Cần chú ý: danh sách sắp hết khóa (top 5)
   var canBox=document.getElementById('dashCanChuY');
-  var dsSap=TatCaHV.filter(function(h){ if(!dungCoSo(h.CoSo))return false; if((h.TrangThai||'')==='Đã nghỉ')return false; if(!String(h.MaKhoa||'').trim()||soTienJS(h.SoBuoiKhoa)<=0)return false; return (soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa))<=3; })
+  var dsSap=TatCaHV.filter(function(h){ if(!dungCoSo(h.CoSo))return false; if((h.TrangThai||'')==='Đã nghỉ')return false; if(soTienJS(h.SoBuoiKhoa)<=0)return false; return (soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa))<=3; })
     .map(function(h){return {HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),conLai:soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa),TenKhoa:h.TenKhoa};})
     .sort(function(a,b){return a.conLai-b.conLai;}).slice(0,6);
   canBox.innerHTML = dsSap.length ? dsSap.map(function(r){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f3f5"><div><strong>'+esc(r.HoTen)+'</strong> <span class="ma">'+esc(r.TenKhoa)+'</span></div><div><span class="nhan no">còn '+r.conLai+' buổi</span> <a href="tel:'+esc(r.SDT)+'" class="ma">'+esc(r.SDT)+'</a></div></div>'; }).join('')
