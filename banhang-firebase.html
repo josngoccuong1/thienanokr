@@ -1766,22 +1766,35 @@ function deleteWarranty(id){const o=BAOHANH.find(x=>x._id===id);if(!o)return;ope
 async function confirmDeleteWarranty(id){const b=$('delWBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.baohanh).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadBaoHanh();renderWarranty();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
 function printWarrantyTem(id){
   const o=BAOHANH.find(x=>x._id===id);if(!o)return;
+  const ten=(o.tenSanPham||'').trim();
+  const bhTxt=`BH ${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'}${o.baoHanhDen?' · đến '+o.baoHanhDen:''}`;
+  const tem=`<div class="tem">
+      <img class="qr" src="${bhQrImg(o.maBaoHanh,180)}">
+      <div class="info">
+        <div class="code">${esc(o.maBaoHanh)}</div>
+        <div class="nm">${esc(ten)}</div>
+        <div class="bh">${esc(bhTxt)}</div>
+        <div class="sc">📱 Quét QR tra bảo hành</div>
+      </div>
+    </div>`;
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tem BH ${esc(o.maBaoHanh)}</title>
-    <style>@page{size:80mm 100mm;margin:4mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;padding:6px;text-align:center;color:#111}
-    .tem{border:2px solid #a97e46;border-radius:10px;padding:10px 8px}img.logo{width:70px}img.qr{width:150px;height:150px}
-    @media print{.noprint{display:none}}</style></head>
-    <body><div class="tem">
-      <img class="logo" src="${LOGO_DATAURI}">
-      <div style="font-weight:bold;font-size:13px;color:#a97e46;margin:2px 0">PHIẾU BẢO HÀNH</div>
-      <div style="font-size:11px;line-height:1.35">${esc(SHOP.name)}<br>${esc(SHOP.phone)}</div>
-      <img class="qr" src="${bhQrImg(o.maBaoHanh,300)}" style="margin:6px 0">
-      <div style="font-family:monospace;font-weight:bold;font-size:18px;letter-spacing:2px">${esc(o.maBaoHanh)}</div>
-      <div style="font-size:12px;margin-top:4px"><b>${esc(o.tenSanPham||'')}</b></div>
-      <div style="font-size:11px">BH ${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'} · đến ${esc(o.baoHanhDen||'')}</div>
-      <div style="font-size:10.5px;color:#555;margin-top:4px">📱 Quét mã QR để tra cứu bảo hành</div>
-    </div>
-    <div class="noprint" style="text-align:center;margin-top:12px"><button onclick="window.print()" style="padding:8px 20px;background:#a97e46;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨 In tem</button></div>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tem ${esc(o.maBaoHanh)}</title>
+    <style>
+      @page{size:72mm 22mm;margin:0}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:Arial,Helvetica,sans-serif;width:72mm;color:#000}
+      .row{display:flex;width:72mm;height:22mm;gap:2mm;padding:0 1mm}
+      .tem{width:34mm;height:22mm;display:flex;align-items:center;gap:1mm;padding:1mm;overflow:hidden}
+      .tem .qr{width:18mm;height:18mm;flex-shrink:0}
+      .info{flex:1;min-width:0;line-height:1.12}
+      .code{font-family:'Courier New',monospace;font-weight:bold;font-size:8pt}
+      .nm{font-size:5.5pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .bh{font-size:5.3pt}
+      .sc{font-size:4.8pt;color:#222;margin-top:.4mm}
+      @media print{.noprint{display:none}}
+    </style></head>
+    <body><div class="row">${tem}${tem}</div>
+    <div class="noprint" style="font-family:Arial;text-align:center;margin-top:14px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In tem đôi (72×22mm)</button><div style="font-size:12px;color:#666;margin-top:8px">Máy KiotViet 365B · in ra 2 con tem giống nhau</div></div>
     </body></html>`);
   w.document.close();
 }
