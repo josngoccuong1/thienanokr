@@ -216,11 +216,25 @@ body{font-family:'Be Vietnam Pro',-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 input,select,textarea{border-radius:10px;padding:10px 13px;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.18)}
 
-/* Thanh tiêu đề + dải phím đàn (điểm nhấn thương hiệu) */
-header{position:sticky;top:0;z-index:40;border-bottom:none;box-shadow:0 2px 14px rgba(18,41,77,.16)}
-header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;
-  background:repeating-linear-gradient(90deg,var(--gold) 0 13px,var(--gold-2) 13px 15px)}
-header .ten{font-weight:700;letter-spacing:.3px}
+/* Thanh tiêu đề sang trọng + viền vàng gradient phát sáng */
+header{position:sticky;top:0;z-index:40;border-bottom:none;padding:13px 22px;
+  background:linear-gradient(103deg,#0d2140 0%,#1b3c6b 52%,#12294d 100%);
+  box-shadow:0 6px 22px rgba(9,20,42,.30)}
+header::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(600px 120px at 82% -40%, rgba(201,162,39,.18), transparent 70%)}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;
+  background:linear-gradient(90deg,transparent 0%,var(--gold) 12%,#f4dc8f 50%,var(--gold) 88%,transparent 100%);
+  box-shadow:0 1px 10px rgba(201,162,39,.6),0 0 3px rgba(201,162,39,.8)}
+header>div{position:relative;z-index:1}
+header img{box-shadow:0 0 0 2px rgba(201,162,39,.7),0 4px 12px rgba(0,0,0,.35) !important;transition:transform .2s}
+header img:hover{transform:scale(1.05)}
+header .ten{font-weight:800;letter-spacing:.6px;font-size:16.5px;text-shadow:0 1px 3px rgba(0,0,0,.25);position:relative}
+header .ten span{color:var(--gold-2);letter-spacing:1.4px;text-transform:uppercase;font-size:10px;font-weight:600;margin-top:2px}
+header .phai{position:relative}
+#chonCoSoXem{transition:background .15s,border-color .15s}
+#chonCoSoXem:hover{background:rgba(255,255,255,.2) !important;border-color:var(--gold) !important}
+.nutThoat{border-radius:8px;transition:all .15s}
+.nutThoat:hover{border-color:var(--gold);color:#fff;background:rgba(201,162,39,.18)}
 
 /* Icon nhất quán (Material Symbols) */
 .ic{font-family:'Material Symbols Rounded';font-weight:normal;font-style:normal;font-size:19px;line-height:1;letter-spacing:normal;display:inline-block;vertical-align:-4px;-webkit-font-smoothing:antialiased}
@@ -330,6 +344,7 @@ main section{animation:hienLen .25s ease}
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
     <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo</button>
     <button id="tab-crm" onclick="doiTab('crm')"><span class="ic">support_agent</span> CRM</button>
+    <button id="tab-nguoidung" onclick="doiTab('nguoidung')" style="display:none"><span class="ic">manage_accounts</span> Người dùng</button>
   </nav>
 
   <main>
@@ -625,6 +640,34 @@ main section{animation:hienLen .25s ease}
         </table></div></div>
       </div>
     </section>
+
+    <!-- TAB NGƯỜI DÙNG (chỉ admin) -->
+    <section id="vung-nguoidung" class="an">
+      <div class="the" style="padding:14px;margin-bottom:14px;background:#fffbeb;border-color:#fde68a">
+        <div style="font-size:13px;color:#92400e;line-height:1.6">
+          <strong>Cách tạo tài khoản nhân viên (2 bước):</strong><br>
+          <b>Bước 1 —</b> Tạo tài khoản đăng nhập trong <b>Firebase Console → Authentication → Add user</b> (email + mật khẩu). VD: <i>cs2@thienan.vn</i><br>
+          <b>Bước 2 —</b> Ở đây bấm <b>Thêm người dùng</b>, nhập đúng email đó, chọn <b>cơ sở</b> → nhân viên đăng nhập sẽ chỉ thấy cơ sở đó.
+        </div>
+      </div>
+      <div class="thanhCong">
+        <div style="font-weight:600;color:#12294d;margin-right:auto">Phân quyền theo cơ sở</div>
+        <button class="nutChinh" onclick="moNguoiDung()">Thêm người dùng</button>
+      </div>
+      <div class="the"><div class="cuonBang"><table>
+        <thead><tr><th>Email đăng nhập</th><th>Họ tên</th><th>Vai trò</th><th>Cơ sở được xem</th><th></th></tr></thead>
+        <tbody id="bangNguoiDung"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
+      </table></div></div>
+
+      <div class="the" style="padding:16px;margin-top:16px;border-color:#fecaca;background:#fef2f2">
+        <div style="font-weight:700;color:#b42318;margin-bottom:6px">⚠️ Vùng nguy hiểm — Làm sạch dữ liệu</div>
+        <div style="font-size:13px;color:#7f1d1d;line-height:1.6;margin-bottom:12px">
+          Xóa <b>toàn bộ học viên + điểm danh + học phí + phiếu thu + CRM</b> (giữ lại khóa học, lớp, tài khoản).<br>
+          Dùng khi muốn <b>xóa hết dữ liệu test</b> để nhập danh sách thật. <b>Không hoàn tác được.</b>
+        </div>
+        <button class="nutChinh" style="background:#b42318" onclick="xacNhanLamSach()">🗑️ Xóa toàn bộ học viên</button>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -634,6 +677,7 @@ main section{animation:hienLen .25s ease}
 <script>
 var NguoiDung = null, DanhMuc = {coSo:[],monHoc:[],giaoVien:[]};
 var CoSoDangXem = '';
+var GVDangDay = '';
 try{ CoSoDangXem = localStorage.getItem('thienan_coso')||''; }catch(e){}
 function dungCoSo(cs){ return !CoSoDangXem || String(cs||'')===CoSoDangXem; }
 function napChonCoSo(){
@@ -710,6 +754,11 @@ async function goi(hanhDong, dl){
     case 'doanhThuNgay':     return await fbDoanhThuNgay(dl);
     case 'doiTrangThaiHV':   return await fbDoiTrangThaiHV(dl);
     case 'tongQuan':         return await fbTongQuan(dl);
+    case 'hoSoNguoiDung':    return await fbHoSoNguoiDung(dl.email);
+    case 'layNguoiDung':     return await docsCol('nguoidung');
+    case 'luuNguoiDung':     return await fbLuuNguoiDung(dl);
+    case 'xoaNguoiDung':     return await fbXoaNguoiDung(dl);
+    case 'lamSachHocVien':   return await fbLamSachHocVien();
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
     case 'chuyenHV':         return await fbChuyenHV(dl);
@@ -1003,8 +1052,47 @@ async function fbSapHetKhoa(dl){
 }
 
 /* ---------- Báo cáo doanh thu + tăng trưởng theo tháng/quý ---------- */
-async function fbTongQuan(dl){
-  var n=new Date();
+/* ---------- Người dùng & phân quyền ---------- */
+async function fbHoSoNguoiDung(email){
+  email = String(email||'').toLowerCase();
+  var ten = email.split('@')[0];
+  try{
+    var d = await FB.getDoc(FB.doc(FB.db,'nguoidung',email));
+    if(d.exists()){ var u=d.data(); return {email:email, hoTen:u.HoTen||ten, vaiTro:u.VaiTro||'ADMIN', coSo:u.CoSo||'ALL', maGV:u.MaGV||''}; }
+  }catch(e){}
+  return {email:email, hoTen:ten, vaiTro:'ADMIN', coSo:'ALL', maGV:''}; // chưa gán → mặc định admin
+}
+async function fbLuuNguoiDung(dl){
+  var u=dl.nguoiDung;
+  var email=String(u.Email||'').trim().toLowerCase();
+  if(!email) throw new Error('Nhập email đăng nhập.');
+  if(email.indexOf('@')<0) email=email+'@thienan.vn';
+  var obj={Email:email, HoTen:String(u.HoTen||'').trim(), VaiTro:u.VaiTro||'Nhân viên', CoSo:u.CoSo||'CS1', MaGV:String(u.MaGV||''), NgayCapNhat:new Date().toLocaleString('vi-VN')};
+  await FB.setDoc(FB.doc(FB.db,'nguoidung',email), obj, {merge:true});
+  return {email:email};
+}
+async function fbXoaNguoiDung(dl){
+  var email=String(dl.email||'').trim().toLowerCase(); if(!email) throw new Error('Thiếu email.');
+  await FB.deleteDoc(FB.doc(FB.db,'nguoidung',email));
+  return true;
+}
+async function fbLamSachHocVien(){
+  var cols=['hocvien','dangky','hocphi','phieuthu','diemdanh','khachhang','chamsoc'];
+  var tong=0;
+  for(var ci=0;ci<cols.length;ci++){
+    var snap=await FB.getDocs(FB.collection(FB.db,cols[ci]));
+    var docs=snap.docs;
+    for(var i=0;i<docs.length;i+=400){
+      var batch=FB.writeBatch(FB.db);
+      docs.slice(i,i+400).forEach(function(d){ batch.delete(d.ref); });
+      await batch.commit();
+    }
+    tong+=docs.length;
+  }
+  return {daXoa:tong};
+}
+
+async function fbTongQuan(dl){  var n=new Date();
   var thangNay=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
   var namNay=String(n.getFullYear());
   var pt=await docsCol('phieuthu');
@@ -1405,9 +1493,101 @@ var CACHE_KEY = 'thienan_hv_cache_v1';
 function luuCache(bd){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(bd)); }catch(e){} }
 function docCache(){ try{ var s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 
+/* ---------- Giao diện Người dùng (admin) ---------- */
+function napNguoiDung(){
+  if(!laAdmin()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
+  var tb=document.getElementById('bangNguoiDung');
+  goi('layNguoiDung').then(function(ds){
+    if(!ds.length){ tb.innerHTML='<tr><td colspan="5" class="trong">Chưa có phân quyền nào. Bấm “Thêm người dùng”.</td></tr>'; return; }
+    tb.innerHTML=ds.sort(function(a,b){return String(a.CoSo).localeCompare(String(b.CoSo));}).map(function(u){
+      var vt = u.VaiTro==='ADMIN' ? '<span class="nhan du">Admin (xem tất cả)</span>' : '<span class="nhan bao">Nhân viên</span>';
+      var cs = u.VaiTro==='ADMIN' ? 'Tất cả' : (u.CoSo||'—');
+      return '<tr><td class="ma">'+esc(u.Email)+'</td><td><strong>'+esc(u.HoTen||'')+'</strong></td><td>'+vt+'</td><td>'+esc(cs)+'</td>'
+        +'<td style="white-space:nowrap"><button class="nutNho" onclick=\'moNguoiDung('+JSON.stringify(u).replace(/'/g,"&#39;")+')\'>Sửa</button> '
+        +'<button class="nutNho" style="background:#b42318" onclick="xoaNguoiDungUI(\''+esc(u.Email)+'\')">Xóa</button></td></tr>';
+    }).join('');
+  }).catch(function(e){ tb.innerHTML='<tr><td colspan="5" class="trong">'+esc(e.message)+'</td></tr>'; });
+}
+function moNguoiDung(u){
+  u=u||{};
+  var optCoSo=(DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'"'+(u.CoSo===c.ma?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
+  var optGV=(DanhMuc.giaoVien||[]).map(function(g){return '<option value="'+esc(g.ma)+'"'+(u.MaGV===g.ma?' selected':'')+'>'+esc(g.ten)+'</option>';}).join('');
+  var vt=['Nhân viên','Giáo viên','ADMIN'];
+  moModal((u.Email?'Sửa phân quyền':'Thêm người dùng'),
+    '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
+    + o('Email đăng nhập','<input id="nd_Email" value="'+esc(u.Email)+'" '+(u.Email?'readonly':'')+' placeholder="vd: colan@thienan.vn">',true)
+    + o('Họ tên','<input id="nd_HoTen" value="'+esc(u.HoTen)+'">')
+    + o('Vai trò','<select id="nd_VaiTro" onchange="ndDoiVaiTro()">'+vt.map(function(x){return '<option'+(u.VaiTro===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>')
+    + o('Cơ sở được xem','<select id="nd_CoSo">'+optCoSo+'</select>')
+    + o('Là giáo viên','<select id="nd_MaGV"><option value="">— Chọn giáo viên —</option>'+optGV+'</select>')
+    + '<div class="o rong" id="nd_ghiChuAdmin" style="font-size:12px;color:#6b7280">Admin: xem tất cả · Nhân viên: xem 1 cơ sở · Giáo viên: chỉ điểm danh lớp mình dạy.</div>'
+    + '</div>',
+    'luuNguoiDungUI(\''+esc(u.Email||'')+'\')');
+  ndDoiVaiTro();
+}
+function ndDoiVaiTro(){
+  var vt=document.getElementById('nd_VaiTro'); if(!vt) return;
+  var v=vt.value;
+  var oCoSo=document.getElementById('nd_CoSo'); if(oCoSo) oCoSo.closest('.o').style.display = (v==='ADMIN'?'none':'');
+  var oGV=document.getElementById('nd_MaGV'); if(oGV) oGV.closest('.o').style.display = (v==='Giáo viên'?'':'none');
+}
+function luuNguoiDungUI(){
+  var u={Email:document.getElementById('nd_Email').value, HoTen:document.getElementById('nd_HoTen').value,
+    VaiTro:document.getElementById('nd_VaiTro').value, CoSo:document.getElementById('nd_CoSo').value,
+    MaGV:(document.getElementById('nd_MaGV')?document.getElementById('nd_MaGV').value:'')};
+  if(u.VaiTro==='ADMIN') u.CoSo='ALL';
+  if(u.VaiTro!=='Giáo viên') u.MaGV='';
+  var loi=document.getElementById('loiForm'); loi.classList.add('an'); khoaLuu(true);
+  goi('luuNguoiDung',{nguoiDung:u}).then(function(){ dongModal(); bao('Đã lưu phân quyền'); napNguoiDung(); })
+    .catch(function(e){ loi.textContent=e.message; loi.classList.remove('an'); khoaLuu(false); });
+}
+function xacNhanLamSach(){
+  if(!laAdmin()){ bao('Chỉ admin mới được làm việc này.', true); return; }
+  var g=prompt('⚠️ CẢNH BÁO: Thao tác này sẽ XÓA VĨNH VIỄN toàn bộ học viên, điểm danh, học phí, phiếu thu và dữ liệu CRM.\nKhông thể hoàn tác!\n\nGõ chữ   XOA   (in hoa) rồi bấm OK để xác nhận:');
+  if(g===null) return;
+  if(String(g).trim().toUpperCase()!=='XOA'){ bao('Bạn gõ chưa đúng chữ "XOA" — đã hủy, không xóa gì cả.'); return; }
+  bao('Đang xóa dữ liệu, vui lòng đợi...');
+  goi('lamSachHocVien').then(function(r){
+    bao('✓ Đã xóa sạch '+r.daXoa+' bản ghi. Sẵn sàng nhập danh sách mới!');
+    setTimeout(function(){ location.reload(); }, 1800);
+  }).catch(function(e){ bao('Lỗi khi xóa: '+e.message, true); });
+}
+function xoaNguoiDungUI(email){  if(!confirm('Xóa phân quyền của "'+email+'"?\n(Tài khoản đăng nhập trên Firebase vẫn còn — muốn chặn hẳn thì xóa trong Firebase Console.)')) return;
+  goi('xoaNguoiDung',{email:email}).then(function(){ bao('Đã xóa'); napNguoiDung(); }).catch(function(e){ bao(e.message,true); });
+}
+
+function laAdmin(){ return !NguoiDung || NguoiDung.vaiTro==='ADMIN' || NguoiDung.coSo==='ALL'; }function apDungPhanQuyen(){
+  var admin = laAdmin();
+  var laGV = NguoiDung && NguoiDung.vaiTro==='Giáo viên';
+  GVDangDay = laGV ? (NguoiDung.maGV||'') : '';
+  var sel = document.getElementById('chonCoSoXem');
+  var tnd = document.getElementById('tab-nguoidung');
+  if(!admin){
+    CoSoDangXem = NguoiDung.coSo || '';
+    try{ localStorage.setItem('thienan_coso', CoSoDangXem); }catch(e){}
+    if(sel){ sel.value = CoSoDangXem; sel.disabled = true; sel.style.opacity = .8; sel.title='Bạn chỉ được xem cơ sở '+CoSoDangXem; }
+    if(tnd) tnd.style.display = 'none';
+  } else {
+    if(sel){ sel.disabled = false; sel.style.opacity = 1; }
+    if(tnd) tnd.style.display = '';
+  }
+  // Giáo viên: chỉ hiện tab Điểm danh
+  var tabsGV=['diemdanh'];
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
+    var btn=document.getElementById('tab-'+t); if(!btn) return;
+    if(laGV) btn.style.display = (tabsGV.indexOf(t)>=0 ? '' : 'none');
+    else if(t!=='nguoidung') btn.style.display='';
+  });
+  if(laGV){
+    var thanhTen=document.getElementById('tenNguoi'); if(thanhTen) thanhTen.textContent='GV '+(NguoiDung.hoTen||'');
+    // ẩn nút quản trị trong điểm danh (nhập/xuất, danh sách tháng)
+    setTimeout(function(){ document.querySelectorAll('#vung-diemdanh .nutPhu').forEach(function(b){ b.style.display='none'; }); }, 50);
+  }
+}
 function apDungDuLieu(bd, renderDanhSach){
   if(bd.danhMuc) DanhMuc = bd.danhMuc;
   napChonCoSo();
+  apDungPhanQuyen();
   TatCaHV = bd.hocVien || [];
   DsLop = bd.lop || [];
   DsKhoa = bd.khoaHoc || [];
@@ -1416,7 +1596,9 @@ function apDungDuLieu(bd, renderDanhSach){
     sel.innerHTML = '<option value="">Tất cả cơ sở</option>'
       + (DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>';}).join('');
   }
-  if(renderDanhSach){ taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu(); }
+  if(renderDanhSach){ taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu();
+    if(NguoiDung && NguoiDung.vaiTro==='Giáo viên') doiTab('diemdanh');
+  }
 }
 
 /* ---------- Đăng nhập (Firebase) ---------- */
@@ -1427,7 +1609,10 @@ function dangNhap(){
   var loi = document.getElementById('loiDangNhap');
   loi.classList.add('an');
   if(!ten || !mk){ loi.textContent='Nhập đủ tên đăng nhập và mật khẩu.'; loi.classList.remove('an'); return; }
-  goi('dangNhap', {tenDangNhap:ten, matKhau:mk}).then(function(nd){ NguoiDung = nd; vaoApp(); })
+  goi('dangNhap', {tenDangNhap:ten, matKhau:mk}).then(function(){
+    var email = ten.indexOf('@')>=0 ? ten : ten+'@thienan.vn';
+    return goi('hoSoNguoiDung',{email:email});
+  }).then(function(nd){ NguoiDung = nd; vaoApp(); })
     .catch(function(e){ loi.textContent = e.message; loi.classList.remove('an'); });
 }
 function vaoApp(){
@@ -1447,19 +1632,20 @@ function thoat(){ if(window.FB) FB.signOut(FB.auth); location.reload(); }
 window.onFbReady = function(){
   FB.onAuthStateChanged(FB.auth, function(user){
     if(user && !daVaoApp){
-      NguoiDung = { tenDangNhap:(user.email||'').split('@')[0], hoTen:(user.email||'').split('@')[0], vaiTro:'ADMIN', coSo:'ALL' };
-      vaoApp();
+      goi('hoSoNguoiDung',{email:user.email}).then(function(nd){ NguoiDung = nd; vaoApp(); })
+        .catch(function(){ NguoiDung = { hoTen:(user.email||'').split('@')[0], vaiTro:'ADMIN', coSo:'ALL' }; vaoApp(); });
     }
   });
 };
 
 /* ---------- Tab ---------- */
 function doiTab(ten){
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
   if(ten==='trangchu') napTrangChu();
+  if(ten==='nguoidung') napNguoiDung();
   if(ten==='hocvien') lamMoiDsHocVien();
   if(ten==='lop') taiLop();
   if(ten==='khoahoc') taiKhoaHoc();
@@ -2187,7 +2373,7 @@ function napLopChoDiemDanh(){
   if(sel){
     var giu = sel.value;
     sel.innerHTML = '<option value="">— Chọn lớp —</option>'
-      + DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';})
+      + DsLop.filter(function(l){ return l.TrangThai!=='Đã đóng' && dungCoSo(l.CoSo) && (!GVDangDay || l.MaGV===GVDangDay); })
           .map(function(l){ return '<option value="'+esc(l.MaLop)+'">'+esc(l.TenLop)+(l.TenGV?' · '+esc(l.TenGV):'')+'</option>'; }).join('');
     if(giu) sel.value = giu;
   }
@@ -2239,6 +2425,7 @@ function ddTimTheoTen(){
   if(!tk.trim()){ box.innerHTML=''; return; }
   var ds = TatCaHV.filter(function(h){
     if((h.TrangThai||'')==='Đã nghỉ') return false;
+    if(!dungCoSo(h.CoSo)) return false;
     return boDauJS(h.HoTen).indexOf(tk)>-1
         || String(h.SDT_PhuHuynh||'').indexOf(tk)>-1
         || boDauJS(h.MaHV).indexOf(tk)>-1;
