@@ -1662,6 +1662,7 @@ function doiTab(ten){
 /* ---------- Học viên ---------- */
 function timTre(){ taiHocVien(1); }
 
+function _tenCuoi(hoTen){ var p=String(hoTen||'').trim().split(/\s+/); return p[p.length-1]||''; }
 function taiHocVien(trang){
   var tbody = document.getElementById('bangHV');
   var tk = boDauJS(document.getElementById('oTim').value);
@@ -1680,7 +1681,7 @@ function taiHocVien(trang){
           || boDauJS(r.TenPhuHuynh).indexOf(tk) > -1;
     });
   }
-  ds.sort(function(a,b){ return String(a.HoTen).localeCompare(String(b.HoTen),'vi'); });
+  ds.sort(function(a,b){ var c=_tenCuoi(a.HoTen).localeCompare(_tenCuoi(b.HoTen),'vi'); return c!==0?c:String(a.HoTen).localeCompare(String(b.HoTen),'vi'); });
 
   var tong = ds.length;
   var soTrang = Math.max(1, Math.ceil(tong/50));
@@ -1706,7 +1707,7 @@ function taiHocVien(trang){
       var mauTT = bs.TTHocPhi==='Đã đóng'?'du':((bs.TTHocPhi==='Còn nợ'||bs.TTHocPhi==='Chưa đóng')?'no':'');
       return '<tr onclick="moChiTiet(\''+esc(h.MaHV)+'\')">'
         + '<td>'+stt+'</td>'
-        + '<td><strong>'+esc(h.HoTen)+'</strong><br><span class="ma">'+esc(h.MaHV)+'</span></td>'
+        + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
         + '<td><span class="nhan '+mauTTK+'">'+esc(ttKhoa)+'</span></td>'
         + '<td class="ma">'+esc(h.SDT_PhuHuynh)+'</td>'
         + '<td>'+esc(bs.Lop||'—')+'</td>'
