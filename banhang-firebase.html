@@ -1767,34 +1767,28 @@ async function confirmDeleteWarranty(id){const b=$('delWBtn');b.disabled=true;b.
 function printWarrantyTem(id){
   const o=BAOHANH.find(x=>x._id===id);if(!o)return;
   const ten=(o.tenSanPham||'').trim();
-  const bhTxt=`BH ${o.baoHanhSo||0} ${o.baoHanhDonVi==='nam'?'năm':'tháng'}${o.baoHanhDen?' · đến '+o.baoHanhDen:''}`;
-  const tem=`<div class="tem">
+  const tem=`<div class="tem"><div class="cell">
+      <div class="nm">${esc(ten)}</div>
       <img class="qr" src="${bhQrImg(o.maBaoHanh,180)}">
-      <div class="info">
-        <div class="code">${esc(o.maBaoHanh)}</div>
-        <div class="nm">${esc(ten)}</div>
-        <div class="bh">${esc(bhTxt)}</div>
-        <div class="sc">📱 Quét QR tra bảo hành</div>
-      </div>
-    </div>`;
+      <div class="code">${esc(o.maBaoHanh)}</div>
+    </div></div>`;
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tem ${esc(o.maBaoHanh)}</title>
     <style>
       @page{size:72mm 22mm;margin:0}
       *{box-sizing:border-box;margin:0;padding:0}
-      body{font-family:Arial,Helvetica,sans-serif;width:72mm;color:#000}
-      .row{display:flex;width:72mm;height:22mm;gap:2mm;padding:0 1mm}
-      .tem{width:34mm;height:22mm;display:flex;align-items:center;gap:1mm;padding:1mm;overflow:hidden}
-      .tem .qr{width:18mm;height:18mm;flex-shrink:0}
-      .info{flex:1;min-width:0;line-height:1.12}
-      .code{font-family:'Courier New',monospace;font-weight:bold;font-size:8pt}
-      .nm{font-size:5.5pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .bh{font-size:5.3pt}
-      .sc{font-size:4.8pt;color:#222;margin-top:.4mm}
+      html,body{width:72mm}
+      body{font-family:Arial,Helvetica,sans-serif;color:#000}
+      .row{display:flex;width:72mm;height:22mm}
+      .tem{width:36mm;height:22mm;display:flex;align-items:center;justify-content:center}
+      .cell{width:33mm;height:22mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.05;overflow:hidden}
+      .cell .nm{font-size:4.6pt;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:33mm;margin-bottom:.4mm}
+      .cell .qr{width:14mm;height:14mm}
+      .cell .code{font-family:'Courier New',monospace;font-weight:bold;font-size:6.6pt;margin-top:.5mm;letter-spacing:.4px}
       @media print{.noprint{display:none}}
     </style></head>
     <body><div class="row">${tem}${tem}</div>
-    <div class="noprint" style="font-family:Arial;text-align:center;margin-top:14px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In tem đôi (72×22mm)</button><div style="font-size:12px;color:#666;margin-top:8px">Máy KiotViet 365B · in ra 2 con tem giống nhau</div></div>
+    <div class="noprint" style="font-family:Arial;text-align:center;margin-top:16px"><button onclick="window.print()" style="padding:9px 22px;background:#a97e46;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 In tem đôi (72×22mm)</button><div style="font-size:12px;color:#666;margin-top:10px;line-height:1.6">Máy <b>KiotViet 365B</b> · khổ giấy <b>72×22mm</b> · Margin <b>0</b> · Scale <b>100%</b><br>Ra 2 con tem giống nhau — nội dung căn giữa từng con.</div></div>
     </body></html>`);
   w.document.close();
 }
