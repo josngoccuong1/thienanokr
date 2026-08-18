@@ -1285,7 +1285,7 @@ var CAU_HINH_XLS = {
     cots:[['MaHV','Mã HV'],['HoTen','Họ tên'],['NgaySinh','Ngày sinh'],['GioiTinh','Giới tính'],
           ['TenPhuHuynh','Tên phụ huynh'],['SDT_PhuHuynh','SĐT phụ huynh'],['DiaChi','Địa chỉ'],
           ['CoSo','Cơ sở'],['NgayNhapHoc','Ngày nhập học'],['TrangThai','Trạng thái'],
-          ['TenKhoa','Khóa học'],['SoBuoiKhoa','Số buổi khóa'],['DaHocKhoa','Đã học'],['NgayHocCuoi','Ngày học cuối'],['NgayHoc','Ngày học'],['GhiChu','Ghi chú']] },
+          ['TenKhoa','Khóa học'],['SoBuoiKhoa','Số buổi khóa'],['DaHocKhoa','Đã học'],['NgayHocCuoi','Ngày học cuối'],['NgayHoc','Ngày học'],['TTHocPhi','TT học phí'],['NgayDongHP','Ngày đóng'],['GhiChu','Ghi chú']] },
   lop: { ten:'Lớp', col:'lop', maField:'MaLop', maPrefix:'LOP', tenChinh:'TenLop',
     cots:[['MaLop','Mã lớp'],['TenLop','Tên lớp'],['MonHoc','Môn học'],['CapDo','Cấp độ'],
           ['TenGV','Giáo viên'],['CoSo','Cơ sở'],['Thu','Thứ'],['GioBatDau','Giờ bắt đầu'],
@@ -1714,7 +1714,9 @@ function taiHocVien(trang){
       var mauTTK = h.TrangThai==='Đã nghỉ'?'nghi':(h.TrangThai==='Bảo lưu'?'bao':'hoc');
       var mauCL = coKhoa ? (conLai<=0?'nghi':(conLai<=3?'no':'hoc')) : '';
       var ngay = String(h.NgayHoc||'').split(/[,\/\-\u2013]+/).map(function(x){x=x.trim();return x?'<span class="nhan hoc" style="margin:1px 2px">'+esc(x)+'</span>':'';}).join('');
-      var mauTT = bs.TTHocPhi==='Đã đóng'?'du':((bs.TTHocPhi==='Còn nợ'||bs.TTHocPhi==='Chưa đóng')?'no':'');
+      var ttHP = bs.TTHocPhi || h.TTHocPhi || '';
+      var ngayDongHP = bs.NgayDong || h.NgayDongHP || '';
+      var mauTT = ttHP==='Đã đóng'?'du':((ttHP==='Còn nợ'||ttHP==='Chưa đóng')?'no':'');
       return '<tr onclick="moChiTiet(\''+esc(h.MaHV)+'\')">'
         + '<td>'+stt+'</td>'
         + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
@@ -1727,8 +1729,8 @@ function taiHocVien(trang){
         + '<td>'+(coKhoa?daHoc:'—')+'</td>'
         + '<td>'+(coKhoa?'<span class="nhan '+mauCL+'">'+conLai+'</span>':'—')+'</td>'
         + '<td class="tien">'+(bs.HocPhi?tien(bs.HocPhi):'—')+'</td>'
-        + '<td>'+esc(bs.NgayDong||'—')+'</td>'
-        + '<td>'+(bs.TTHocPhi?'<span class="nhan '+mauTT+'">'+esc(bs.TTHocPhi)+'</span>':'—')+'</td></tr>';
+        + '<td>'+esc(ngayDongHP||'—')+'</td>'
+        + '<td>'+(ttHP?'<span class="nhan '+mauTT+'">'+esc(ttHP)+'</span>':'—')+'</td></tr>';
     }).join('');
   }
   document.getElementById('tomTatHV').textContent = tong + ' học viên · trang ' + trang + '/' + soTrang;
