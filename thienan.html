@@ -1285,7 +1285,7 @@ var CAU_HINH_XLS = {
     cots:[['MaHV','Mã HV'],['HoTen','Họ tên'],['NgaySinh','Ngày sinh'],['GioiTinh','Giới tính'],
           ['TenPhuHuynh','Tên phụ huynh'],['SDT_PhuHuynh','SĐT phụ huynh'],['DiaChi','Địa chỉ'],
           ['CoSo','Cơ sở'],['NgayNhapHoc','Ngày nhập học'],['TrangThai','Trạng thái'],
-          ['TenKhoa','Khóa học'],['SoBuoiKhoa','Số buổi khóa'],['DaHocKhoa','Đã học'],['NgayHocCuoi','Ngày học cuối'],['NgayHoc','Ngày học'],['TTHocPhi','TT học phí'],['NgayDongHP','Ngày đóng'],['GhiChu','Ghi chú']] },
+          ['TenKhoa','Khóa học'],['SoBuoiKhoa','Số buổi khóa'],['DaHocKhoa','Đã học'],['HocPhiKhoa','Học phí'],['NgayHocCuoi','Ngày học cuối'],['NgayHoc','Ngày học'],['TTHocPhi','TT học phí'],['NgayDongHP','Ngày đóng'],['GhiChu','Ghi chú']] },
   lop: { ten:'Lớp', col:'lop', maField:'MaLop', maPrefix:'LOP', tenChinh:'TenLop',
     cots:[['MaLop','Mã lớp'],['TenLop','Tên lớp'],['MonHoc','Môn học'],['CapDo','Cấp độ'],
           ['TenGV','Giáo viên'],['CoSo','Cơ sở'],['Thu','Thứ'],['GioBatDau','Giờ bắt đầu'],
@@ -1455,13 +1455,14 @@ function chonFileNhapDD(){
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
       if(!rows.length){ bao('File trống.', true); return; }
-      nhapDiemDanh(rows);
+      var tinhLai = confirm('NHẬP ĐIỂM DANH — chọn cách xử lý "số buổi đã học":\n\n• Bấm OK: TÍNH LẠI số buổi đã học theo file (điểm danh bình thường)\n• Bấm Cancel: GIỮ NGUYÊN số buổi hiện tại (nhập LỊCH SỬ điểm danh cũ)');
+      nhapDiemDanh(rows, !tinhLai);
     }catch(err){ bao('Không đọc được file: '+err.message, true); } };
     reader.readAsArrayBuffer(f);
   };
   inp.click();
 }
-async function nhapDiemDanh(rows){
+async function nhapDiemDanh(rows, khongTinhLai){
   var docs=[], affected={}, boQua=0;
   rows.forEach(function(r){
     var ngayISO=_isoTuNgay(r['Ngày']||r['Ngay']); if(!ngayISO){ boQua++; return; }
@@ -1469,7 +1470,7 @@ async function nhapDiemDanh(rows){
     var tenLop=String(r['Tên lớp']||r['Ten lop']||'').trim();
     if(!maLop && tenLop){ var l=DsLop.filter(function(x){return String(x.TenLop).trim()===tenLop;})[0]; if(l){maLop=l.MaLop; tenLop=l.TenLop;} }
     else if(maLop){ var l2=DsLop.filter(function(x){return x.MaLop===maLop;})[0]; if(l2) tenLop=l2.TenLop; }
-    if(!maLop){ boQua++; return; }
+    if(!maLop){ maLop='BUOIHOC'; if(!tenLop) tenLop='Buổi học'; }  // không bắt buộc khớp lớp
     var maHV=String(r['Mã HV']||r['Ma HV']||'').trim();
     var hoTen=String(r['Họ tên']||r['Ho ten']||'').trim();
     if(!maHV && hoTen){ var hv=TatCaHV.filter(function(x){return String(x.HoTen).trim()===hoTen;})[0]; if(hv){maHV=hv.MaHV; hoTen=hv.HoTen;} }
@@ -1480,7 +1481,7 @@ async function nhapDiemDanh(rows){
     docs.push({id:maLop+'_'+ngayISO+'_'+maHV, obj:{NgayISO:ngayISO,Ngay:ngay,Thang:ngayISO.slice(0,7),MaLop:maLop,TenLop:tenLop,MaHV:maHV,HoTen:hoTen,TrangThai:tt,GhiChu:String(r['Ghi chú']||r['Ghi chu']||''),NguoiDiemDanh:String(r['Người điểm danh']||r['Nguoi diem danh']||''),ThoiGian:new Date().toLocaleString('vi-VN')}});
     affected[maHV]=true;
   });
-  if(!docs.length){ bao('Không có dòng hợp lệ. Kiểm tra Ngày, Lớp, Học viên có khớp không.', true); return; }
+  if(!docs.length){ bao('Không có dòng hợp lệ. Kiểm tra Ngày và Học viên có khớp không.', true); return; }
   bao('Đang nhập '+docs.length+' dòng điểm danh...');
   try{
     for(var i=0;i<docs.length;i+=400){
@@ -1488,18 +1489,20 @@ async function nhapDiemDanh(rows){
       docs.slice(i,i+400).forEach(function(d){ batch.set(FB.doc(FB.db,'diemdanh',d.id), d.obj, {merge:true}); });
       await batch.commit();
     }
-    // Tính lại "số buổi đã học" + ngày đi học gần nhất cho các em vừa nhập
-    var all=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
-    var dem={}, cuoi={}; all.docs.forEach(function(d){ var o=d.data(); var m=String(o.MaHV); dem[m]=(dem[m]||0)+1; var iso=String(o.NgayISO||''); if(!cuoi[m]||iso>cuoi[m]) cuoi[m]=iso; });
-    var dsMa=Object.keys(affected);
-    for(var j=0;j<dsMa.length;j+=400){
-      var b2=FB.writeBatch(FB.db);
-      dsMa.slice(j,j+400).forEach(function(ma){ b2.set(FB.doc(FB.db,'hocvien',ma), {DaHocKhoa:dem[ma]||0, NgayHocCuoi:cuoi[ma]||''}, {merge:true}); });
-      await b2.commit();
+    if(!khongTinhLai){
+      // Tính lại "số buổi đã học" + ngày đi học gần nhất
+      var all=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
+      var dem={}, cuoi={}; all.docs.forEach(function(d){ var o=d.data(); var m=String(o.MaHV); dem[m]=(dem[m]||0)+1; var iso=String(o.NgayISO||''); if(!cuoi[m]||iso>cuoi[m]) cuoi[m]=iso; });
+      var dsMa=Object.keys(affected);
+      for(var j=0;j<dsMa.length;j+=400){
+        var b2=FB.writeBatch(FB.db);
+        dsMa.slice(j,j+400).forEach(function(ma){ b2.set(FB.doc(FB.db,'hocvien',ma), {DaHocKhoa:dem[ma]||0, NgayHocCuoi:cuoi[ma]||''}, {merge:true}); });
+        await b2.commit();
+      }
     }
-    bao('✓ Đã nhập '+docs.length+' dòng điểm danh'+(boQua?' ('+boQua+' dòng bỏ qua vì thiếu/không khớp)':'')+'!');
+    bao('✓ Đã nhập '+docs.length+' dòng điểm danh'+(boQua?' ('+boQua+' bỏ qua)':'')+(khongTinhLai?' (giữ nguyên số buổi)':'')+'!');
     napDsDiemDanh(); lamMoiDsHocVien();
-  }catch(e){ bao('Lỗi khi nhập: '+e.message, true); }
+  }catch(e){ bao('Lỗi khi nhập (có thể chạm giới hạn ghi/ngày của Firebase): '+e.message, true); }
 }
 var CACHE_KEY = 'thienan_hv_cache_v1';
 function luuCache(bd){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(bd)); }catch(e){} }
@@ -1728,7 +1731,7 @@ function taiHocVien(trang){
         + '<td>'+(coKhoa?soBuoiKhoa:'—')+'</td>'
         + '<td>'+(coKhoa?daHoc:'—')+'</td>'
         + '<td>'+(coKhoa?'<span class="nhan '+mauCL+'">'+conLai+'</span>':'—')+'</td>'
-        + '<td class="tien">'+(bs.HocPhi?tien(bs.HocPhi):'—')+'</td>'
+        + '<td class="tien">'+((bs.HocPhi||h.HocPhiKhoa)?tien(bs.HocPhi||h.HocPhiKhoa):'—')+'</td>'
         + '<td>'+esc(ngayDongHP||'—')+'</td>'
         + '<td>'+(ttHP?'<span class="nhan '+mauTT+'">'+esc(ttHP)+'</span>':'—')+'</td></tr>';
     }).join('');
