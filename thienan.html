@@ -1706,10 +1706,12 @@ function taiHocVien(trang){
     tbody.innerHTML = danhSach.map(function(h, idx){
       var bs = MapBoSung[h.MaHV] || {};
       var stt = batDau + idx + 1;
-      var conLai = bs.ConLai;
-      var coKhoa = !(conLai==='' || conLai===undefined || conLai===null);
-      var ttKhoa = coKhoa ? (conLai<=0 ? 'Hoàn thành' : 'Chưa hoàn thành') : (h.TrangThai||'Đang học');
-      var mauTTK = coKhoa ? (conLai<=0?'du':'bao') : (h.TrangThai==='Đã nghỉ'?'nghi':(h.TrangThai==='Bảo lưu'?'bao':'hoc'));
+      var soBuoiKhoa = soTienJS(h.SoBuoiKhoa);
+      var daHoc = soTienJS(h.DaHocKhoa);
+      var coKhoa = soBuoiKhoa > 0;
+      var conLai = coKhoa ? (soBuoiKhoa - daHoc) : '';
+      var ttKhoa = h.TrangThai||'Đang học';
+      var mauTTK = h.TrangThai==='Đã nghỉ'?'nghi':(h.TrangThai==='Bảo lưu'?'bao':'hoc');
       var mauCL = coKhoa ? (conLai<=0?'nghi':(conLai<=3?'no':'hoc')) : '';
       var ngay = String(h.NgayHoc||'').split(/[,\/\-\u2013]+/).map(function(x){x=x.trim();return x?'<span class="nhan hoc" style="margin:1px 2px">'+esc(x)+'</span>':'';}).join('');
       var mauTT = bs.TTHocPhi==='Đã đóng'?'du':((bs.TTHocPhi==='Còn nợ'||bs.TTHocPhi==='Chưa đóng')?'no':'');
@@ -1721,8 +1723,8 @@ function taiHocVien(trang){
         + '<td>'+esc(bs.Lop||'—')+'</td>'
         + '<td>'+esc(h.TenKhoa||'—')+'</td>'
         + '<td>'+(ngay||'—')+'</td>'
-        + '<td>'+(h.SoBuoiKhoa||'—')+'</td>'
-        + '<td>'+(coKhoa?bs.DaHoc:'—')+'</td>'
+        + '<td>'+(coKhoa?soBuoiKhoa:'—')+'</td>'
+        + '<td>'+(coKhoa?daHoc:'—')+'</td>'
         + '<td>'+(coKhoa?'<span class="nhan '+mauCL+'">'+conLai+'</span>':'—')+'</td>'
         + '<td class="tien">'+(bs.HocPhi?tien(bs.HocPhi):'—')+'</td>'
         + '<td>'+esc(bs.NgayDong||'—')+'</td>'
