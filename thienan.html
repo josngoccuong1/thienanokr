@@ -780,6 +780,8 @@ async function goi(hanhDong, dl){
     case 'xoaNguoiDung':     return await fbXoaNguoiDung(dl);
     case 'lamSachHocVien':   return await fbLamSachHocVien();
     case 'luuGiaoVien':      return await fbLuuGiaoVien(dl);
+    case 'xoaHocVien':       return await fbXoaHocVien(dl);
+    case 'xoaDiemDanh':      return await fbXoaDiemDanh(dl);
     case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
@@ -982,7 +984,7 @@ async function fbDsDiemDanh(dl){
   var rows=snap.docs.map(function(d){ var o=d.data(); var maHV=String(o.MaHV); var hv=hvMap[maHV]||{}; var kh=khMap[hv.MaKhoa]||{};
     var thu=(kh.GiaTien&&kh.SoBuoi)?Math.round(kh.GiaTien/kh.SoBuoi):'';
     var conLai=hv.SoBuoiKhoa?(hv.SoBuoiKhoa-(daHoc[maHV]||0)):'';
-    return {Ngay:o.Ngay||'',TenLop:o.TenLop||'',TenKhoa:hv.TenKhoa||'',HoTen:o.HoTen||'',TrangThai:o.TrangThai||'',NguoiDiemDanh:o.NguoiDiemDanh||'',SoBuoiConLai:conLai,Thu:thu,_iso:o.NgayISO||''}; });
+    return {Ngay:o.Ngay||'',TenLop:o.TenLop||'',TenKhoa:hv.TenKhoa||'',HoTen:o.HoTen||'',TrangThai:o.TrangThai||'',NguoiDiemDanh:o.NguoiDiemDanh||'',SoBuoiConLai:conLai,Thu:thu,_iso:o.NgayISO||'',MaLop:o.MaLop||'',MaHV:maHV,NgayISO:o.NgayISO||''}; });
   rows.sort(function(a,b){return String(b._iso).localeCompare(String(a._iso));});
   rows.forEach(function(r){ delete r._iso; });
   return {thang:thang, danhSach:rows};
@@ -1098,8 +1100,37 @@ async function fbXoaNguoiDung(dl){
   await FB.deleteDoc(FB.doc(FB.db,'nguoidung',email));
   return true;
 }
-async function fbLuuGiaoVien(dl){
-  var g=dl.giaoVien; if(!String(g.ten||'').trim()) throw new Error('Chưa nhập tên giáo viên.');
+async function fbXoaDiemDanh(dl){
+  var id=String(dl.maLop||'')+'_'+String(dl.ngayISO||'')+'_'+String(dl.maHV||'');
+  await FB.deleteDoc(FB.doc(FB.db,'diemdanh',id));
+  // Nếu là "Có mặt" thì trừ 1 buổi đã học
+  if(dl.trangThai==='Có mặt' && dl.maHV){
+    try{
+      var ref=FB.doc(FB.db,'hocvien',String(dl.maHV));
+      var d=await FB.getDoc(ref);
+      if(d.exists()){ var dh=soTienJS(d.data().DaHocKhoa); if(dh>0) await FB.setDoc(ref,{DaHocKhoa:dh-1},{merge:true}); }
+    }catch(e){}
+  }
+  return {ok:true};
+}
+async function fbXoaHocVien(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
+  // Xóa các bản ghi liên quan của em này
+  var cols=['dangky','hocphi','phieuthu','diemdanh','chamsoc'];
+  for(var ci=0;ci<cols.length;ci++){
+    try{
+      var snap=await FB.getDocs(FB.query(FB.collection(FB.db,cols[ci]),FB.where('MaHV','==',maHV)));
+      var docs=snap.docs;
+      for(var i=0;i<docs.length;i+=400){
+        var batch=FB.writeBatch(FB.db);
+        docs.slice(i,i+400).forEach(function(d){ batch.delete(d.ref); });
+        await batch.commit();
+      }
+    }catch(e){}
+  }
+  await FB.deleteDoc(FB.doc(FB.db,'hocvien',maHV));
+  return {maHV:maHV};
+}
+async function fbLuuGiaoVien(dl){  var g=dl.giaoVien; if(!String(g.ten||'').trim()) throw new Error('Chưa nhập tên giáo viên.');
   var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
   var ds=(d.exists()&&d.data().giaoVien)?d.data().giaoVien:[];
   var ma=String(g.ma||'').trim();
@@ -2056,8 +2087,17 @@ function docSo(n){
 /* ---------- Chi tiết học viên ---------- */
 var ChiTiet = null;
 
-function moChiTiet(maHV){
-  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
+function xoaHocVienUI(maHV, hoTen){
+  if(!laAdmin()){ bao('Chỉ admin mới được xóa.', true); return; }
+  if(!confirm('XÓA VĨNH VIỄN học viên "'+hoTen+'"?\n\nSẽ xóa cả: học phí, phiếu thu, điểm danh, đăng ký lớp của em này.\nKhông hoàn tác được!')) return;
+  bao('Đang xóa...');
+  goi('xoaHocVien',{maHV:maHV}).then(function(){
+    // bỏ khỏi danh sách trong bộ nhớ
+    for(var i=0;i<TatCaHV.length;i++){ if(TatCaHV[i].MaHV===maHV){ TatCaHV.splice(i,1); break; } }
+    dongModal(); bao('✓ Đã xóa học viên '+hoTen); taiHocVien(TrangHV||1);
+  }).catch(function(e){ bao('Lỗi khi xóa: '+e.message, true); });
+}
+function moChiTiet(maHV){  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
           {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
   goi('xemHocVien', {maHV:maHV}).then(function(d){
     ChiTiet = d;
@@ -2101,6 +2141,7 @@ function veChiTiet(){
     + '<button class="nutPhu" onclick="ganKhoaTuChiTiet()">Gán khóa học</button>'
     + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
     + '<button class="nutPhu" onclick="moTaoHocPhi()">Thêm kỳ học phí</button>'
+    + (laAdmin()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
     + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
 }
 
@@ -2471,8 +2512,15 @@ function napLopChoDiemDanh(){
   napDsDiemDanh();
 }
 
-function napDsDiemDanh(){
-  var thang = document.getElementById('ddThang').value;
+function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!confirm('Xóa lượt điểm danh này?')) return;
+  if(btn){ btn.textContent='...'; btn.disabled=true; }
+  goi('xoaDiemDanh',{maLop:maLop, ngayISO:ngayISO, maHV:maHV, trangThai:trangThai}).then(function(){
+    bao('✓ Đã xóa lượt điểm danh'); napDsDiemDanh(); lamMoiDsHocVien();
+  }).catch(function(e){ bao(e.message, true); if(btn){ btn.textContent='Xóa'; btn.disabled=false; } });
+}
+function napDsDiemDanh(){  var thang = document.getElementById('ddThang').value;
   var box = document.getElementById('dsDiemDanhBox');
   if(!thang){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="dangTai" style="padding:20px">Đang tải danh sách...</div>';
@@ -2484,6 +2532,7 @@ function napDsDiemDanh(){
     box.innerHTML = '<table class="nho"><thead><tr>'
       + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
       + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
+      + (laAdmin()?'<th></th>':'')
       + '</tr></thead><tbody>'
       + d.danhSach.map(function(r,i){
           var mauTT = r.TrangThai==='Vắng'?'nghi':(r.TrangThai==='Có phép'?'bao':'hoc');
@@ -2497,7 +2546,9 @@ function napDsDiemDanh(){
             + '<td>'+esc(r.Ngay)+'</td>'
             + '<td>'+esc(r.NguoiDiemDanh||'—')+'</td>'
             + '<td>'+conLai+'</td>'
-            + '<td class="tien">'+(r.Thu===''?'—':tien(r.Thu))+'</td></tr>';
+            + '<td class="tien">'+(r.Thu===''?'—':tien(r.Thu))+'</td>'
+            + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(r.MaLop)+'\',\''+esc(r.NgayISO)+'\',\''+esc(r.MaHV)+'\',\''+esc(r.TrangThai)+'\',this)">Xóa</button></td>':'')
+            + '</tr>';
         }).join('')
       + '</tbody></table>';
   }).catch(function(e){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(e.message)+'</div>'; });
