@@ -668,6 +668,16 @@ main section{animation:hienLen .25s ease}
         <tbody id="bangNguoiDung"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
       </table></div></div>
 
+      <div class="thanhCong" style="margin-top:22px">
+        <div style="font-weight:600;color:#12294d;margin-right:auto">👩‍🏫 Danh sách giáo viên</div>
+        <button class="nutChinh" onclick="moGiaoVien()">Thêm giáo viên</button>
+      </div>
+      <div style="font-size:13px;color:#6b7280;margin-bottom:8px">Khai báo giáo viên ở đây để: gán GV cho lớp, và chọn khi tạo tài khoản đăng nhập cho GV.</div>
+      <div class="the"><div class="cuonBang"><table>
+        <thead><tr><th>Mã</th><th>Tên giáo viên</th><th>Môn dạy</th><th>Cơ sở</th><th></th></tr></thead>
+        <tbody id="bangGiaoVien"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
+      </table></div></div>
+
       <div class="the" style="padding:16px;margin-top:16px;border-color:#fecaca;background:#fef2f2">
         <div style="font-weight:700;color:#b42318;margin-bottom:6px">⚠️ Vùng nguy hiểm — Làm sạch dữ liệu</div>
         <div style="font-size:13px;color:#7f1d1d;line-height:1.6;margin-bottom:12px">
@@ -768,6 +778,8 @@ async function goi(hanhDong, dl){
     case 'luuNguoiDung':     return await fbLuuNguoiDung(dl);
     case 'xoaNguoiDung':     return await fbXoaNguoiDung(dl);
     case 'lamSachHocVien':   return await fbLamSachHocVien();
+    case 'luuGiaoVien':      return await fbLuuGiaoVien(dl);
+    case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
     case 'chuyenHV':         return await fbChuyenHV(dl);
@@ -1085,8 +1097,27 @@ async function fbXoaNguoiDung(dl){
   await FB.deleteDoc(FB.doc(FB.db,'nguoidung',email));
   return true;
 }
-async function fbLamSachHocVien(){
-  var cols=['hocvien','dangky','hocphi','phieuthu','diemdanh','khachhang','chamsoc'];
+async function fbLuuGiaoVien(dl){
+  var g=dl.giaoVien; if(!String(g.ten||'').trim()) throw new Error('Chưa nhập tên giáo viên.');
+  var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
+  var ds=(d.exists()&&d.data().giaoVien)?d.data().giaoVien:[];
+  var ma=String(g.ma||'').trim();
+  if(!ma){ var i=1; do{ ma='GV'+('00'+i).slice(-3); i++; }while(ds.some(function(x){return x.ma===ma;})); }
+  var obj={ma:ma, ten:String(g.ten).trim(), monHoc:g.monHoc||'', coSo:g.coSo||''};
+  var found=false;
+  ds=ds.map(function(x){ if(x.ma===ma){found=true; return obj;} return x; });
+  if(!found) ds.push(obj);
+  await FB.setDoc(ref, {giaoVien:ds}, {merge:true});
+  return {ma:ma, giaoVien:ds};
+}
+async function fbXoaGiaoVien(dl){
+  var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
+  var ds=(d.exists()&&d.data().giaoVien)?d.data().giaoVien:[];
+  ds=ds.filter(function(x){return x.ma!==String(dl.ma);});
+  await FB.setDoc(ref, {giaoVien:ds}, {merge:true});
+  return {giaoVien:ds};
+}
+async function fbLamSachHocVien(){  var cols=['hocvien','dangky','hocphi','phieuthu','diemdanh','khachhang','chamsoc'];
   var tong=0;
   for(var ci=0;ci<cols.length;ci++){
     var snap=await FB.getDocs(FB.collection(FB.db,cols[ci]));
@@ -1514,7 +1545,41 @@ function luuCache(bd){ try{ localStorage.setItem(CACHE_KEY, JSON.stringify(bd));
 function docCache(){ try{ var s=localStorage.getItem(CACHE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 
 /* ---------- Giao diện Người dùng (admin) ---------- */
+/* ---------- Quản lý Giáo viên ---------- */
+function napGiaoVien(){
+  var tb=document.getElementById('bangGiaoVien'); if(!tb) return;
+  var ds=DanhMuc.giaoVien||[];
+  if(!ds.length){ tb.innerHTML='<tr><td colspan="5" class="trong">Chưa có giáo viên. Bấm “Thêm giáo viên”.</td></tr>'; return; }
+  tb.innerHTML=ds.map(function(g){
+    return '<tr><td class="ma">'+esc(g.ma)+'</td><td><strong>'+esc(g.ten)+'</strong></td><td>'+esc(g.monHoc||'—')+'</td><td>'+esc(g.coSo||'—')+'</td>'
+      +'<td style="white-space:nowrap"><button class="nutNho" onclick=\'moGiaoVien('+JSON.stringify(g).replace(/'/g,"&#39;")+')\'>Sửa</button> '
+      +'<button class="nutNho" style="background:#b42318" onclick="xoaGiaoVienUI(\''+esc(g.ma)+'\')">Xóa</button></td></tr>';
+  }).join('');
+}
+function moGiaoVien(g){
+  g=g||{};
+  var optMon=(DanhMuc.monHoc||[]).map(function(m){return '<option value="'+esc(m.ten)+'"'+(g.monHoc===m.ten?' selected':'')+'>'+esc(m.ten)+'</option>';}).join('');
+  var optCoSo=(DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'"'+(g.coSo===c.ma?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
+  moModal((g.ma?'Sửa giáo viên':'Thêm giáo viên'),
+    '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
+    + o('Tên giáo viên','<input id="gv_ten" value="'+esc(g.ten)+'" placeholder="VD: Cô Thư">',true)
+    + o('Môn dạy','<select id="gv_mon"><option value="">—</option>'+optMon+'</select>')
+    + o('Cơ sở','<select id="gv_coso"><option value="">—</option>'+optCoSo+'</select>')
+    + '</div>', 'luuGiaoVienUI(\''+esc(g.ma||'')+'\')');
+}
+function luuGiaoVienUI(ma){
+  var g={ma:ma, ten:document.getElementById('gv_ten').value, monHoc:document.getElementById('gv_mon').value, coSo:document.getElementById('gv_coso').value};
+  var loi=document.getElementById('loiForm'); loi.classList.add('an'); khoaLuu(true);
+  goi('luuGiaoVien',{giaoVien:g}).then(function(r){ DanhMuc.giaoVien=r.giaoVien; dongModal(); bao('Đã lưu giáo viên'); napGiaoVien(); })
+    .catch(function(e){ loi.textContent=e.message; loi.classList.remove('an'); khoaLuu(false); });
+}
+function xoaGiaoVienUI(ma){
+  if(!confirm('Xóa giáo viên này?')) return;
+  goi('xoaGiaoVien',{ma:ma}).then(function(r){ DanhMuc.giaoVien=r.giaoVien; bao('Đã xóa'); napGiaoVien(); }).catch(function(e){ bao(e.message,true); });
+}
+
 function napNguoiDung(){
+  napGiaoVien();
   if(!laAdmin()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
   var tb=document.getElementById('bangNguoiDung');
   goi('layNguoiDung').then(function(ds){
@@ -2481,24 +2546,41 @@ function chonHSDiemDanh(maHV){
     box.innerHTML = '<div style="font-weight:600;margin-bottom:10px">'
       + esc(hv.HoTen)+' — điểm danh ngày '+esc(ngay)+':</div>'
       + active.map(function(r){
-          return '<div style="border:1px solid #dfe4ec;border-radius:8px;padding:11px 13px;margin-bottom:9px">'
+          return '<div style="border:1px solid #dfe4ec;border-radius:8px;padding:11px 13px;margin-bottom:9px" data-lop="'+esc(r.MaLop)+'">'
             + '<div style="font-weight:600;margin-bottom:8px">'+esc(r.TenLop)+'</div>'
-            + '<button class="ttBtn active hoc" onclick="diemDanhMotHS(\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có mặt\')">Có mặt</button>'
-            + '<button class="ttBtn" onclick="diemDanhMotHS(\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Vắng\')">Vắng</button>'
-            + '<button class="ttBtn" onclick="diemDanhMotHS(\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có phép\')">Có phép</button>'
+            + '<button class="ttBtn" data-tt="Có mặt" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có mặt\')">Có mặt</button>'
+            + '<button class="ttBtn" data-tt="Vắng" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Vắng\')">Vắng</button>'
+            + '<button class="ttBtn" data-tt="Có phép" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có phép\')">Có phép</button>'
+            + '<div class="ddXacNhan" style="margin-top:8px;font-size:13px;color:#0f7a4d;font-weight:600;display:none"></div>'
             + '</div>';
         }).join('');
   }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
 }
 
-function diemDanhMotHS(maHV, maLop, tt){
+function diemDanhMotHS(btn, maHV, maLop, tt){
   var hv = TatCaHV.filter(function(h){return h.MaHV===maHV;})[0] || {HoTen:''};
   var ngay = document.getElementById('ddNgay').value;
   if(!ngay){ bao('Chưa chọn ngày', true); return; }
+  // Đổi màu nút ngay lập tức cho thấy đã chọn
+  if(btn){
+    var box=btn.parentNode;
+    box.querySelectorAll('.ttBtn').forEach(function(b){ b.classList.remove('active','hoc','nghi','bao'); });
+    var mau = tt==='Có mặt'?'hoc':(tt==='Vắng'?'nghi':'bao');
+    btn.classList.add('active', mau);
+    var xn=box.querySelector('.ddXacNhan');
+    if(xn){ xn.style.display='block'; xn.style.color='#0f7a4d'; xn.textContent='⏳ Đang lưu...'; }
+  }
   goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen,
     danhSach:[{maHV:maHV, hoTen:hv.HoTen, trangThai:tt, ghiChu:''}]})
-  .then(function(kq){ bao('✓ '+hv.HoTen+' · '+tt+' · '+kq.ngay); })
-  .catch(function(e){ bao(e.message, true); });
+  .then(function(kq){
+    bao('✓ '+hv.HoTen+' · '+tt);
+    if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#0f7a4d'; xn.textContent='✓ Đã ghi: '+tt+' — ngày '+kq.ngay; } }
+    napDsDiemDanh();
+  })
+  .catch(function(e){
+    if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#b42318'; xn.textContent='✗ Lỗi: '+e.message; } }
+    bao(e.message, true);
+  });
 }
 
 function taiDiemDanh(){
