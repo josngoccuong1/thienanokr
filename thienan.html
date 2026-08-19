@@ -480,6 +480,7 @@ main section{animation:hienLen .25s ease}
         <button class="nutPhu" onclick="chonFileNhap('khoahoc')">⬆ Nhập Excel</button>
         <button class="nutPhu" onclick="xuatDL('khoahoc')">⬇ Tải xuống</button>
         <button class="nutPhu" onclick="taiMau('khoahoc')">File mẫu</button>
+        <button class="nutPhu" onclick="ganKhoaHangLoat()" style="margin-left:auto;border-color:#12294d;color:#12294d">🔗 Gắn khóa cho học sinh</button>
       </div>
       <div class="the">
         <div class="cuonBang"><table>
@@ -2649,8 +2650,37 @@ function luuDiemDanh(){
 }
 
 /* ---------- KHÓA HỌC (danh mục) ---------- */
-function taiKhoaHoc(){
-  var tbody = document.getElementById('bangKhoa');
+function ganKhoaHangLoat(){
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  goi('layKhoa').then(function(dsKhoa){
+    if(!dsKhoa.length){ bao('Chưa có khóa học nào. Nhập file khóa học trước.', true); return; }
+    var mapKhoa={}; dsKhoa.forEach(function(k){ mapKhoa[String(k.TenKhoa).trim().toLowerCase()]=k; });
+    var canGan=TatCaHV.filter(function(h){
+      if(String(h.MaKhoa||'').trim()) return false; // đã có mã khóa
+      var k=mapKhoa[String(h.TenKhoa||'').trim().toLowerCase()];
+      return !!k;
+    });
+    if(!canGan.length){ bao('Không có học sinh nào cần gắn (đã gắn hết, hoặc tên khóa không khớp).'); return; }
+    if(!confirm('Sẽ gắn '+canGan.length+' học sinh vào khóa học tương ứng (theo tên khóa).\nTiếp tục?')) return;
+    bao('Đang gắn khóa cho '+canGan.length+' học sinh...');
+    ganKhoaChay(canGan, mapKhoa);
+  }).catch(function(e){ bao(e.message, true); });
+}
+async function ganKhoaChay(ds, mapKhoa){
+  try{
+    for(var i=0;i<ds.length;i+=400){
+      var batch=FB.writeBatch(FB.db);
+      ds.slice(i,i+400).forEach(function(h){
+        var k=mapKhoa[String(h.TenKhoa||'').trim().toLowerCase()];
+        if(k){ batch.set(FB.doc(FB.db,'hocvien',h.MaHV), {MaKhoa:k.MaKhoa, TenKhoa:k.TenKhoa}, {merge:true}); h.MaKhoa=k.MaKhoa; }
+      });
+      await batch.commit();
+    }
+    bao('✓ Đã gắn khóa cho '+ds.length+' học sinh!');
+    lamMoiDsHocVien();
+  }catch(e){ bao('Lỗi: '+e.message, true); }
+}
+function taiKhoaHoc(){  var tbody = document.getElementById('bangKhoa');
   goi('layKhoaHoc').then(function(ds){
     DsKhoa = ds;
     if(!ds.length){
