@@ -2652,7 +2652,8 @@ function luuDiemDanh(){
 /* ---------- KHÓA HỌC (danh mục) ---------- */
 function ganKhoaHangLoat(){
   if(!laAdmin()){ bao('Chỉ admin.', true); return; }
-  goi('layKhoa').then(function(dsKhoa){
+  goi('layKhoaHoc').then(function(dsKhoa){
+    DsKhoa = dsKhoa;
     if(!dsKhoa.length){ bao('Chưa có khóa học nào. Nhập file khóa học trước.', true); return; }
     var mapKhoa={}; dsKhoa.forEach(function(k){ mapKhoa[String(k.TenKhoa).trim().toLowerCase()]=k; });
     var canGan=TatCaHV.filter(function(h){
