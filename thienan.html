@@ -372,7 +372,17 @@ main section{animation:hienLen .25s ease}
     <button id="tab-khoahoc" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
     <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh</button>
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
-    <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo</button>
+    <div class="navDrop">
+      <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
+      <div class="navDropMenu">
+        <a onclick="bcSub('doanhthu')"><span class="ic">payments</span> Doanh thu & tăng trưởng HS</a>
+        <a onclick="bcSub('doanhthu')"><span class="ic">calendar_month</span> Doanh thu theo tháng</a>
+        <a onclick="bcSub('doanhthu')"><span class="ic">bar_chart</span> Theo quý</a>
+        <a onclick="bcSub('ngay')"><span class="ic">today</span> Doanh thu theo ngày</a>
+        <a onclick="bcSub('saphetkhoa')"><span class="ic">hourglass_bottom</span> Học sinh sắp hết khóa</a>
+        <a onclick="bcSub('diemdanh')"><span class="ic">event_available</span> Báo cáo điểm danh theo tháng</a>
+      </div>
+    </div>
     <div class="navDrop">
       <button id="tab-crm" onclick="doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
@@ -539,7 +549,7 @@ main section{animation:hienLen .25s ease}
         <div id="dsLauKhongHoc"></div>
       </div>
 
-      <div class="the" style="padding:16px;margin-bottom:16px">
+      <div class="the" id="bcCardDoanhThu" style="padding:16px;margin-bottom:16px">
         <div style="font-weight:600;color:#12294d;margin-bottom:10px"><span class="ic">payments</span> Doanh thu & tăng trưởng học sinh</div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
           <span style="font-size:13px;color:#6b7280">Năm</span>
@@ -547,7 +557,7 @@ main section{animation:hienLen .25s ease}
           <button class="nutChinh" onclick="baoCaoDoanhThu()">Xem</button>
         </div>
         <div id="kqDoanhThu"></div>
-        <div style="border-top:1px solid var(--vien);margin-top:16px;padding-top:14px">
+        <div id="bcCardDoanhThuNgay" style="border-top:1px solid var(--vien);margin-top:16px;padding-top:14px">
           <div style="font-weight:600;color:#12294d;margin-bottom:10px"><span class="ic">calendar_month</span> Doanh thu theo ngày</div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
             <input type="month" id="bcThangNgay" style="width:auto">
@@ -3113,6 +3123,16 @@ function moCRM(){
   }).catch(function(e){ bao('Lỗi tải CRM: '+e.message, true); });
 }
 function moCrmSub(sub){ doiTab('crm'); doiCrm(sub); }
+function bcSub(what){
+  if(what==='saphetkhoa'){ doiTab('saphetkhoa'); return; }
+  if(what==='diemdanh'){ doiTab('diemdanh'); setTimeout(function(){ var e=document.getElementById('dsDiemDanhBox'); if(e) e.scrollIntoView({behavior:'smooth',block:'center'}); }, 250); return; }
+  doiTab('baocao');
+  setTimeout(function(){
+    var id = (what==='ngay') ? 'bcCardDoanhThuNgay' : 'bcCardDoanhThu';
+    if(what!=='ngay'){ try{ baoCaoDoanhThu(); }catch(e){} }
+    var el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+  }, 200);
+}
 function doiCrm(sub){
   ['tuvan','chamsoc','hocthu','hentest','cholop','giuchan','thongke'].forEach(function(s){
     document.getElementById('crmtab-'+s).classList.toggle('chon', s===sub);
