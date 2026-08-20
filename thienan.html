@@ -739,6 +739,23 @@ main section{animation:hienLen .25s ease}
         <tbody id="bangGiaoVien"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
       </table></div></div>
 
+      <div class="the" style="padding:16px;margin-top:16px;border-color:#bae6fd;background:#f0f9ff">
+        <div style="font-weight:700;color:#075985;margin-bottom:6px">📢 Thông báo điểm danh qua Telegram</div>
+        <div style="font-size:13px;color:#0c4a6e;line-height:1.6;margin-bottom:12px">
+          Khi giáo viên điểm danh, hệ thống tự gửi thông báo vào nhóm/kênh Telegram.<br>
+          Cần: <b>Bot Token</b> (tạo bot qua <b>@BotFather</b>) và <b>Chat ID</b> (nhóm nhận thông báo).
+        </div>
+        <div class="luoi">
+          <div class="o rong"><label>Bot Token</label><input id="tgToken" placeholder="VD: 1234567890:AAH..."></div>
+          <div class="o"><label>Chat ID (nhóm/kênh)</label><input id="tgChatId" placeholder="VD: -1001234567890"></div>
+          <div class="o" style="display:flex;align-items:flex-end;gap:8px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="tgBat" style="width:auto"> Bật gửi thông báo</label></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="nutChinh" onclick="luuTelegramUI()">Lưu cài đặt</button>
+          <button class="nutPhu" onclick="testTelegram()">Gửi thử</button>
+        </div>
+      </div>
+
       <div class="the" style="padding:16px;margin-top:16px;border-color:#fecaca;background:#fef2f2">
         <div style="font-weight:700;color:#b42318;margin-bottom:6px">⚠️ Vùng nguy hiểm — Làm sạch dữ liệu</div>
         <div style="font-size:13px;color:#7f1d1d;line-height:1.6;margin-bottom:12px">
@@ -840,6 +857,7 @@ async function goi(hanhDong, dl){
     case 'xoaNguoiDung':     return await fbXoaNguoiDung(dl);
     case 'lamSachHocVien':   return await fbLamSachHocVien();
     case 'luuGiaoVien':      return await fbLuuGiaoVien(dl);
+    case 'luuTelegram':      return await fbLuuTelegram(dl);
     case 'xoaHocVien':       return await fbXoaHocVien(dl);
     case 'xoaDiemDanh':      return await fbXoaDiemDanh(dl);
     case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
@@ -1188,6 +1206,18 @@ async function fbXoaHocVien(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV)
   }
   await FB.deleteDoc(FB.doc(FB.db,'hocvien',maHV));
   return {maHV:maHV};
+}
+async function fbLuuTelegram(dl){
+  await FB.setDoc(FB.doc(FB.db,'config','main'), {telegram:{token:String(dl.token||'').trim(), chatId:String(dl.chatId||'').trim(), bat:!!dl.bat}}, {merge:true});
+  return true;
+}
+function guiTelegram(text){
+  var tg=(DanhMuc&&DanhMuc.telegram)||{};
+  if(!tg.bat || !tg.token || !tg.chatId) return;
+  try{
+    fetch('https://api.telegram.org/bot'+tg.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:tg.chatId,text:text,parse_mode:'HTML',disable_web_page_preview:true})}).catch(function(){});
+  }catch(e){}
 }
 async function fbLuuGiaoVien(dl){  var g=dl.giaoVien; if(!String(g.ten||'').trim()) throw new Error('Chưa nhập tên giáo viên.');
   var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
@@ -1669,8 +1699,30 @@ function xoaGiaoVienUI(ma){
   goi('xoaGiaoVien',{ma:ma}).then(function(r){ DanhMuc.giaoVien=r.giaoVien; bao('Đã xóa'); napGiaoVien(); }).catch(function(e){ bao(e.message,true); });
 }
 
+function napTelegramUI(){
+  var tg=(DanhMuc&&DanhMuc.telegram)||{};
+  var t=document.getElementById('tgToken'), c=document.getElementById('tgChatId'), b=document.getElementById('tgBat');
+  if(t) t.value=tg.token||''; if(c) c.value=tg.chatId||''; if(b) b.checked=!!tg.bat;
+}
+function luuTelegramUI(){
+  var dl={token:document.getElementById('tgToken').value, chatId:document.getElementById('tgChatId').value, bat:document.getElementById('tgBat').checked};
+  goi('luuTelegram',dl).then(function(){
+    DanhMuc.telegram={token:dl.token.trim(),chatId:dl.chatId.trim(),bat:dl.bat};
+    bao('✓ Đã lưu cài đặt Telegram');
+  }).catch(function(e){ bao(e.message,true); });
+}
+function testTelegram(){
+  var tg={token:document.getElementById('tgToken').value.trim(),chatId:document.getElementById('tgChatId').value.trim(),bat:true};
+  if(!tg.token||!tg.chatId){ bao('Nhập Bot Token và Chat ID trước.',true); return; }
+  DanhMuc.telegram=tg; // tạm để gửi thử
+  guiTelegram('🎹 <b>Thiên Ân</b> — Thử kết nối Telegram thành công! ✅\nTừ giờ điểm danh sẽ báo về đây.');
+  bao('Đã gửi tin thử. Kiểm tra nhóm Telegram xem có nhận được không.');
+}
+function napTelegramUI2(){}
+function napTelegramUIdummy(){}
 function napNguoiDung(){
   napGiaoVien();
+  napTelegramUI();
   if(!laAdmin()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
   var tb=document.getElementById('bangNguoiDung');
   goi('layNguoiDung').then(function(ds){
@@ -2766,6 +2818,13 @@ function diemDanhMotHS(btn, maHV, maLop, tt){
     danhSach:[{maHV:maHV, hoTen:hv.HoTen, trangThai:tt, ghiChu:''}]})
   .then(function(kq){
     bao('✓ '+hv.HoTen+' · '+tt);
+    var nhanLop = (hv.Lop||hv.TenKhoa||'');
+    var gioNow = new Date().toLocaleString('vi-VN');
+    var emoji = tt==='Có mặt'?'✅':(tt==='Vắng'?'❌':'📋');
+    guiTelegram('🎹 <b>Điểm danh Thiên Ân</b>\n👤 '+hv.HoTen+' — '+emoji+' <b>'+tt+'</b>'
+      +(nhanLop?('\n📚 '+nhanLop):'')
+      +'\n👩‍🏫 GV: '+((NguoiDung&&NguoiDung.hoTen)||'')
+      +'\n🕐 '+gioNow);
     if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#0f7a4d'; xn.textContent='✓ Đã ghi: '+tt+' — ngày '+kq.ngay; } }
     napDsDiemDanh();
   })
