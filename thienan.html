@@ -372,7 +372,16 @@ main section{animation:hienLen .25s ease}
     <button id="tab-hocvien" onclick="doiTab('hocvien')"><span class="ic">group</span> Học viên</button>
     <button id="tab-lop" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
     <button id="tab-khoahoc" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
-    <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh</button>
+    <div class="navDrop">
+      <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
+      <div class="navDropMenu">
+        <a onclick="ddReport('diemdanh')"><span class="ic">how_to_reg</span> Điểm danh hôm nay</a>
+        <a onclick="ddReport('ngay')"><span class="ic">today</span> Báo cáo theo ngày</a>
+        <a onclick="ddReport('thang')"><span class="ic">calendar_month</span> Báo cáo theo tháng</a>
+        <a onclick="ddReport('quy')"><span class="ic">bar_chart</span> Báo cáo theo quý</a>
+        <a onclick="ddReport('nam')"><span class="ic">insights</span> Báo cáo theo năm</a>
+      </div>
+    </div>
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
     <div class="navDrop">
       <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
@@ -2596,6 +2605,46 @@ function napDsDiemDanh(){
     function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
+function _cuonToiDD(){ var e=document.getElementById('dsDiemDanhBox'); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); }
+function ddReport(mode){
+  doiTab('diemdanh');
+  setTimeout(function(){
+    var el=document.getElementById('ddNgayLoc'); var n=new Date();
+    if(mode==='diemdanh'){ if(el) el.value=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2); napDsDiemDanh(); window.scrollTo({top:0,behavior:'smooth'}); }
+    else if(mode==='ngay'){ if(el && !el.value) el.value=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2); napDsDiemDanh(); _cuonToiDD(); }
+    else if(mode==='thang'){ if(el) el.value=''; napDsDiemDanh(); _cuonToiDD(); }
+    else if(mode==='quy'){ ddTongHop('quy'); _cuonToiDD(); }
+    else if(mode==='nam'){ ddTongHop('nam'); _cuonToiDD(); }
+  }, 150);
+}
+async function ddTongHop(kieu){
+  var box=document.getElementById('dsDiemDanhBox'); var tt=document.getElementById('ddTomTat');
+  if(_ddUnsub){ _ddUnsub(); _ddUnsub=null; }         // dừng realtime khi xem tổng hợp
+  if(tt) tt.style.display='none';
+  var thang=(document.getElementById('ddThang').value)||'';
+  var nam = thang ? thang.slice(0,4) : String(new Date().getFullYear());
+  var tu, den, tieuDe;
+  if(kieu==='nam'){ tu=nam+'-01'; den=nam+'-12'; tieuDe='Năm '+nam; }
+  else { var m = thang? parseInt(thang.slice(5,7),10) : (new Date().getMonth()+1);
+    var q=Math.ceil(m/3), m1=(q-1)*3+1, m3=q*3;
+    tu=nam+'-'+('0'+m1).slice(-2); den=nam+'-'+('0'+m3).slice(-2); tieuDe='Quý '+q+' / '+nam; }
+  box.innerHTML='<div class="dangTai" style="padding:20px">Đang tổng hợp '+tieuDe+'...</div>';
+  try{
+    var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','>=',tu),FB.where('Thang','<=',den)));
+    var byM={};
+    snap.docs.forEach(function(d){ var o=d.data(); var mm=o.Thang||''; if(!byM[mm]) byM[mm]={cm:0,va:0,cp:0};
+      if(o.TrangThai==='Có mặt')byM[mm].cm++; else if(o.TrangThai==='Vắng')byM[mm].va++; else if(o.TrangThai==='Có phép')byM[mm].cp++; });
+    var months=Object.keys(byM).sort(); var tCm=0,tVa=0,tCp=0;
+    var rows=months.map(function(mm){ var x=byM[mm]; tCm+=x.cm;tVa+=x.va;tCp+=x.cp; var tong=x.cm+x.va+x.cp;
+      return '<tr><td>Tháng '+parseInt(mm.slice(5,7),10)+'/'+mm.slice(0,4)+'</td><td>'+x.cm+'</td><td>'+x.va+'</td><td>'+x.cp+'</td><td><b>'+tong+'</b></td></tr>'; }).join('');
+    box.innerHTML='<div style="padding:12px 14px;font-weight:700;color:#12294d;font-size:15px">📊 Báo cáo điểm danh — '+tieuDe+'</div>'
+      +'<table class="nho"><thead><tr><th>Kỳ</th><th>Có mặt</th><th>Vắng</th><th>Có phép</th><th>Tổng lượt</th></tr></thead><tbody>'
+      +(rows||'<tr><td colspan="5" class="trong">Chưa có dữ liệu.</td></tr>')
+      +'<tr style="font-weight:700;background:#eef4fb"><td>TỔNG</td><td>'+tCm+'</td><td>'+tVa+'</td><td>'+tCp+'</td><td>'+(tCm+tVa+tCp)+'</td></tr>'
+      +'</tbody></table>'
+      +'<div style="padding:10px 14px;font-size:12px;color:#6b7280">* Xem theo quý dựa trên tháng đang chọn ở ô "Tháng". Bấm "Cả tháng" hoặc chọn ngày để quay lại danh sách chi tiết.</div>';
+  }catch(e){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(e.message)+'</div>'; }
+}
 function veDsDiemDanh(){
   var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
   var tt = document.getElementById('ddTomTat');
