@@ -1660,8 +1660,11 @@ function napNguoiDung(){
   goi('layNguoiDung').then(function(ds){
     if(!ds.length){ tb.innerHTML='<tr><td colspan="5" class="trong">Chưa có phân quyền nào. Bấm “Thêm người dùng”.</td></tr>'; return; }
     tb.innerHTML=ds.sort(function(a,b){return String(a.CoSo).localeCompare(String(b.CoSo));}).map(function(u){
-      var vt = u.VaiTro==='ADMIN' ? '<span class="nhan du">Admin (xem tất cả)</span>' : '<span class="nhan bao">Nhân viên</span>';
-      var cs = u.VaiTro==='ADMIN' ? 'Tất cả' : (u.CoSo||'—');
+      var vt = u.VaiTro==='ADMIN' ? '<span class="nhan du">Admin (xem tất cả)</span>'
+             : (u.VaiTro==='Giáo viên' ? '<span class="nhan hoc">Giáo viên</span>'
+             : '<span class="nhan bao">Nhân viên</span>');
+      var cs = u.VaiTro==='ADMIN' ? 'Tất cả' : (u.CoSo||'—')
+             + (u.VaiTro==='Giáo viên' ? ' · chỉ điểm danh' : '');
       return '<tr><td class="ma">'+esc(u.Email)+'</td><td><strong>'+esc(u.HoTen||'')+'</strong></td><td>'+vt+'</td><td>'+esc(cs)+'</td>'
         +'<td style="white-space:nowrap"><button class="nutNho" onclick=\'moNguoiDung('+JSON.stringify(u).replace(/'/g,"&#39;")+')\'>Sửa</button> '
         +'<button class="nutNho" style="background:#b42318" onclick="xoaNguoiDungUI(\''+esc(u.Email)+'\')">Xóa</button></td></tr>';
