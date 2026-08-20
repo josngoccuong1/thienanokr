@@ -509,8 +509,15 @@ main section{animation:hienLen .25s ease}
           <button class="nutPhu" onclick="chonFileNhapDD()">⬆ Nhập Excel</button>
           <button class="nutPhu" onclick="xuatDiemDanh()">⬇ Tải xuống</button>
           <button class="nutPhu" onclick="taiMauDiemDanh()">File mẫu</button>
-          <input type="month" id="ddThang" onchange="napDsDiemDanh()" style="width:auto;margin-left:auto">
+          <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
+            <span style="font-size:13px;color:#6b7280">Ngày</span>
+            <input type="date" id="ddNgayLoc" onchange="veDsDiemDanh()" style="width:auto">
+            <button class="nutNho" onclick="ddXemCaThang()">Cả tháng</button>
+            <span style="font-size:13px;color:#6b7280">Tháng</span>
+            <input type="month" id="ddThang" onchange="napDsDiemDanh()" style="width:auto">
+          </div>
         </div>
+        <div id="ddTomTat" style="padding:10px 14px;font-size:13px;color:#48566b;border-bottom:1px solid var(--vien);display:none"></div>
         <div class="cuonBang" id="dsDiemDanhBox">
           <div class="dangTai" style="padding:20px">Chọn tháng để xem...</div>
         </div>
@@ -2553,6 +2560,10 @@ function napLopChoDiemDanh(){
   if(ot && !ot.value){
     ot.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
   }
+  var onl=document.getElementById('ddNgayLoc');
+  if(onl && !onl.value){
+    onl.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2);
+  }
   // Dùng DsLop đã tải sẵn lúc đăng nhập — không gọi server lại (nhanh tức thì)
   var sel = document.getElementById('ddLop');
   if(sel){
@@ -2573,21 +2584,35 @@ function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){
     bao('✓ Đã xóa lượt điểm danh'); napDsDiemDanh(); lamMoiDsHocVien();
   }).catch(function(e){ bao(e.message, true); if(btn){ btn.textContent='Xóa'; btn.disabled=false; } });
 }
-var _ddUnsub=null;
+var _ddUnsub=null, _ddList=[];
 function napDsDiemDanh(){
   var thang = document.getElementById('ddThang').value;
   var box = document.getElementById('dsDiemDanhBox');
   if(_ddUnsub){ _ddUnsub(); _ddUnsub=null; }
   if(!thang){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="dangTai" style="padding:20px">Đang tải danh sách...</div>';
-  // Nghe realtime chỉ tháng đang xem → có ai điểm danh là tự nhảy
   _ddUnsub = FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang)),
-    function(snap){ renderDsDiemDanh(snap.docs.map(function(d){return d.data();})); },
+    function(snap){ _ddList = snap.docs.map(function(d){return d.data();}); veDsDiemDanh(); },
     function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
+}
+function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
+function veDsDiemDanh(){
+  var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
+  var tt = document.getElementById('ddTomTat');
+  var ngayLoc = (document.getElementById('ddNgayLoc')||{}).value || '';
+  var list = _ddList.slice();
+  if(ngayLoc){ list = list.filter(function(o){ return String(o.NgayISO||'')===ngayLoc; }); }
+  if(tt){
+    var cm=0,va=0,cp=0; list.forEach(function(o){ if(o.TrangThai==='Có mặt')cm++; else if(o.TrangThai==='Vắng')va++; else if(o.TrangThai==='Có phép')cp++; });
+    var nhan = ngayLoc ? ('ngày '+ngayLoc.split('-').reverse().join('/')) : 'cả tháng';
+    tt.style.display='block';
+    tt.innerHTML='<b>'+list.length+'</b> lượt ('+nhan+') · <span class="nhan hoc">Có mặt '+cm+'</span> <span class="nhan nghi">Vắng '+va+'</span> <span class="nhan bao">Có phép '+cp+'</span>';
+  }
+  if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">'+(ngayLoc?'Ngày này chưa có lượt điểm danh nào.':'Tháng này chưa có lượt điểm danh nào.')+'</div>'; return; }
+  renderDsDiemDanh(list);
 }
 function renderDsDiemDanh(list){
   var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
-  if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">Tháng này chưa có lượt điểm danh nào.</div>'; return; }
   var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa),Lop:h.Lop||''}; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
   list.sort(function(a,b){
