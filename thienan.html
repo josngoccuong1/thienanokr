@@ -254,13 +254,21 @@ nav button .ic{font-size:19px;vertical-align:middle}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
 /* Thanh điều hướng dạng ô */
-nav{box-shadow:var(--sh-sm);padding:8px 10px;gap:6px}
+nav{box-shadow:var(--sh-sm);padding:8px 10px;gap:6px;overflow:visible;flex-wrap:wrap}
 nav button{transition:all .15s;border-radius:10px;border:1px solid var(--vien);
   background:#f7f9fc;padding:9px 15px;color:#48566b;font-weight:600;border-bottom:1px solid var(--vien)}
 nav button:hover{color:#fff;background:linear-gradient(180deg,#254a80,#16305a);border-color:#16305a;transform:translateY(-1px);box-shadow:0 4px 10px rgba(18,41,77,.22)}
 nav button:hover .ic{color:#fff}
 nav button.chon{color:#fff;background:linear-gradient(180deg,#1b3c6b,#12294d);border-color:var(--gold);border-bottom-color:var(--gold);box-shadow:0 3px 9px rgba(18,41,77,.25)}
 nav button.chon .ic{color:var(--gold-2)}
+/* Menu xổ CRM */
+.navDrop{position:relative;display:inline-flex}
+.navDropMenu{position:absolute;top:calc(100% + 4px);left:0;min-width:230px;background:#fff;border:1px solid var(--vien);border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
+.navDrop:hover .navDropMenu{display:block}
+.navDropMenu a{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:8px;color:#374151;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
+.navDropMenu a .ic{font-size:19px;color:#64748b}
+.navDropMenu a:hover{background:linear-gradient(180deg,#1b3c6b,#12294d);color:#fff}
+.navDropMenu a:hover .ic{color:var(--gold-2)}
 
 /* Thẻ/khung */
 .the{border-radius:14px;box-shadow:var(--sh-sm);transition:box-shadow .2s}
@@ -365,7 +373,18 @@ main section{animation:hienLen .25s ease}
     <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh</button>
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
     <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo</button>
-    <button id="tab-crm" onclick="doiTab('crm')"><span class="ic">support_agent</span> CRM</button>
+    <div class="navDrop">
+      <button id="tab-crm" onclick="doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
+      <div class="navDropMenu">
+        <a onclick="moCrmSub('tuvan')"><span class="ic">person_search</span> Khách tiềm năng</a>
+        <a onclick="moCrmSub('chamsoc')"><span class="ic">phone_in_talk</span> Lịch hẹn chăm sóc</a>
+        <a onclick="moCrmSub('hocthu')"><span class="ic">assignment</span> Đăng ký học thử</a>
+        <a onclick="moCrmSub('hentest')"><span class="ic">event</span> Hẹn test</a>
+        <a onclick="moCrmSub('cholop')"><span class="ic">pending_actions</span> Chờ xếp lớp</a>
+        <a onclick="moCrmSub('giuchan')"><span class="ic">shield</span> Giữ chân</a>
+        <a onclick="moCrmSub('thongke')"><span class="ic">donut_small</span> Thống kê nguồn</a>
+      </div>
+    </div>
     <button id="tab-nguoidung" onclick="doiTab('nguoidung')" style="display:none"><span class="ic">manage_accounts</span> Người dùng</button>
   </nav>
 
@@ -3093,6 +3112,7 @@ function moCRM(){
     veBangKH(); veViecHomNay(); veNhatKyCS();
   }).catch(function(e){ bao('Lỗi tải CRM: '+e.message, true); });
 }
+function moCrmSub(sub){ doiTab('crm'); doiCrm(sub); }
 function doiCrm(sub){
   ['tuvan','chamsoc','hocthu','hentest','cholop','giuchan','thongke'].forEach(function(s){
     document.getElementById('crmtab-'+s).classList.toggle('chon', s===sub);
