@@ -978,12 +978,11 @@ async function fbDsDiemDanh(dl){
   var thang=String(dl.thang||'').trim(); if(!thang) throw new Error('Chưa chọn tháng.');
   var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang)));
   if(snap.empty) return {thang:thang, danhSach:[]};
-  var daHoc=await tallyBuoiDaHoc();
-  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa)}; });
+  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa)}; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
   var rows=snap.docs.map(function(d){ var o=d.data(); var maHV=String(o.MaHV); var hv=hvMap[maHV]||{}; var kh=khMap[hv.MaKhoa]||{};
     var thu=(kh.GiaTien&&kh.SoBuoi)?Math.round(kh.GiaTien/kh.SoBuoi):'';
-    var conLai=hv.SoBuoiKhoa?(hv.SoBuoiKhoa-(daHoc[maHV]||0)):'';
+    var conLai=hv.SoBuoiKhoa?Math.max(0,hv.SoBuoiKhoa-(hv.DaHocKhoa||0)):'';
     return {Ngay:o.Ngay||'',TenLop:o.TenLop||'',TenKhoa:hv.TenKhoa||'',HoTen:o.HoTen||'',TrangThai:o.TrangThai||'',NguoiDiemDanh:o.NguoiDiemDanh||'',SoBuoiConLai:conLai,Thu:thu,_iso:o.NgayISO||'',MaLop:o.MaLop||'',MaHV:maHV,NgayISO:o.NgayISO||''}; });
   rows.sort(function(a,b){return String(b._iso).localeCompare(String(a._iso));});
   rows.forEach(function(r){ delete r._iso; });
@@ -2591,9 +2590,9 @@ function chonHSDiemDanh(maHV){
   goi('layDangKy', {maHV:maHV}).then(function(ds){
     var active = ds.filter(function(r){return r.TrangThai!=='Đã nghỉ';});
     if(!active.length){
-      box.innerHTML = '<div class="trong" style="padding:16px"><strong>'+esc(hv.HoTen)+'</strong> chưa được xếp lớp.<br>'
-        + 'Vào tab <strong>Lớp học</strong> → nút <strong>Sĩ số</strong> để thêm em vào lớp trước.</div>';
-      return;
+      // Chưa xếp lớp → điểm danh linh hoạt theo khóa/buổi học
+      var nhan = hv.Lop || hv.TenKhoa || 'Buổi học';
+      active = [{MaLop:'BUOIHOC', TenLop:nhan}];
     }
     box.innerHTML = '<div style="font-weight:600;margin-bottom:10px">'
       + esc(hv.HoTen)+' — điểm danh ngày '+esc(ngay)+':</div>'
