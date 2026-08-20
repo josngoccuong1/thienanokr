@@ -2519,38 +2519,47 @@ function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){
     bao('✓ Đã xóa lượt điểm danh'); napDsDiemDanh(); lamMoiDsHocVien();
   }).catch(function(e){ bao(e.message, true); if(btn){ btn.textContent='Xóa'; btn.disabled=false; } });
 }
-function napDsDiemDanh(){  var thang = document.getElementById('ddThang').value;
+var _ddUnsub=null;
+function napDsDiemDanh(){
+  var thang = document.getElementById('ddThang').value;
   var box = document.getElementById('dsDiemDanhBox');
+  if(_ddUnsub){ _ddUnsub(); _ddUnsub=null; }
   if(!thang){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="dangTai" style="padding:20px">Đang tải danh sách...</div>';
-  goi('dsDiemDanh', {thang:thang}).then(function(d){
-    if(!d.danhSach.length){
-      box.innerHTML = '<div class="trong" style="padding:24px">Tháng này chưa có lượt điểm danh nào.</div>';
-      return;
-    }
-    box.innerHTML = '<table class="nho"><thead><tr>'
-      + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
-      + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
-      + (laAdmin()?'<th></th>':'')
-      + '</tr></thead><tbody>'
-      + d.danhSach.map(function(r,i){
-          var mauTT = r.TrangThai==='Vắng'?'nghi':(r.TrangThai==='Có phép'?'bao':'hoc');
-          var conLai = (r.SoBuoiConLai===''||r.SoBuoiConLai===null) ? '—'
-            : '<span class="nhan '+((r.SoBuoiConLai<=3)?'no':'hoc')+'">'+r.SoBuoiConLai+'</span>';
-          return '<tr>'
-            + '<td>'+(i+1)+'</td>'
-            + '<td>'+esc(r.TenLop)+'</td>'
-            + '<td>'+esc(r.TenKhoa||'—')+'</td>'
-            + '<td><strong>'+esc(r.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(r.TrangThai)+'</span></td>'
-            + '<td>'+esc(r.Ngay)+'</td>'
-            + '<td>'+esc(r.NguoiDiemDanh||'—')+'</td>'
-            + '<td>'+conLai+'</td>'
-            + '<td class="tien">'+(r.Thu===''?'—':tien(r.Thu))+'</td>'
-            + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(r.MaLop)+'\',\''+esc(r.NgayISO)+'\',\''+esc(r.MaHV)+'\',\''+esc(r.TrangThai)+'\',this)">Xóa</button></td>':'')
-            + '</tr>';
-        }).join('')
-      + '</tbody></table>';
-  }).catch(function(e){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(e.message)+'</div>'; });
+  // Nghe realtime chỉ tháng đang xem → có ai điểm danh là tự nhảy
+  _ddUnsub = FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang)),
+    function(snap){ renderDsDiemDanh(snap.docs.map(function(d){return d.data();})); },
+    function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
+}
+function renderDsDiemDanh(list){
+  var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
+  if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">Tháng này chưa có lượt điểm danh nào.</div>'; return; }
+  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa)}; });
+  var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
+  list.sort(function(a,b){ return String(b.NgayISO||'').localeCompare(String(a.NgayISO||'')); });
+  box.innerHTML = '<table class="nho"><thead><tr>'
+    + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
+    + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
+    + (laAdmin()?'<th></th>':'')
+    + '</tr></thead><tbody>'
+    + list.map(function(o,i){
+        var maHV=String(o.MaHV); var hv=hvMap[maHV]||{}; var kh=khMap[hv.MaKhoa]||{};
+        var thu=(kh.GiaTien&&kh.SoBuoi)?Math.round(kh.GiaTien/kh.SoBuoi):'';
+        var cl=hv.SoBuoiKhoa?Math.max(0,hv.SoBuoiKhoa-(hv.DaHocKhoa||0)):'';
+        var mauTT = o.TrangThai==='Vắng'?'nghi':(o.TrangThai==='Có phép'?'bao':'hoc');
+        var conLai = (cl===''||cl===null) ? '—' : '<span class="nhan '+((cl<=3)?'no':'hoc')+'">'+cl+'</span>';
+        return '<tr><td>'+(i+1)+'</td>'
+          + '<td>'+esc(o.TenLop||'—')+'</td>'
+          + '<td>'+esc(hv.TenKhoa||'—')+'</td>'
+          + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span></td>'
+          + '<td>'+esc(o.Ngay||'')+'</td>'
+          + '<td>'+esc(o.NguoiDiemDanh||'—')+'</td>'
+          + '<td>'+conLai+'</td>'
+          + '<td class="tien">'+(thu===''?'—':tien(thu))+'</td>'
+          + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(o.MaLop)+'\',\''+esc(o.NgayISO)+'\',\''+esc(maHV)+'\',\''+esc(o.TrangThai)+'\',this)">Xóa</button></td>':'')
+          + '</tr>';
+      }).join('')
+    + '</tbody></table>';
 }
 
 /* ---------- Điểm danh nhanh theo tên (tức thì, tìm trên máy) ---------- */
