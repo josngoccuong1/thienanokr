@@ -263,7 +263,9 @@ nav button.chon{color:#fff;background:linear-gradient(180deg,#1b3c6b,#12294d);bo
 nav button.chon .ic{color:var(--gold-2)}
 /* Menu xổ CRM */
 .navDrop{position:relative;display:inline-flex}
-.navDropMenu{position:absolute;top:calc(100% + 4px);left:0;min-width:230px;background:#fff;border:1px solid var(--vien);border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
+.navDropMenu{position:absolute;top:100%;left:0;min-width:230px;background:#fff;border:1px solid var(--vien);border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
+.navDrop:hover .navDropMenu{display:block}
+.navDrop::after{content:"";position:absolute;top:100%;left:0;right:0;height:12px}
 .navDrop:hover .navDropMenu{display:block}
 .navDropMenu a{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:8px;color:#374151;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
 .navDropMenu a .ic{font-size:19px;color:#64748b}
