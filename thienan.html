@@ -2534,7 +2534,7 @@ function napDsDiemDanh(){
 function renderDsDiemDanh(list){
   var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
   if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">Tháng này chưa có lượt điểm danh nào.</div>'; return; }
-  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa)}; });
+  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa),Lop:h.Lop||''}; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
   list.sort(function(a,b){ return String(b.NgayISO||'').localeCompare(String(a.NgayISO||'')); });
   box.innerHTML = '<table class="nho"><thead><tr>'
@@ -2549,7 +2549,7 @@ function renderDsDiemDanh(list){
         var mauTT = o.TrangThai==='Vắng'?'nghi':(o.TrangThai==='Có phép'?'bao':'hoc');
         var conLai = (cl===''||cl===null) ? '—' : '<span class="nhan '+((cl<=3)?'no':'hoc')+'">'+cl+'</span>';
         return '<tr><td>'+(i+1)+'</td>'
-          + '<td>'+esc(o.TenLop||'—')+'</td>'
+          + '<td>'+esc((o.TenLop && o.TenLop!=='Buổi học') ? o.TenLop : (hv.Lop||o.TenLop||'—'))+'</td>'
           + '<td>'+esc(hv.TenKhoa||'—')+'</td>'
           + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span></td>'
           + '<td>'+esc(o.Ngay||'')+'</td>'
