@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quản lý học viên · Thiên Ân</title>
+<!-- Icon khi thêm vào màn hình chính -->
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Thiên Ân QLHV">
+<meta name="theme-color" content="#0b1a35">
+<link rel="manifest" href='data:application/json,{"name":"Thiên Ân - Quản lý học viên","short_name":"Thiên Ân QLHV","start_url":"./thienan.html","display":"standalone","background_color":"%230b1a35","theme_color":"%230b1a35","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"}]}'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -959,9 +968,9 @@ async function fbLuuDiemDanh(dl){
   // Đọc điểm danh cũ của ngày/lớp này để tính chênh lệch buổi Có mặt
   var chamCu=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',ngayISO)));
   var ttCu={}; chamCu.docs.forEach(function(d){ var o=d.data(); if(String(o.MaLop)===maLop) ttCu[String(o.MaHV)]=o.TrangThai; });
-  var batch=FB.writeBatch(FB.db); var tg=new Date().toLocaleString('vi-VN');
+  var batch=FB.writeBatch(FB.db); var tg=new Date().toLocaleString('vi-VN'); var ts=Date.now();
   dl.danhSach.forEach(function(hs){ var maHV=String(hs.maHV||'').trim(); if(!maHV) return;
-    batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg});
+    batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg,TS:ts});
     var cu=(ttCu[maHV]==='Có mặt')?1:0, moi=((hs.trangThai||'Có mặt')==='Có mặt')?1:0, delta=moi-cu;
     if(delta!==0) batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(delta)});
     // Cập nhật ngày đi học gần nhất (nếu buổi này có mặt và mới hơn)
@@ -2536,7 +2545,11 @@ function renderDsDiemDanh(list){
   if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">Tháng này chưa có lượt điểm danh nào.</div>'; return; }
   var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa),Lop:h.Lop||''}; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
-  list.sort(function(a,b){ return String(b.NgayISO||'').localeCompare(String(a.NgayISO||'')); });
+  list.sort(function(a,b){
+    var ta=a.TS||0, tb=b.TS||0;
+    if(ta!==tb) return tb-ta;                       // bấm sau lên trên
+    return String(b.NgayISO||'').localeCompare(String(a.NgayISO||''));
+  });
   box.innerHTML = '<table class="nho"><thead><tr>'
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
     + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
