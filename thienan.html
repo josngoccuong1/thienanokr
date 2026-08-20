@@ -253,10 +253,14 @@ nav button .ic{font-size:19px;vertical-align:middle}
 .theSo .icon .ic{font-size:24px}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
-/* Thanh điều hướng */
-nav{box-shadow:var(--sh-sm);padding:0 4px}
-nav button{transition:color .15s,background .15s;border-radius:8px 8px 0 0}
-nav button:hover{color:var(--navy);background:#f4f6fb}
+/* Thanh điều hướng dạng ô */
+nav{box-shadow:var(--sh-sm);padding:8px 10px;gap:6px}
+nav button{transition:all .15s;border-radius:10px;border:1px solid var(--vien);
+  background:#f7f9fc;padding:9px 15px;color:#48566b;font-weight:600;border-bottom:1px solid var(--vien)}
+nav button:hover{color:#fff;background:linear-gradient(180deg,#254a80,#16305a);border-color:#16305a;transform:translateY(-1px);box-shadow:0 4px 10px rgba(18,41,77,.22)}
+nav button:hover .ic{color:#fff}
+nav button.chon{color:#fff;background:linear-gradient(180deg,#1b3c6b,#12294d);border-color:var(--gold);border-bottom-color:var(--gold);box-shadow:0 3px 9px rgba(18,41,77,.25)}
+nav button.chon .ic{color:var(--gold-2)}
 
 /* Thẻ/khung */
 .the{border-radius:14px;box-shadow:var(--sh-sm);transition:box-shadow .2s}
