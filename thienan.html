@@ -1759,8 +1759,10 @@ function apDungDuLieu(bd, renderDanhSach){
     sel.innerHTML = '<option value="">Tất cả cơ sở</option>'
       + (DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'">'+esc(c.ten)+'</option>';}).join('');
   }
-  if(renderDanhSach){ taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu();
-    if(NguoiDung && NguoiDung.vaiTro==='Giáo viên') doiTab('diemdanh');
+  if(renderDanhSach){
+    var laGV = NguoiDung && NguoiDung.vaiTro==='Giáo viên';
+    if(laGV){ doiTab('diemdanh'); lamMoiDsHocVien(); }
+    else { taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu(); }
   }
 }
 
@@ -1790,7 +1792,12 @@ function vaoApp(){
 }
 document.getElementById('oMk').addEventListener('keydown', function(e){ if(e.key==='Enter') dangNhap(); });
 
-function thoat(){ if(window.FB) FB.signOut(FB.auth); location.reload(); }
+function thoat(){
+  try{ localStorage.removeItem('thienan_coso'); }catch(e){}
+  if(window.FB && FB.auth){
+    FB.signOut(FB.auth).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
+  } else location.reload();
+}
 
 window.onFbReady = function(){
   FB.onAuthStateChanged(FB.auth, function(user){
