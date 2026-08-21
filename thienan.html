@@ -2346,7 +2346,7 @@ function bangDiemDanhHV(ds, tk){
   var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // sắp tăng dần để đánh số buổi 1..n
   var tong = dsSx.length;
   return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
-    + dsSx.map(function(r,i){ return {stt:i+1, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(i+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(r.TenLop)+'</td>'
+    + dsSx.map(function(r,i){ var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:((ChiTiet&&ChiTiet.hocVien&&(ChiTiet.hocVien.Lop||ChiTiet.hocVien.TenKhoa))||''); return {stt:i+1, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(i+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
         + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'}; }).reverse().map(function(x){return x.html;}).join('')
     + '</tbody></table></div>';
 }
