@@ -380,6 +380,7 @@ main section{animation:hienLen .25s ease}
         <a onclick="ddReport('thang')"><span class="ic">calendar_month</span> Báo cáo theo tháng</a>
         <a onclick="ddReport('quy')"><span class="ic">bar_chart</span> Báo cáo theo quý</a>
         <a onclick="ddReport('nam')"><span class="ic">insights</span> Báo cáo theo năm</a>
+        <a onclick="ddReport('theogv')"><span class="ic">badge</span> Điểm danh theo giáo viên</a>
       </div>
     </div>
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
@@ -392,6 +393,7 @@ main section{animation:hienLen .25s ease}
         <a onclick="bcSub('ngay')"><span class="ic">today</span> Doanh thu theo ngày</a>
         <a onclick="bcSub('saphetkhoa')"><span class="ic">hourglass_bottom</span> Học sinh sắp hết khóa</a>
         <a onclick="bcSub('diemdanh')"><span class="ic">event_available</span> Báo cáo điểm danh theo tháng</a>
+        <a onclick="bcSub('luonggv')"><span class="ic">payments</span> Bảng lương giáo viên</a>
       </div>
     </div>
     <div class="navDrop">
@@ -918,7 +920,7 @@ async function fbLuuHocVien(dl){
   var laMoi = !String(hv.MaHV||'').trim();
   var maHV=String(hv.MaHV||'').trim() || sinhMaMoi('HV', TatCaHV, 'MaHV');
   var obj={};
-  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
+  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','Lop','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
   obj.MaHV=maHV; if(!obj.TrangThai) obj.TrangThai='Đang học';
   if(laMoi){ var _n=new Date(); obj.NgayTao=_n.toLocaleDateString('vi-VN'); obj.ThangTao=_n.getFullYear()+'-'+('0'+(_n.getMonth()+1)).slice(-2); }
   obj.NgayCapNhat=new Date().toLocaleString('vi-VN'); obj.NguoiCapNhat=dl.nguoiDung||'';
@@ -971,7 +973,7 @@ async function fbLuuLop(dl){
 async function fbLuuKhoaHoc(dl){
   var k=dl.khoaHoc; if(!String(k.TenKhoa||'').trim()) throw new Error('Chưa nhập tên khóa học.');
   var maKhoa=String(k.MaKhoa||'').trim() || sinhMaMoi('KH', DsKhoa, 'MaKhoa');
-  var obj={MaKhoa:maKhoa,TenKhoa:String(k.TenKhoa).trim(),MonHoc:k.MonHoc||'',SoBuoi:soTienJS(k.SoBuoi),GiaTien:soTienJS(k.GiaTien),TrangThai:k.TrangThai||'Đang mở',GhiChu:k.GhiChu||''};
+  var obj={MaKhoa:maKhoa,TenKhoa:String(k.TenKhoa).trim(),MonHoc:k.MonHoc||'',SoBuoi:soTienJS(k.SoBuoi),GiaTien:soTienJS(k.GiaTien),LoaiLop:k.LoaiLop||'nhom',DonGiaGV:soTienJS(k.DonGiaGV),TrangThai:k.TrangThai||'Đang mở',GhiChu:k.GhiChu||''};
   await FB.setDoc(FB.doc(FB.db,'khoahoc',maKhoa), obj, {merge:true});
   return { MaKhoa:maKhoa };
 }
@@ -1986,13 +1988,17 @@ function moHocVien(hv){
       false, 'rong') : '';
 
   var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
-  var truongKhoa = moi ? o('Khóa học đăng ký (tùy chọn)',
-      (khoaMo.length
-        ? '<select id="f_Khoa" onchange="chonKhoaTuDong()"><option value="">— Chưa đăng ký khóa —</option>'
-          + khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+esc(k.SoBuoi)+'" data-gia="'+esc(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+Number(k.GiaTien).toLocaleString('vi-VN')+'đ':'')+'</option>'; }).join('')
-          + '</select>'
-        : '<div style="font-size:13px;color:#b45309">Chưa có khóa học nào. Vào tab “Khóa học” tạo khóa (VD: Piano cơ bản 2tr) trước.</div>'),
-      false, 'rong') : '';
+  var optKhoa = '<option value="">— Chưa đăng ký khóa —</option>'
+      + khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+esc(k.SoBuoi)+'" data-gia="'+esc(k.GiaTien)+'"'+((hv.MaKhoa===k.MaKhoa||(!hv.MaKhoa&&String(hv.TenKhoa||'').trim()===String(k.TenKhoa).trim()))?' selected':'')+'>'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+Number(k.GiaTien).toLocaleString('vi-VN')+'đ':'')+'</option>'; }).join('');
+  var truongKhoa = (khoaMo.length
+        ? o('Khóa học'+(moi?' đăng ký (tùy chọn)':''),'<select id="f_Khoa"'+(moi?' onchange="chonKhoaTuDong()"':'')+'>'+optKhoa+'</select>', false, 'rong')
+        : (moi ? o('Khóa học đăng ký','<div style="font-size:13px;color:#b45309">Chưa có khóa học nào. Vào tab “Khóa học” tạo khóa trước.</div>',false,'rong') : ''));
+  // Lớp (dùng cho cả sửa) — danh sách lớp đã có + giữ giá trị hiện tại
+  var dsLopCo={}; TatCaHV.forEach(function(x){ if(x.Lop) dsLopCo[String(x.Lop).trim()]=1; });
+  if(hv.Lop) dsLopCo[String(hv.Lop).trim()]=1;
+  var optLopHV = '<option value="">— Không xếp lớp —</option>'
+      + Object.keys(dsLopCo).sort().map(function(l){ return '<option'+(String(hv.Lop||'').trim()===l?' selected':'')+'>'+esc(l)+'</option>'; }).join('');
+  var truongLopHV = o('Lớp (nhóm phân loại)','<select id="f_Lop">'+optLopHV+'</select><input id="f_LopMoi" placeholder="hoặc gõ lớp mới" style="margin-top:6px">', false, 'rong');
   var truongSoBuoi = moi ? o('Số buổi','<input id="f_SoBuoiKhoa" type="number" min="0" placeholder="Tự điền theo khóa" value="">') : '';
   var truongHocPhi = moi ? o('Học phí (đ) — tự nhảy theo khóa','<input id="f_HocPhi" type="number" min="0" step="1000" placeholder="Tự điền theo khóa" value="">') : '';
   var thuTuan = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ Nhật'];
@@ -2016,6 +2022,7 @@ function moHocVien(hv){
   + o('Ngày nhập học','<input id="f_NgayNhapHoc" placeholder="dd/mm/yyyy" value="'+esc(hv.NgayNhapHoc)+'">')
   + o('Trạng thái','<select id="f_TrangThai">'+optTT+'</select>')
   + truongKhoa
+  + truongLopHV
   + truongSoBuoi
   + truongHocPhi
   + truongNgayHoc
@@ -2034,23 +2041,33 @@ function chonKhoaTuDong(){
 }
 
 function luuHocVien(dong, ma){
+  var moi = !ma;
   var hv = {_dong:dong, MaHV:ma};
   ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi',
    'CoSo','NgayNhapHoc','TrangThai','GhiChu'].forEach(function(k){
     hv[k] = document.getElementById('f_'+k).value.trim();
   });
+  // Lớp (nhóm phân loại)
+  var elLop=document.getElementById('f_Lop'), elLopMoi=document.getElementById('f_LopMoi');
+  if(elLop){ var lopVal=(elLopMoi&&elLopMoi.value.trim())?elLopMoi.value.trim():elLop.value; hv.Lop=lopVal; }
   var elKhoa = document.getElementById('f_Khoa');
   var elNgayHoc = document.getElementById('f_NgayHoc_wrap');
   var soBuoiKhoa=0, hocPhiKhoa=0, tenKhoaChon='';
-  if(elKhoa && elKhoa.value){
-    var k = DsKhoa.filter(function(x){return x.MaKhoa===elKhoa.value;})[0];
-    if(k){
-      var elSB=document.getElementById('f_SoBuoiKhoa'), elHP=document.getElementById('f_HocPhi');
-      soBuoiKhoa = elSB && elSB.value!=='' ? soTienJS(elSB.value) : soTienJS(k.SoBuoi);
-      hocPhiKhoa = elHP && elHP.value!=='' ? soTienJS(elHP.value) : soTienJS(k.GiaTien);
-      tenKhoaChon = k.TenKhoa;
-      hv.MaKhoa=k.MaKhoa; hv.TenKhoa=k.TenKhoa; hv.SoBuoiKhoa=soBuoiKhoa; hv.DaHocKhoa=0;
-      hv.NgayBatDauKhoa=new Date().toLocaleDateString('vi-VN');
+  if(elKhoa){
+    if(elKhoa.value){
+      var k = DsKhoa.filter(function(x){return x.MaKhoa===elKhoa.value;})[0];
+      if(k){
+        var elSB=document.getElementById('f_SoBuoiKhoa'), elHP=document.getElementById('f_HocPhi');
+        soBuoiKhoa = elSB && elSB.value!=='' ? soTienJS(elSB.value) : soTienJS(k.SoBuoi);
+        hocPhiKhoa = elHP && elHP.value!=='' ? soTienJS(elHP.value) : soTienJS(k.GiaTien);
+        tenKhoaChon = k.TenKhoa;
+        hv.MaKhoa=k.MaKhoa; hv.TenKhoa=k.TenKhoa; hv.SoBuoiKhoa=soBuoiKhoa;
+        if(moi){ hv.DaHocKhoa=0; hv.NgayBatDauKhoa=new Date().toLocaleDateString('vi-VN'); }
+        // khi SỬA: giữ nguyên DaHocKhoa (không đưa vào hv để không ghi đè)
+      }
+    } else if(!moi){
+      // bỏ chọn khóa khi sửa → xóa khóa
+      hv.MaKhoa=''; hv.TenKhoa='';
     }
   }
   if(elNgayHoc){
@@ -2675,10 +2692,50 @@ function ddReport(mode){
     else if(mode==='thang'){ if(el) el.value=''; napDsDiemDanh(); _cuonToiDD(); }
     else if(mode==='quy'){ ddTongHop('quy'); _cuonToiDD(); }
     else if(mode==='nam'){ ddTongHop('nam'); _cuonToiDD(); }
+    else if(mode==='theogv'){ ddTheoGV(); _cuonToiDD(); }
   }, 150);
 }
-async function ddTongHop(kieu){
+async function ddTheoGV(){
   var box=document.getElementById('dsDiemDanhBox'); var tt=document.getElementById('ddTomTat');
+  if(_ddUnsub){ _ddUnsub(); _ddUnsub=null; }
+  if(tt) tt.style.display='none';
+  var thang=(document.getElementById('ddThang').value)|| (function(){var n=new Date();return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);})();
+  var ngayLoc=(document.getElementById('ddNgayLoc')||{}).value||'';
+  box.innerHTML='<div class="dangTai" style="padding:16px">Đang tổng hợp theo giáo viên...</div>';
+  try{
+    var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
+    var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
+    var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang)));
+    var gv={};
+    snap.docs.forEach(function(d){ var o=d.data();
+      if(ngayLoc && String(o.NgayISO||'')!==ngayLoc) return;
+      var ng=String(o.NguoiDiemDanh||'').trim()||'(không rõ)';
+      if(!gv[ng]) gv[ng]={coMat:0,vang:0,coPhep:0,tien:0,hs:{}};
+      var g=gv[ng];
+      if(o.TrangThai==='Có mặt')g.coMat++; else if(o.TrangThai==='Vắng')g.vang++; else if(o.TrangThai==='Có phép')g.coPhep++;
+      g.hs[String(o.MaHV)]=1;
+      // tiền mang lại = đơn giá 1 buổi của khóa em đó (nếu Có mặt)
+      if(o.TrangThai==='Có mặt'){ var hv=hvMap[String(o.MaHV)]||{}; var kh=khMap[hv.MaKhoa]||{}; if(kh.GiaTien&&kh.SoBuoi){ g.tien+=Math.round(kh.GiaTien/kh.SoBuoi); } }
+    });
+    var ten=Object.keys(gv).sort(function(a,b){return gv[b].coMat-gv[a].coMat;});
+    var nhan = ngayLoc?('ngày '+ngayLoc.split('-').reverse().join('/')):('tháng '+thang.slice(5)+'/'+thang.slice(0,4));
+    if(!ten.length){ box.innerHTML='<div class="trong" style="padding:16px">Chưa có điểm danh nào ('+nhan+').</div>'; return; }
+    var tLuot=0,tTien=0;
+    var html='<div style="padding:12px 14px;font-weight:700;color:#12294d;font-size:15px">👤 Điểm danh theo giáo viên — '+nhan+'</div>'
+      +'<table class="nho"><thead><tr><th>Giáo viên</th><th>Số HS điểm danh</th><th>Có mặt</th><th>Vắng</th><th>Có phép</th><th class="tien">Tiền mang lại</th></tr></thead><tbody>';
+    ten.forEach(function(t){ var g=gv[t]; var soHS=Object.keys(g.hs).length; tLuot+=g.coMat; tTien+=g.tien;
+      html+='<tr><td><strong>'+esc(t)+'</strong></td><td style="text-align:center">'+soHS+'</td>'
+        +'<td style="text-align:center"><span class="nhan hoc">'+g.coMat+'</span></td>'
+        +'<td style="text-align:center"><span class="nhan nghi">'+g.vang+'</span></td>'
+        +'<td style="text-align:center"><span class="nhan bao">'+g.coPhep+'</span></td>'
+        +'<td class="tien"><b>'+tien(g.tien)+'</b></td></tr>';
+    });
+    html+='<tr style="font-weight:700;background:#eef4fb"><td>TỔNG</td><td></td><td style="text-align:center">'+tLuot+'</td><td></td><td></td><td class="tien">'+tien(tTien)+'</td></tr>';
+    html+='</tbody></table><div style="font-size:12px;color:#6b7280;padding:8px 14px">* "Tiền mang lại" = tổng học phí/buổi của các HS Có mặt (doanh thu quy đổi mỗi buổi). Lọc theo ngày ở ô "Ngày", hoặc để trống xem cả tháng.</div>';
+    box.innerHTML=html;
+  }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">'+esc(e.message)+'</div>'; }
+}
+async function ddTongHop(kieu){  var box=document.getElementById('dsDiemDanhBox'); var tt=document.getElementById('ddTomTat');
   if(_ddUnsub){ _ddUnsub(); _ddUnsub=null; }         // dừng realtime khi xem tổng hợp
   if(tt) tt.style.display='none';
   var thang=(document.getElementById('ddThang').value)||'';
@@ -2908,8 +2965,33 @@ function luuDiemDanh(){
 }
 
 /* ---------- KHÓA HỌC (danh mục) ---------- */
-function ganKhoaHangLoat(){
+function dongBoBuoiHoc(){
   if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!confirm('Cập nhật "Số buổi đã học" cho TẤT CẢ học sinh = số buổi CÓ MẶT thực tế trong lịch sử điểm danh.\n\nSau khi chạy, danh sách ngoài sẽ khớp với chi tiết.\nTiếp tục?')) return;
+  bao('Đang đếm điểm danh và đồng bộ... (chờ chút)');
+  dongBoBuoiChay();
+}
+async function dongBoBuoiChay(){
+  try{
+    var dem = await tallyBuoiDaHoc();   // {maHV: số buổi Có mặt}
+    var ds = TatCaHV.slice();
+    var soSua=0;
+    for(var i=0;i<ds.length;i+=400){
+      var batch=FB.writeBatch(FB.db); var coGhi=false;
+      ds.slice(i,i+400).forEach(function(h){
+        var daHoc = dem[String(h.MaHV)]||0;
+        var soBuoi = soTienJS(h.SoBuoiKhoa);
+        var conLai = soBuoi>0 ? Math.max(0, soBuoi-daHoc) : 0;
+        batch.set(FB.doc(FB.db,'hocvien',h.MaHV), {DaHocKhoa:daHoc, SoBuoiConLaiKhoa:conLai}, {merge:true});
+        h.DaHocKhoa=daHoc; h.SoBuoiConLaiKhoa=conLai; coGhi=true; soSua++;
+      });
+      if(coGhi) await batch.commit();
+    }
+    bao('✓ Đã đồng bộ số buổi cho '+soSua+' học sinh!');
+    lamMoiDsHocVien(); taiHocVien(TrangHV||1);
+  }catch(e){ bao('Lỗi: '+e.message, true); }
+}
+function ganKhoaHangLoat(){  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
   goi('layKhoaHoc').then(function(dsKhoa){
     DsKhoa = dsKhoa;
     if(!dsKhoa.length){ bao('Chưa có khóa học nào. Nhập file khóa học trước.', true); return; }
@@ -2972,6 +3054,9 @@ function moKhoaHoc(k){
     + o('Môn học','<select id="k_MonHoc"><option value=""></option>'+optMon+'</select>')
     + o('Số buổi','<input id="k_SoBuoi" type="number" min="0" value="'+esc(k.SoBuoi)+'">')
     + o('Giá tiền (đ)','<input id="k_GiaTien" type="number" min="0" step="1000" value="'+esc(k.GiaTien)+'">',true)
+    + o('Loại lớp','<select id="k_LoaiLop">'
+        +[['nhom','Lớp nhóm (nhiều HS)'],['kem','Kèm 1-1']].map(function(t){var v=k.LoaiLop|| (/(1-1|kèm|kem)/i.test(k.TenKhoa||'')?'kem':'nhom'); return '<option value="'+t[0]+'"'+(v===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>')
+    + o('Đơn giá GV / buổi (đ)','<input id="k_DonGiaGV" type="number" min="0" step="1000" value="'+esc(k.DonGiaGV)+'" placeholder="Lương GV mỗi buổi dạy khóa này">',false)
     + o('Trạng thái','<select id="k_TrangThai">'
         +['Đang mở','Đóng'].map(function(t){return '<option'+(k.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
     + o('Ghi chú','<textarea id="k_GhiChu" rows="2">'+esc(k.GhiChu)+'</textarea>',false,'rong')
@@ -2980,7 +3065,7 @@ function moKhoaHoc(k){
 
 function luuKhoaHoc(dong, ma){
   var k = {_dong:dong, MaKhoa:ma};
-  ['TenKhoa','MonHoc','SoBuoi','GiaTien','TrangThai','GhiChu'].forEach(function(f){
+  ['TenKhoa','MonHoc','SoBuoi','GiaTien','LoaiLop','DonGiaGV','TrangThai','GhiChu'].forEach(function(f){
     k[f] = document.getElementById('k_'+f).value.trim();
   });
   var loi = document.getElementById('loiForm');
@@ -3276,9 +3361,69 @@ function moCRM(){
   }).catch(function(e){ bao('Lỗi tải CRM: '+e.message, true); });
 }
 function moCrmSub(sub){ doiTab('crm'); doiCrm(sub); }
+/* ---------- LƯƠNG GIÁO VIÊN ---------- */
+function moLuongGV(){
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  var n=new Date(); var thangMac=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
+  moModal('💰 Bảng lương giáo viên',
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
+    + '<span style="font-size:13px;color:#6b7280">Tháng</span>'
+    + '<input type="month" id="lgThang" value="'+thangMac+'" style="width:auto">'
+    + '<button class="nutChinh" onclick="tinhLuongGV()">Tính lương</button>'
+    + '</div>'
+    + '<div style="font-size:12.5px;color:#6b7280;margin-bottom:10px">Cách tính: mỗi <b>ca dạy</b> = 1 buổi × đơn giá GV của khóa đó. Lớp nhóm nhiều HS trong 1 ngày tính <b>1 ca</b>; kèm 1-1 mỗi em là 1 ca. Đơn giá đặt trong từng <b>Khóa học</b>.</div>'
+    + '<div id="lgKetQua"><div class="trong" style="padding:16px">Chọn tháng rồi bấm "Tính lương".</div></div>',
+    {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
+}
+async function tinhLuongGV(){
+  var thang=document.getElementById('lgThang').value;
+  var box=document.getElementById('lgKetQua'); if(!thang){ box.innerHTML='<div class="trong">Chọn tháng.</div>'; return; }
+  box.innerHTML='<div class="dangTai" style="padding:16px">Đang tính...</div>';
+  try{
+    // map khóa
+    var khByMa={}, khByTen={};
+    DsKhoa.forEach(function(k){ khByMa[k.MaKhoa]={ten:k.TenKhoa,loai:k.LoaiLop||'nhom',gia:soTienJS(k.DonGiaGV)}; khByTen[String(k.TenKhoa).trim().toLowerCase()]=khByMa[k.MaKhoa]; });
+    var hvByMa={}; TatCaHV.forEach(function(h){ hvByMa[String(h.MaHV)]=h; });
+    // lấy điểm danh Có mặt trong tháng
+    var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang),FB.where('TrangThai','==','Có mặt')));
+    // gom theo GV
+    var gv={};   // ten GV -> {caKem: [...], nhomSet:{}, records}
+    snap.docs.forEach(function(d){ var o=d.data();
+      var ngGV=String(o.NguoiDiemDanh||'').trim(); if(!ngGV) ngGV='(không rõ)';
+      var hv=hvByMa[String(o.MaHV)]||{};
+      var kh = (hv.MaKhoa && khByMa[hv.MaKhoa]) || khByTen[String(hv.TenKhoa||'').trim().toLowerCase()] || {ten:hv.TenKhoa||'—',loai:'nhom',gia:0};
+      if(!gv[ngGV]) gv[ngGV]={tong:0, soCa:0, chiTiet:{}, nhomSet:{}};
+      var g=gv[ngGV];
+      if(kh.loai==='kem'){
+        // mỗi lượt = 1 ca
+        g.tong+=kh.gia; g.soCa++;
+        var k1='kem|'+kh.ten; g.chiTiet[k1]=g.chiTiet[k1]||{ten:kh.ten,loai:'Kèm 1-1',gia:kh.gia,soCa:0}; g.chiTiet[k1].soCa++;
+      } else {
+        // gom theo (khóa + ngày) = 1 ca
+        var key='nhom|'+kh.ten+'|'+o.NgayISO;
+        if(!g.nhomSet[key]){ g.nhomSet[key]=1; g.tong+=kh.gia; g.soCa++;
+          var k2='nhom|'+kh.ten; g.chiTiet[k2]=g.chiTiet[k2]||{ten:kh.ten,loai:'Nhóm',gia:kh.gia,soCa:0}; g.chiTiet[k2].soCa++;
+        }
+      }
+    });
+    var tenGV=Object.keys(gv).sort(function(a,b){return gv[b].tong-gv[a].tong;});
+    if(!tenGV.length){ box.innerHTML='<div class="trong" style="padding:16px">Tháng này chưa có buổi điểm danh nào.</div>'; return; }
+    var tongAll=0; tenGV.forEach(function(t){ tongAll+=gv[t].tong; });
+    var html='<table class="nho"><thead><tr><th>Giáo viên</th><th>Số ca dạy</th><th class="tien">Tổng lương</th><th>Chi tiết</th></tr></thead><tbody>';
+    tenGV.forEach(function(t,idx){ var g=gv[t];
+      var ct=Object.keys(g.chiTiet).map(function(k){var c=g.chiTiet[k]; return esc(c.ten)+' ('+c.loai+'): '+c.soCa+' ca × '+tien(c.gia);}).join('<br>');
+      html+='<tr><td><strong>'+esc(t)+'</strong></td><td style="text-align:center">'+g.soCa+'</td><td class="tien"><b>'+tien(g.tong)+'</b></td><td style="font-size:12px;color:#555">'+ct+'</td></tr>';
+    });
+    html+='<tr style="font-weight:700;background:#eef4fb"><td>TỔNG CHI LƯƠNG</td><td></td><td class="tien">'+tien(tongAll)+'</td><td></td></tr>';
+    html+='</tbody></table>';
+    html+='<div style="font-size:12px;color:#6b7280;margin-top:8px">* GV được xác định theo "Người điểm danh". Khóa chưa đặt đơn giá GV sẽ tính 0đ — vào tab Khóa học để đặt đơn giá.</div>';
+    box.innerHTML=html;
+  }catch(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; }
+}
 function bcSub(what){
   if(what==='saphetkhoa'){ doiTab('saphetkhoa'); return; }
   if(what==='diemdanh'){ doiTab('diemdanh'); setTimeout(function(){ var e=document.getElementById('dsDiemDanhBox'); if(e) e.scrollIntoView({behavior:'smooth',block:'center'}); }, 250); return; }
+  if(what==='luonggv'){ moLuongGV(); return; }
   doiTab('baocao');
   setTimeout(function(){
     var id = (what==='ngay') ? 'bcCardDoanhThuNgay' : 'bcCardDoanhThu';
