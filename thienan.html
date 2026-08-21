@@ -2342,8 +2342,10 @@ function bangDiemDanhHV(ds, tk){
     + '<div class="oTomTat"><div class="nhan-o">Có phép</div><div class="so">'+tk.coPhep+'</div></div></div>';
   if(!ds.length) return tomTat + '<div class="trong" style="padding:12px">Chưa có buổi điểm danh nào.</div>';
   var mau=function(t){ return t==='Vắng'?'no':(t==='Có phép'?'bao':'du'); };
-  return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
-    + ds.map(function(r){ return '<tr><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(r.TenLop)+'</td>'
+  var _iso=function(r){ if(r.NgayISO) return String(r.NgayISO); var m=String(r.Ngay||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?(m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)):''; };
+  var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // buổi 1 = sớm nhất
+  return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
+    + dsSx.map(function(r,i){ return '<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(i+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(r.TenLop)+'</td>'
         + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'; }).join('')
     + '</tbody></table></div>';
 }
