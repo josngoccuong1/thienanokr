@@ -2231,12 +2231,17 @@ function moChiTiet(maHV){  moModal('Hồ sơ học viên', '<div class="dangTai"
 function veChiTiet(){
   var d = ChiTiet, h = d.hocVien, t = d.tongKet;
   var noLop = t.conNo > 0 ? 'no' : 'du';
+  // Số buổi đã học = đếm "Có mặt" thực tế từ lịch sử điểm danh
+  var soBuoiKhoa = soTienJS(h.SoBuoiKhoa);
+  var daHocThuc = (d.ddThongKe && d.ddThongKe.coMat) || 0;
+  var conLaiThuc = soBuoiKhoa>0 ? Math.max(0, soBuoiKhoa - daHocThuc) : 0;
+  var mauSoKhoa = soBuoiKhoa>0 ? soBuoiKhoa : daHocThuc;
 
   var html =
     '<div class="tomTat">'
     + oTom('Tình trạng học phí', t.conNo > 0 ? 'Nợ ' + tien(t.conNo) + ' đ' : 'Đã đóng đủ', noLop)
-    + oTom('Số buổi đã học', t.tongBuoiDaHoc + '/' + t.tongBuoi, '')
-    + oTom('Số buổi còn lại', t.soBuoiConLai, t.soBuoiConLai <= 2 ? 'no' : '')
+    + oTom('Số buổi đã học', daHocThuc + '/' + mauSoKhoa, '')
+    + oTom('Số buổi còn lại', conLaiThuc, conLaiThuc <= 2 ? 'no' : '')
     + oTom('Lớp đang học', d.lopHoc.filter(function(l){return l.TrangThai==='Đang học';}).length, '')
     + '</div>'
 
@@ -2245,7 +2250,7 @@ function veChiTiet(){
     + ht('Ngày sinh', esc(h.NgaySinh) + (h.GioiTinh ? ' · '+esc(h.GioiTinh) : ''))
     + ht('Phụ huynh', esc(h.TenPhuHuynh))
     + ht('Điện thoại', '<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>')
-    + ht('Khóa học', h.TenKhoa ? esc(h.TenKhoa)+' <span class="ma">(còn '+h.SoBuoiConLaiKhoa+'/'+h.SoBuoiKhoa+' buổi)</span>' : '—')
+    + ht('Khóa học', h.TenKhoa ? esc(h.TenKhoa)+' <span class="ma">(còn '+conLaiThuc+'/'+mauSoKhoa+' buổi)</span>' : '—')
     + ht('Ngày học', esc(h.NgayHoc))
     + ht('Địa chỉ', esc(h.DiaChi))
     + ht('Ngày nhập học', esc(h.NgayNhapHoc))
