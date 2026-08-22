@@ -846,6 +846,7 @@ async function goi(hanhDong, dl){
     case 'layDangKy':        return await fbLayDangKy(dl);
     case 'themVaoLop':       return await fbThemVaoLop(dl);
     case 'xoaDangKy':        return await fbXoaDangKy(dl);
+    case 'xoaHocPhi':        return await fbXoaHocPhi(dl);
     case 'timHVThemVaoLop':  return await fbTimHVThemVaoLop(dl);
     case 'layDiemDanh':      return await fbLayDiemDanh(dl);
     case 'luuDiemDanh':      return await fbLuuDiemDanh(dl);
@@ -1002,8 +1003,12 @@ async function fbThemVaoLop(dl){
   await FB.addDoc(FB.collection(FB.db,'dangky'), {MaHV:maHV,HoTen:hv.HoTen||'',MaLop:maLop,TenLop:lop.TenLop||'',NgayBatDau:new Date().toLocaleDateString('vi-VN'),TrangThai:'Đang học'});
   return { MaHV:maHV, HoTen:hv.HoTen };
 }
-async function fbXoaDangKy(dl){
-  if(!dl._dong) throw new Error('Thiếu mã đăng ký.');
+async function fbXoaHocPhi(dl){
+  if(!dl._dong) throw new Error('Thiếu mã kỳ học phí.');
+  await FB.deleteDoc(FB.doc(FB.db,'hocphi',dl._dong));
+  return true;
+}
+async function fbXoaDangKy(dl){  if(!dl._dong) throw new Error('Thiếu mã đăng ký.');
   await FB.deleteDoc(FB.doc(FB.db,'dangky',dl._dong));
   return true;
 }
@@ -2472,8 +2477,16 @@ function roiLopChiTiet(dong){
   }).catch(function(e){ bao(e.message, true); });
 }
 
-function bangHocPhi(ds){
-  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa có kỳ học phí nào. Bấm “Thêm kỳ học phí” bên dưới.</div>';
+function xoaHocPhiUI(dong, ky, daThu){
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  var canhBao = daThu>0 ? '\n\n⚠️ Kỳ này ĐÃ THU '+tien(daThu)+'đ — xóa sẽ mất ghi nhận đã thu!' : '';
+  if(!confirm('Xóa kỳ học phí "'+ky+'"?'+canhBao)) return;
+  var maHV = ChiTiet.hocVien.MaHV;
+  goi('xoaHocPhi', {_dong:dong}).then(function(){
+    bao('✓ Đã xóa kỳ học phí'); moChiTiet(maHV);
+  }).catch(function(e){ bao(e.message, true); });
+}
+function bangHocPhi(ds){  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa có kỳ học phí nào. Bấm “Thêm kỳ học phí” bên dưới.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
     + '<th>Kỳ</th><th>Lớp</th><th>Buổi</th><th class="tien">Phải thu</th>'
     + '<th class="tien">Đã thu</th><th class="tien">Còn nợ</th><th>Trạng thái</th><th></th>'
@@ -2488,8 +2501,10 @@ function bangHocPhi(ds){
           + '<td class="tien">'+(p.ConNo>0?'<strong style="color:#b42318">'+tien(p.ConNo)+'</strong>':'0')+'</td>'
           + '<td><span class="nhan '+lop+'">'+esc(p.TrangThai)+'</span></td>'
           + '<td>'+(p.ConNo>0
-              ? '<button class="nutNho" onclick="moThuTien(\''+esc(p.MaHD)+'\','+p.ConNo+')">Đóng học phí</button>'
-              : '')+'</td></tr>';
+              ? '<button class="nutNho" onclick="moThuTien(\''+esc(p.MaHD)+'\','+p.ConNo+')">Đóng học phí</button> '
+              : '')
+              +(laAdmin()?'<button class="nutNho" style="background:#b42318" onclick="xoaHocPhiUI(\''+esc(String(p._dong))+'\',\''+esc(p.KyThu)+'\','+(p.DaThu||0)+')">Xóa</button>':'')
+              +'</td></tr>';
       }).join('')
     + '</tbody></table></div>';
 }
