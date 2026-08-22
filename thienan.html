@@ -2905,7 +2905,7 @@ function renderDsDiemDanh(list){
   });
   box.innerHTML = '<table class="nho"><thead><tr>'
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
-    + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
+    + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu<br><span style="color:#ffe9a8;font-size:12px">Tổng: '+tien((function(){var t=0;list.forEach(function(o){if(o.TrangThai==='Có mặt'){var hv=hvMap[String(o.MaHV)]||{};var kh=khMap[hv.MaKhoa]||{};if(kh.GiaTien&&kh.SoBuoi)t+=Math.round(kh.GiaTien/kh.SoBuoi);}});return t;})())+'đ</span></th>'
     + (laAdmin()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + list.map(function(o,i){
@@ -2925,6 +2925,7 @@ function renderDsDiemDanh(list){
           + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(o.MaLop)+'\',\''+esc(o.NgayISO)+'\',\''+esc(maHV)+'\',\''+esc(o.TrangThai)+'\',this)">Xóa</button></td>':'')
           + '</tr>';
       }).join('')
+    + '<tr style="font-weight:800;background:#eef4fb"><td colspan="7" style="text-align:right">TỔNG THU</td><td class="tien">'+tien((function(){var t=0;list.forEach(function(o){if(o.TrangThai==='Có mặt'){var hv=hvMap[String(o.MaHV)]||{};var kh=khMap[hv.MaKhoa]||{};if(kh.GiaTien&&kh.SoBuoi)t+=Math.round(kh.GiaTien/kh.SoBuoi);}});return t;})())+'đ</td>'+(laAdmin()?'<td></td>':'')+'</tr>'
     + '</tbody></table>';
 }
 
