@@ -384,6 +384,7 @@ main section{animation:hienLen .25s ease}
       <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="ddReport('diemdanh')"><span class="ic">how_to_reg</span> Điểm danh hôm nay</a>
+        <a onclick="moLichHoc()"><span class="ic">notifications_active</span> Lịch học hôm nay (nhắc HS)</a>
         <a onclick="ddReport('ngay')"><span class="ic">today</span> Báo cáo theo ngày</a>
         <a onclick="ddReport('thang')"><span class="ic">calendar_month</span> Báo cáo theo tháng</a>
         <a onclick="ddReport('quy')"><span class="ic">bar_chart</span> Báo cáo theo quý</a>
@@ -640,6 +641,18 @@ main section{animation:hienLen .25s ease}
         <button class="nutChinh" onclick="locTamNghi()">Lọc</button>
       </div>
       <div class="the"><div id="tnKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
+
+    <!-- TRANG LỊCH HỌC HÔM NAY -->
+    <section id="vung-lichhoc" class="an">
+      <div class="the" style="padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#12294d">📋 Học sinh có lịch học</span>
+        <select id="lhThu" onchange="locLichHoc()" style="min-width:130px"></select>
+        <select id="lhCoSo" onchange="locLichHoc()" style="min-width:150px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+        <button class="nutChinh" onclick="locLichHoc()">Xem</button>
+        <button class="nutPhu" onclick="copySDTLichHoc()">📋 Copy SĐT để nhắn</button>
+      </div>
+      <div class="the"><div id="lhKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
 
     <!-- TAB CRM -->
@@ -2794,6 +2807,60 @@ function napDsDiemDanh(){
     function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
+function moLichHoc(){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
+    var b=document.getElementById('tab-'+t); if(b) b.classList.remove('chon');
+    var v=document.getElementById('vung-'+t); if(v) v.classList.add('an');
+  });
+  var bd=document.getElementById('tab-diemdanh'); if(bd) bd.classList.add('chon');
+  var vl=document.getElementById('vung-lichhoc'); if(vl) vl.classList.remove('an');
+  // đổ danh sách thứ, mặc định hôm nay
+  var thu=['Chủ Nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+  var homNay=thu[new Date().getDay()];
+  var sel=document.getElementById('lhThu');
+  if(sel){ sel.innerHTML=thu.map(function(t){return '<option'+(t===homNay?' selected':'')+'>'+t+'</option>';}).join(''); }
+  locLichHoc();
+}
+function _lichCoThu(ngayHoc, thu){
+  var s=String(ngayHoc||'');
+  if(!s) return false;
+  // "Thứ 2, Thứ 4" hoặc "T2, T4" hoặc "Chủ Nhật"
+  if(s.indexOf(thu)>=0) return true;
+  var map={'Thứ 2':'t2','Thứ 3':'t3','Thứ 4':'t4','Thứ 5':'t5','Thứ 6':'t6','Thứ 7':'t7','Chủ Nhật':'cn'};
+  var rut=map[thu]; if(rut && s.toLowerCase().replace(/\s/g,'').indexOf(rut)>=0) return true;
+  return false;
+}
+var _lhDs=[];
+function locLichHoc(){
+  var box=document.getElementById('lhKetQua'); if(!box) return;
+  var thu=(document.getElementById('lhThu')||{}).value||'';
+  var coSo=(document.getElementById('lhCoSo')||{}).value||'';
+  var ds=TatCaHV.filter(function(h){
+    if(String(h.TrangThai||'')==='Đã nghỉ') return false;
+    if(coSo && h.CoSo!==coSo) return false;
+    return _lichCoThu(h.NgayHoc, thu);
+  });
+  ds.sort(function(a,b){ return String(a.CoSo||'').localeCompare(String(b.CoSo||''))||String(a.Lop||'').localeCompare(String(b.Lop||'')); });
+  _lhDs=ds;
+  if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có học sinh nào có lịch học vào '+esc(thu)+(coSo?' ('+coSo+')':'')+'.</div>'; return; }
+  box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> học sinh có lịch học <b>'+esc(thu)+'</b>'+(coSo?' — '+coSo:'')+'. Nên nhắn nhắc đi học đúng giờ.</div>'
+    + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>Ngày học</th><th>SĐT phụ huynh</th></tr></thead><tbody>'
+    + ds.map(function(h,i){ return '<tr><td>'+(i+1)+'</td>'
+        + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+        + '<td>'+esc(h.CoSo||'—')+'</td>'
+        + '<td>'+esc(h.Lop||'—')+'</td>'
+        + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+        + '<td>'+esc(h.NgayHoc||'—')+'</td>'
+        + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td></tr>'; }).join('')
+    + '</tbody></table></div>';
+}
+function copySDTLichHoc(){
+  if(!_lhDs.length){ bao('Chưa có danh sách. Bấm Xem trước.', true); return; }
+  var sdt=_lhDs.map(function(h){return h.SDT_PhuHuynh;}).filter(function(s){return s;}).join(', ');
+  if(!sdt){ bao('Không có SĐT nào.', true); return; }
+  if(navigator.clipboard){ navigator.clipboard.writeText(sdt).then(function(){ bao('✓ Đã copy '+_lhDs.length+' SĐT — dán vào Zalo/tin nhắn để gửi nhắc.'); }); }
+  else { prompt('Copy các SĐT này:', sdt); }
+}
 function ddTuanTruoc(){
   var elN=document.getElementById('ddNgayLoc'), elT=document.getElementById('ddThang');
   // mốc: ngày đang lọc, hoặc hôm nay
