@@ -2831,28 +2831,56 @@ function _lichCoThu(ngayHoc, thu){
   return false;
 }
 var _lhDs=[];
-function locLichHoc(){
+async function locLichHoc(){
   var box=document.getElementById('lhKetQua'); if(!box) return;
   var thu=(document.getElementById('lhThu')||{}).value||'';
   var coSo=(document.getElementById('lhCoSo')||{}).value||'';
-  var ds=TatCaHV.filter(function(h){
-    if(String(h.TrangThai||'')==='Đã nghỉ') return false;
-    if(coSo && h.CoSo!==coSo) return false;
-    return _lichCoThu(h.NgayHoc, thu);
-  });
-  ds.sort(function(a,b){ return String(a.CoSo||'').localeCompare(String(b.CoSo||''))||String(a.Lop||'').localeCompare(String(b.Lop||'')); });
-  _lhDs=ds;
-  if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có học sinh nào có lịch học vào '+esc(thu)+(coSo?' ('+coSo+')':'')+'.</div>'; return; }
-  box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> học sinh có lịch học <b>'+esc(thu)+'</b>'+(coSo?' — '+coSo:'')+'. Nên nhắn nhắc đi học đúng giờ.</div>'
-    + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>Ngày học</th><th>SĐT phụ huynh</th></tr></thead><tbody>'
-    + ds.map(function(h,i){ return '<tr><td>'+(i+1)+'</td>'
-        + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
-        + '<td>'+esc(h.CoSo||'—')+'</td>'
-        + '<td>'+esc(h.Lop||'—')+'</td>'
-        + '<td>'+esc(h.TenKhoa||'—')+'</td>'
-        + '<td>'+esc(h.NgayHoc||'—')+'</td>'
-        + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td></tr>'; }).join('')
-    + '</tbody></table></div>';
+  var thuList=['Chủ Nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+  var dow=thuList.indexOf(thu); if(dow<0) dow=new Date().getDay();
+  box.innerHTML='<div class="dangTai" style="padding:20px">Đang xem ai thường học '+esc(thu)+'...</div>';
+  try{
+    // lấy điểm danh 5 tuần gần đây (tháng này + tháng trước)
+    var now=new Date();
+    var m1=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2);
+    var pm=new Date(now.getFullYear(), now.getMonth()-1, 1);
+    var m0=pm.getFullYear()+'-'+('0'+(pm.getMonth()+1)).slice(-2);
+    var gioiHan=new Date(now.getTime()-35*24*60*60*1000);
+    var docsAll=[];
+    for(var mi=0; mi<2; mi++){
+      var mm= mi===0? m1 : m0;
+      var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',mm)));
+      snap.docs.forEach(function(d){ docsAll.push(d.data()); });
+    }
+    var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
+    var gom={}; // maHV -> {soLan, lanCuoi}
+    docsAll.forEach(function(o){
+      if(o.TrangThai!=='Có mặt') return;
+      var iso=String(o.NgayISO||''); if(!iso) return;
+      var d=new Date(iso); if(isNaN(d)) return;
+      if(d.getDay()!==dow) return;         // đúng thứ
+      if(d<gioiHan) return;                // trong 5 tuần
+      var m=String(o.MaHV);
+      if(!gom[m]) gom[m]={soLan:0,lanCuoi:''};
+      gom[m].soLan++; if(iso>gom[m].lanCuoi) gom[m].lanCuoi=iso;
+    });
+    var ds=Object.keys(gom).map(function(m){ var h=hvMap[m]||{MaHV:m,HoTen:'(không rõ)'}; return {h:h, soLan:gom[m].soLan, lanCuoi:gom[m].lanCuoi}; })
+      .filter(function(x){ if(String(x.h.TrangThai||'')==='Đã nghỉ') return false; if(coSo && x.h.CoSo!==coSo) return false; return true; });
+    ds.sort(function(a,b){ return b.soLan-a.soLan || String(b.lanCuoi).localeCompare(String(a.lanCuoi)); });
+    _lhDs=ds.map(function(x){return x.h;});
+    if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có em nào thường học <b>'+esc(thu)+'</b> (theo điểm danh 5 tuần gần đây)'+(coSo?' — '+coSo:'')+'.</div>'; return; }
+    var dd=function(iso){ var p=iso.split('-'); return p[2]+'/'+p[1]; };
+    box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> em thường học <b>'+esc(thu)+'</b> (dựa theo điểm danh thật)'+(coSo?' — '+coSo:'')+'. Nên nhắn nhắc đi học.</div>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>Số lần học '+esc(thu)+'</th><th>Gần nhất</th><th>SĐT phụ huynh</th></tr></thead><tbody>'
+      + ds.map(function(x,i){ var h=x.h; return '<tr><td>'+(i+1)+'</td>'
+          + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+          + '<td>'+esc(h.CoSo||'—')+'</td>'
+          + '<td>'+esc(h.Lop||'—')+'</td>'
+          + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+          + '<td style="text-align:center">'+x.soLan+' lần</td>'
+          + '<td>'+dd(x.lanCuoi)+'</td>'
+          + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td></tr>'; }).join('')
+      + '</tbody></table></div>';
+  }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">'+esc(e.message)+'</div>'; }
 }
 function copySDTLichHoc(){
   if(!_lhDs.length){ bao('Chưa có danh sách. Bấm Xem trước.', true); return; }
