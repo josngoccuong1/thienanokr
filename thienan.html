@@ -530,6 +530,7 @@ main section{animation:hienLen .25s ease}
           <div style="display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap">
             <span style="font-size:13px;color:#6b7280">Ngày</span>
             <input type="date" id="ddNgayLoc" onchange="veDsDiemDanh()" style="width:auto">
+            <button class="nutNho" onclick="ddTuanTruoc()" style="background:#0f7a4d">📅 Tuần trước (cùng thứ)</button>
             <button class="nutNho" onclick="ddXemCaThang()">Cả tháng</button>
             <span style="font-size:13px;color:#6b7280">Tháng</span>
             <input type="month" id="ddThang" onchange="napDsDiemDanh()" style="width:auto">
@@ -2793,6 +2794,19 @@ function napDsDiemDanh(){
     function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
+function ddTuanTruoc(){
+  var elN=document.getElementById('ddNgayLoc'), elT=document.getElementById('ddThang');
+  // mốc: ngày đang lọc, hoặc hôm nay
+  var goc = (elN&&elN.value) ? new Date(elN.value) : new Date();
+  var truoc = new Date(goc.getTime() - 7*24*60*60*1000); // lùi đúng 7 ngày = cùng thứ
+  var iso = truoc.getFullYear()+'-'+('0'+(truoc.getMonth()+1)).slice(-2)+'-'+('0'+truoc.getDate()).slice(-2);
+  var thangCanh = truoc.getFullYear()+'-'+('0'+(truoc.getMonth()+1)).slice(-2);
+  // nếu tuần trước rơi sang tháng khác → đổi tháng đang nghe để có dữ liệu
+  if(elT && elT.value!==thangCanh){ elT.value=thangCanh; if(elN) elN.value=iso; napDsDiemDanh(); }
+  else { if(elN) elN.value=iso; veDsDiemDanh(); }
+  var thu=['Chủ Nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'][truoc.getDay()];
+  bao('Đang xem '+thu+' tuần trước ('+iso.split('-').reverse().join('/')+')');
+}
 function _cuonToiDD(){ var e=document.getElementById('dsDiemDanhBox'); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); }
 function ddReport(mode){
   doiTab('diemdanh');
