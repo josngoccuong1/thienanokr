@@ -2450,16 +2450,26 @@ function bangDiemDanhHV(ds, tk){
 }
 function bangLopHoc(ds){  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
-    + '<th>Lớp</th><th>Môn</th><th>Giáo viên</th><th>Lịch</th><th>Ngày đăng ký</th><th>Trạng thái</th>'
+    + '<th>Lớp</th><th>Môn</th><th>Giáo viên</th><th>Lịch</th><th>Ngày đăng ký</th><th>Trạng thái</th>'+(laAdmin()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + ds.map(function(l){
         return '<tr><td><strong>'+esc(l.TenLop)+'</strong></td><td>'+esc(l.MonHoc)+'</td>'
           + '<td>'+esc(l.TenGV || '—')+'</td>'
           + '<td>'+esc(l.Thu)+(l.Gio?' · '+esc(l.Gio):'')+'</td>'
           + '<td>'+esc(l.NgayDangKy)+'</td>'
-          + '<td><span class="nhan '+(l.TrangThai==='Đã nghỉ'?'nghi':'hoc')+'">'+esc(l.TrangThai)+'</span></td></tr>';
+          + '<td><span class="nhan '+(l.TrangThai==='Đã nghỉ'?'nghi':'hoc')+'">'+esc(l.TrangThai)+'</span></td>'
+          + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="roiLopChiTiet('+l._dong+')">Rời lớp</button></td>':'')
+          + '</tr>';
       }).join('')
     + '</tbody></table></div>';
+}
+function roiLopChiTiet(dong){
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  var maHV = ChiTiet.hocVien.MaHV;
+  if(!confirm('Đưa học viên ra khỏi lớp này?')) return;
+  goi('xoaDangKy', {_dong:dong}).then(function(){
+    bao('✓ Đã rời lớp'); moChiTiet(maHV);
+  }).catch(function(e){ bao(e.message, true); });
 }
 
 function bangHocPhi(ds){
