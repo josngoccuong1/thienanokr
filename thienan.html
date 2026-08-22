@@ -144,6 +144,7 @@ h3.muc{font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase
 
 /* Chi tiết học viên */
 .hopModal.rong{max-width:880px}
+.hopModal.sieuRong{max-width:1500px}
 .tomTat{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
 .oTomTat{background:#f4f6f9;border:1px solid var(--vien);border-radius:8px;padding:12px 14px}
 .oTomTat .nhan-o{font-size:11px;color:var(--chu-mo);text-transform:uppercase;letter-spacing:.5px}
@@ -2250,7 +2251,7 @@ function moTamNghi(){
     + '<button class="nutChinh" onclick="locTamNghi()">Lọc</button>'
     + '</div>'
     + '<div id="tnKetQua"><div class="trong" style="padding:12px">Đang lọc...</div></div>',
-    {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
+    {rong:true, sieuRong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
   setTimeout(locTamNghi, 100);
 }
 function _ngayTuChuoi(s){
@@ -3700,7 +3701,7 @@ function moModal(tieuDe, than, hamLuu, tuyChon){
       + '<button class="nutChinh" id="nutLuu" onclick="'+hamLuu+'">Lưu</button>';
   document.getElementById('khungModal').innerHTML =
     '<div class="lop-phu" onclick="if(event.target===this)dongModal()">'
-    + '<div class="hopModal'+(tuyChon.rong?' rong':'')+'">'
+    + '<div class="hopModal'+(tuyChon.sieuRong?' sieuRong':'')+(tuyChon.rong?' rong':'')+'">'
     + '<div class="dauModal"><h2>'+tieuDe+'</h2><button class="dongModal" onclick="dongModal()">&times;</button></div>'
     + '<div class="thanModal" id="thanModal">'+than+'</div>'
     + '<div class="chanModal" id="chanModal">'+chan+'</div>'
