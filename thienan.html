@@ -2888,8 +2888,11 @@ function veDsDiemDanh(){
       } else if(o.TrangThai==='Vắng')va++; else if(o.TrangThai==='Có phép')cp++;
     });
     var nhan = ngayLoc ? ('ngày '+ngayLoc.split('-').reverse().join('/')) : 'cả tháng';
-    tt.style.display='block';
-    tt.innerHTML='<b>'+list.length+'</b> lượt ('+nhan+') · <span class="nhan hoc">Có mặt '+cm+'</span> <span class="nhan nghi">Vắng '+va+'</span> <span class="nhan bao">Có phép '+cp+'</span> · <span style="color:#0f7a4d;font-weight:700">💰 Thu: '+tien(thu)+'đ</span>';
+    tt.style.display='flex';
+    tt.style.alignItems='center';
+    tt.style.flexWrap='wrap';
+    tt.innerHTML='<div style="margin-right:auto"><b>'+list.length+'</b> lượt ('+nhan+') · <span class="nhan hoc">Có mặt '+cm+'</span> <span class="nhan nghi">Vắng '+va+'</span> <span class="nhan bao">Có phép '+cp+'</span></div>'
+      +'<div style="color:#0f7a4d;font-weight:800;font-size:15px">💰 Thu: '+tien(thu)+'đ</div>';
   }
   if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">'+(ngayLoc?'Ngày này chưa có lượt điểm danh nào.':'Tháng này chưa có lượt điểm danh nào.')+'</div>'; return; }
   renderDsDiemDanh(list);
@@ -2905,7 +2908,7 @@ function renderDsDiemDanh(list){
   });
   box.innerHTML = '<table class="nho"><thead><tr>'
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
-    + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu<br><span style="color:#ffe9a8;font-size:12px">Tổng: '+tien((function(){var t=0;list.forEach(function(o){if(o.TrangThai==='Có mặt'){var hv=hvMap[String(o.MaHV)]||{};var kh=khMap[hv.MaKhoa]||{};if(kh.GiaTien&&kh.SoBuoi)t+=Math.round(kh.GiaTien/kh.SoBuoi);}});return t;})())+'đ</span></th>'
+    + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
     + (laAdmin()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + list.map(function(o,i){
