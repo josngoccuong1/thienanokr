@@ -2458,7 +2458,7 @@ function bangLopHoc(ds){  if(!ds.length) return '<div class="trong" style="paddi
           + '<td>'+esc(l.Thu)+(l.Gio?' · '+esc(l.Gio):'')+'</td>'
           + '<td>'+esc(l.NgayDangKy)+'</td>'
           + '<td><span class="nhan '+(l.TrangThai==='Đã nghỉ'?'nghi':'hoc')+'">'+esc(l.TrangThai)+'</span></td>'
-          + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="roiLopChiTiet('+l._dong+')">Rời lớp</button></td>':'')
+          + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="roiLopChiTiet(\''+esc(String(l._dong))+'\')">Rời lớp</button></td>':'')
           + '</tr>';
       }).join('')
     + '</tbody></table></div>';
@@ -2677,7 +2677,7 @@ function taiRoster(){
       + active.map(function(r){
           return '<tr><td class="ma">'+esc(r.MaHV)+'</td><td><strong>'+esc(r.HoTen)+'</strong></td>'
             + '<td>'+esc(r.NgayBatDau)+'</td>'
-            + '<td><button class="nutXoa" onclick="xoaKhoiLop('+r._dong+')">Xóa</button></td></tr>';
+            + '<td><button class="nutXoa" onclick="xoaKhoiLop(\''+esc(String(r._dong))+'\')">Xóa</button></td></tr>';
         }).join('')
       + '</tbody></table></div>';
   }).catch(function(e){
