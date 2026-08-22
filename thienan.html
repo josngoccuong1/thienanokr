@@ -2320,7 +2320,7 @@ function veChiTiet(){
     + ht('Ngày sinh', esc(h.NgaySinh) + (h.GioiTinh ? ' · '+esc(h.GioiTinh) : ''))
     + ht('Phụ huynh', esc(h.TenPhuHuynh))
     + ht('Điện thoại', '<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>')
-    + ht('Khóa học', h.TenKhoa ? esc(h.TenKhoa)+' <span class="ma">(còn '+conLaiThuc+'/'+mauSoKhoa+' buổi)</span>' : '—')
+    + ht('Khóa học', h.TenKhoa ? esc(h.TenKhoa)+' <span class="ma">(còn '+conLaiThuc+'/'+mauSoKhoa+' buổi)</span>'+(laAdmin()?' <button class="nutNho" style="background:#b42318;margin-left:6px" onclick="goBoKhoaHV()">Gỡ khóa</button>':'') : '—')
     + ht('Ngày học', esc(h.NgayHoc))
     + ht('Địa chỉ', esc(h.DiaChi))
     + ht('Ngày nhập học', esc(h.NgayNhapHoc))
@@ -2374,8 +2374,23 @@ function xacNhanThemVaoLop(){
   }).catch(function(e){ bao(e.message, true); });
 }
 
-function ganKhoaTuChiTiet(){
+function goBoKhoaHV(){
   var h = ChiTiet.hocVien;
+  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!confirm('Gỡ khóa "'+(h.TenKhoa||'')+'" khỏi '+h.HoTen+'?\n\n(Chỉ xóa khóa đang gán — lịch sử điểm danh vẫn còn.)')) return;
+  var hv = {
+    _dong: h._dong, MaHV: h.MaHV,
+    HoTen: h.HoTen, NgaySinh: h.NgaySinh, GioiTinh: h.GioiTinh,
+    TenPhuHuynh: h.TenPhuHuynh, SDT_PhuHuynh: h.SDT_PhuHuynh,
+    DiaChi: h.DiaChi, CoSo: h.CoSo, NgayNhapHoc: h.NgayNhapHoc,
+    TrangThai: h.TrangThai, GhiChu: h.GhiChu, NgayHoc: h.NgayHoc, Lop: h.Lop,
+    MaKhoa: '', TenKhoa: '', SoBuoiKhoa: 0, DaHocKhoa: 0
+  };
+  goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
+    bao('✓ Đã gỡ khóa'); moChiTiet(h.MaHV);
+  }).catch(function(e){ bao(e.message, true); });
+}
+function ganKhoaTuChiTiet(){  var h = ChiTiet.hocVien;
   var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
   if(!khoaMo.length){ bao('Chưa có khóa học nào. Tạo khóa ở tab Khóa học trước.', true); return; }
   var opt = khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+esc(k.SoBuoi)+'" data-gia="'+esc(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
