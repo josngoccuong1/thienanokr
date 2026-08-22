@@ -2878,10 +2878,18 @@ function veDsDiemDanh(){
   var list = _ddList.slice();
   if(ngayLoc){ list = list.filter(function(o){ return String(o.NgayISO||'')===ngayLoc; }); }
   if(tt){
-    var cm=0,va=0,cp=0; list.forEach(function(o){ if(o.TrangThai==='Có mặt')cm++; else if(o.TrangThai==='Vắng')va++; else if(o.TrangThai==='Có phép')cp++; });
+    var cm=0,va=0,cp=0,thu=0;
+    var _hvMap={}; TatCaHV.forEach(function(h){ _hvMap[String(h.MaHV)]=h; });
+    var _khMap={}; DsKhoa.forEach(function(k){ _khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien),SoBuoi:soTienJS(k.SoBuoi)}; });
+    list.forEach(function(o){
+      if(o.TrangThai==='Có mặt'){ cm++;
+        var hv=_hvMap[String(o.MaHV)]||{}; var kh=_khMap[hv.MaKhoa]||{};
+        if(kh.GiaTien&&kh.SoBuoi) thu+=Math.round(kh.GiaTien/kh.SoBuoi);
+      } else if(o.TrangThai==='Vắng')va++; else if(o.TrangThai==='Có phép')cp++;
+    });
     var nhan = ngayLoc ? ('ngày '+ngayLoc.split('-').reverse().join('/')) : 'cả tháng';
     tt.style.display='block';
-    tt.innerHTML='<b>'+list.length+'</b> lượt ('+nhan+') · <span class="nhan hoc">Có mặt '+cm+'</span> <span class="nhan nghi">Vắng '+va+'</span> <span class="nhan bao">Có phép '+cp+'</span>';
+    tt.innerHTML='<b>'+list.length+'</b> lượt ('+nhan+') · <span class="nhan hoc">Có mặt '+cm+'</span> <span class="nhan nghi">Vắng '+va+'</span> <span class="nhan bao">Có phép '+cp+'</span> · <span style="color:#0f7a4d;font-weight:700">💰 Thu: '+tien(thu)+'đ</span>';
   }
   if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">'+(ngayLoc?'Ngày này chưa có lượt điểm danh nào.':'Tháng này chưa có lượt điểm danh nào.')+'</div>'; return; }
   renderDsDiemDanh(list);
