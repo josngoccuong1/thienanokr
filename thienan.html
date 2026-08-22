@@ -629,6 +629,18 @@ main section{animation:hienLen .25s ease}
       <div class="the"><div class="cuonBang" id="shkBox"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
 
+    <!-- TRANG HỌC SINH NGHỈ LÂU -->
+    <section id="vung-tamnghi" class="an">
+      <div class="the" style="padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#12294d">⏸️ Học sinh nghỉ lâu chưa đi học</span>
+        <span style="font-size:13px;color:#6b7280;margin-left:6px">Vắng liên tục từ</span>
+        <input type="number" id="tnNgay" value="30" min="7" style="width:80px">
+        <span style="font-size:13px;color:#6b7280">ngày trở lên</span>
+        <button class="nutChinh" onclick="locTamNghi()">Lọc</button>
+      </div>
+      <div class="the"><div id="tnKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
+
     <!-- TAB CRM -->
     <section id="vung-crm" class="an">
       <div class="crmSub">
@@ -2248,16 +2260,14 @@ function xoaHocVienUI(maHV, hoTen){
   }).catch(function(e){ bao('Lỗi khi xóa: '+e.message, true); });
 }
 function moTamNghi(){
-  var nguong = 30; // số ngày mặc định coi là tạm nghỉ
-  moModal('⏸️ Học sinh tạm nghỉ (lâu không đi học)',
-    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'
-    + '<span style="font-size:13px;color:#6b7280">Vắng liên tục từ</span>'
-    + '<input type="number" id="tnNgay" value="'+nguong+'" min="7" step="1" style="width:80px"> ngày trở lên'
-    + '<button class="nutChinh" onclick="locTamNghi()">Lọc</button>'
-    + '</div>'
-    + '<div id="tnKetQua"><div class="trong" style="padding:12px">Đang lọc...</div></div>',
-    {rong:true, sieuRong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
-  setTimeout(locTamNghi, 100);
+  // mở trang riêng (ẩn các tab khác)
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
+    var b=document.getElementById('tab-'+t); if(b) b.classList.remove('chon');
+    var v=document.getElementById('vung-'+t); if(v) v.classList.add('an');
+  });
+  var bh=document.getElementById('tab-hocvien'); if(bh) bh.classList.add('chon');
+  var vt=document.getElementById('vung-tamnghi'); if(vt) vt.classList.remove('an');
+  locTamNghi();
 }
 function _ngayTuChuoi(s){
   s=String(s||'').trim(); if(!s) return null;
@@ -2290,7 +2300,7 @@ function locTamNghi(){
         + '<td>'+dd(x.buoiCuoi)+'</td>'
         + '<td style="text-align:center"><span class="nhan '+(x.soNgay>=60?'no':'bao')+'">'+x.soNgay+'</span></td>'
         + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td>'
-        + '<td><button class="nutNho" onclick="dongModal();moChiTiet(\''+esc(h.MaHV)+'\')">Xem</button></td></tr>'; }).join('')
+        + '<td><button class="nutNho" onclick="moChiTiet(\''+esc(h.MaHV)+'\')">Xem</button></td></tr>'; }).join('')
     + '</tbody></table></div>';
 }
 function moChiTiet(maHV){  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
