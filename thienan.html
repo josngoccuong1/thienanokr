@@ -369,7 +369,13 @@ main section{animation:hienLen .25s ease}
 
   <nav>
     <button id="tab-trangchu" class="chon" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
-    <button id="tab-hocvien" onclick="doiTab('hocvien')"><span class="ic">group</span> Học viên</button>
+    <div class="navDrop">
+      <button id="tab-hocvien" onclick="doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
+      <div class="navDropMenu">
+        <a onclick="doiTab('hocvien')"><span class="ic">groups</span> Tất cả học viên</a>
+        <a onclick="moTamNghi()"><span class="ic">pause_circle</span> Học sinh tạm nghỉ</a>
+      </div>
+    </div>
     <button id="tab-lop" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
     <button id="tab-khoahoc" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
     <div class="navDrop">
@@ -2234,6 +2240,52 @@ function xoaHocVienUI(maHV, hoTen){
     for(var i=0;i<TatCaHV.length;i++){ if(TatCaHV[i].MaHV===maHV){ TatCaHV.splice(i,1); break; } }
     dongModal(); bao('✓ Đã xóa học viên '+hoTen); taiHocVien(TrangHV||1);
   }).catch(function(e){ bao('Lỗi khi xóa: '+e.message, true); });
+}
+function moTamNghi(){
+  var nguong = 30; // số ngày mặc định coi là tạm nghỉ
+  moModal('⏸️ Học sinh tạm nghỉ (lâu không đi học)',
+    '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">'
+    + '<span style="font-size:13px;color:#6b7280">Vắng liên tục từ</span>'
+    + '<input type="number" id="tnNgay" value="'+nguong+'" min="7" step="1" style="width:80px"> ngày trở lên'
+    + '<button class="nutChinh" onclick="locTamNghi()">Lọc</button>'
+    + '</div>'
+    + '<div id="tnKetQua"><div class="trong" style="padding:12px">Đang lọc...</div></div>',
+    {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
+  setTimeout(locTamNghi, 100);
+}
+function _ngayTuChuoi(s){
+  s=String(s||'').trim(); if(!s) return null;
+  var m=s.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  return null;
+}
+function locTamNghi(){
+  var box=document.getElementById('tnKetQua'); if(!box) return;
+  var nguong=parseInt((document.getElementById('tnNgay')||{}).value,10)||30;
+  var homNay=new Date(); homNay.setHours(0,0,0,0);
+  var ds=[];
+  TatCaHV.forEach(function(h){
+    if(String(h.TrangThai||'')==='Đã nghỉ') return; // đã nghỉ hẳn thì bỏ (đây là "tạm nghỉ")
+    var nc=_ngayTuChuoi(h.NgayHocCuoi);
+    if(!nc) return; // chưa có buổi học nào thì bỏ qua
+    var soNgay=Math.floor((homNay-nc)/(1000*60*60*24));
+    if(soNgay>=nguong){ ds.push({h:h, soNgay:soNgay, buoiCuoi:nc}); }
+  });
+  ds.sort(function(a,b){return b.soNgay-a.soNgay;}); // vắng lâu nhất lên đầu
+  if(!ds.length){ box.innerHTML='<div class="trong" style="padding:16px">Không có học sinh nào vắng liên tục ≥ '+nguong+' ngày. 👍</div>'; return; }
+  var dd=function(d){ return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); };
+  box.innerHTML='<div style="font-size:13px;color:#48566b;margin-bottom:8px"><b>'+ds.length+'</b> học sinh vắng liên tục ≥ '+nguong+' ngày — nên gọi hỏi thăm/mời quay lại.</div>'
+    + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>Buổi cuối</th><th>Vắng (ngày)</th><th>SĐT</th><th></th></tr></thead><tbody>'
+    + ds.map(function(x,i){ var h=x.h; return '<tr><td>'+(i+1)+'</td>'
+        + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+        + '<td>'+esc(h.CoSo||'—')+'</td>'
+        + '<td>'+esc(h.Lop||'—')+'</td>'
+        + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+        + '<td>'+dd(x.buoiCuoi)+'</td>'
+        + '<td style="text-align:center"><span class="nhan '+(x.soNgay>=60?'no':'bao')+'">'+x.soNgay+'</span></td>'
+        + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td>'
+        + '<td><button class="nutNho" onclick="dongModal();moChiTiet(\''+esc(h.MaHV)+'\')">Xem</button></td></tr>'; }).join('')
+    + '</tbody></table></div>';
 }
 function moChiTiet(maHV){  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
           {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
