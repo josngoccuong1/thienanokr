@@ -2422,10 +2422,25 @@ function xacNhanGanKhoa(){
   khoaLuu(true);
   var nay=new Date();
   var todayISO = nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
-  // CHỐT khóa hiện tại vào lịch sử (nếu đang có khóa) — khóa cũ không bị ảnh hưởng nữa
+  // Danh sách điểm danh (mọi buổi) sắp tăng dần
+  var _iso=function(r){ if(r.NgayISO) return String(r.NgayISO); var m=String(r.Ngay||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?(m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)):''; };
+  var dd = ((ChiTiet&&ChiTiet.diemDanh)||[]).slice().sort(function(a,b){return _iso(a).localeCompare(_iso(b));});
+  var bdHienTai = _bdISO(h.NgayBatDauKhoa);
+  var sbHienTai = soTienJS(h.SoBuoiKhoa)||0;
   var lichSu = Array.isArray(h.LichSuKhoa) ? h.LichSuKhoa.slice() : [];
   if(String(h.MaKhoa||'').trim() && String(h.TenKhoa||'').trim()){
-    lichSu.push({ TenKhoa:h.TenKhoa, SoBuoi:soTienJS(h.SoBuoiKhoa), BatDau:_bdISO(h.NgayBatDauKhoa), KetThuc:todayISO });
+    if(bdHienTai){
+      // Đã có mốc → chốt riêng khóa hiện tại (các buổi từ mốc trở đi)
+      var cur = dd.filter(function(r){return _iso(r)>=bdHienTai;});
+      lichSu.push({ TenKhoa:h.TenKhoa, SoBuoi:sbHienTai, SoBuoiThuc:cur.length });
+    } else {
+      // HS cũ chưa có mốc → CHIA toàn bộ buổi cũ thành nhiều khóa theo số buổi
+      var sbCu = sbHienTai || dd.length || 1;
+      for(var i=0;i<dd.length;i+=sbCu){
+        var chunk=dd.slice(i, i+sbCu);
+        lichSu.push({ TenKhoa:h.TenKhoa, SoBuoi:sbCu, SoBuoiThuc:chunk.length });
+      }
+    }
   }
   var hv = {
     _dong: h._dong, MaHV: h.MaHV, HoTen: h.HoTen, NgaySinh: h.NgaySinh, GioiTinh: h.GioiTinh,
@@ -2469,47 +2484,40 @@ function bangDiemDanhHV(ds, tk){
   var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // tăng dần theo thời gian
   var hvCT = (ChiTiet&&ChiTiet.hocVien)||{};
   var lichSu = Array.isArray(hvCT.LichSuKhoa)?hvCT.LichSuKhoa:[];
+  var bdHT = _bdISO(hvCT.NgayBatDauKhoa);
   var khoiHTML='';
-  function bangKhoa(tenKhoa, soThuTu, nhomBuoi){
+  function bangKhoa(tenKhoa, soThuTu, nhomBuoi, laHienTai){
     var rows = nhomBuoi.map(function(r,idx){
         var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:(tenKhoa||'');
         return '<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(idx+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
           + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>';
       }).reverse().join('');
+    var mauNhan = laHienTai ? '#0f7a4d' : '#6b7280';
+    var bgNhan = laHienTai ? '#ecfdf5' : '#f1f5f9';
+    var vienNhan = laHienTai ? '#a7f3d0' : '#e2e8f0';
     return '<div style="margin-top:'+(soThuTu===1?'0':'14px')+'">'
-      + '<div style="font-weight:700;color:#0f7a4d;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:7px 12px;margin-bottom:6px">📚 Khóa '+soThuTu+' <span style="color:#6b7280;font-weight:500;font-size:13px">'+(tenKhoa?'· '+esc(tenKhoa)+' ':'')+'('+nhomBuoi.length+' buổi)</span></div>'
+      + '<div style="font-weight:700;color:'+mauNhan+';background:'+bgNhan+';border:1px solid '+vienNhan+';border-radius:8px;padding:7px 12px;margin-bottom:6px">📚 Khóa '+soThuTu+' '+(laHienTai?'<span style="font-size:12px;color:#0f7a4d">(đang học)</span>':'<span style="font-size:12px;color:#94a3b8">(đã xong)</span>')+' <span style="color:#6b7280;font-weight:500;font-size:13px">'+(tenKhoa?'· '+esc(tenKhoa)+' ':'')+'('+nhomBuoi.length+' buổi)</span></div>'
       + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
       + rows + '</tbody></table></div></div>';
   }
-  if(lichSu.length){
-    // CÓ lịch sử khóa → chia theo mốc ngày (khóa cũ chốt, không đổi)
-    var moc=[]; // {ten, tu, den}
-    lichSu.forEach(function(ks){ moc.push({ten:ks.TenKhoa||'', tu:_bdISO(ks.BatDau), den:_bdISO(ks.KetThuc)}); });
-    var bdHT=_bdISO(hvCT.NgayBatDauKhoa);
-    moc.push({ten:hvCT.TenKhoa||'', tu:bdHT, den:''}); // khóa hiện tại
-    var nhomTheoKhoa=moc.map(function(){return [];});
-    dsSx.forEach(function(r){
-      var iso=_iso(r); var gan=-1;
-      for(var i=0;i<moc.length;i++){
-        var m=moc[i]; var okTu=(!m.tu||iso>=m.tu); var okDen=(!m.den||iso<m.den);
-        if(okTu&&okDen){ gan=i; }
-      }
-      if(gan<0) gan=0; // buổi trước mọi mốc → gộp khóa 1
-      nhomTheoKhoa[gan].push(r);
-    });
-    var stt=0;
-    for(var i2=moc.length-1;i2>=0;i2--){ if(!nhomTheoKhoa[i2].length) continue; }
-    // đánh số khóa theo thứ tự thời gian (khóa 1 cũ nhất), hiển thị mới nhất trên cùng
-    var cacKhoaCo=[]; for(var j=0;j<moc.length;j++){ if(nhomTheoKhoa[j].length) cacKhoaCo.push({idx:j}); }
-    for(var q=cacKhoaCo.length-1;q>=0;q--){ var ci=cacKhoaCo[q].idx; khoiHTML += bangKhoa(moc[ci].ten, q+1, nhomTheoKhoa[ci]); }
+  if(lichSu.length && bdHT){
+    // Có mốc gia hạn → buổi CŨ (< mốc) chia theo số buổi thực đã lưu; buổi MỚI (>= mốc) = khóa hiện tại
+    var cũ = dsSx.filter(function(r){return _iso(r)<bdHT;});
+    var hienTai = dsSx.filter(function(r){return _iso(r)>=bdHT;});
+    var cacKhoa=[]; var pos=0;
+    lichSu.forEach(function(ks){ var n=ks.SoBuoiThuc||ks.SoBuoi||0; cacKhoa.push({ten:ks.TenKhoa, recs:cũ.slice(pos,pos+n), hienTai:false}); pos+=n; });
+    if(pos<cũ.length){ cacKhoa.push({ten:hvCT.TenKhoa, recs:cũ.slice(pos), hienTai:false}); } // dư (an toàn)
+    cacKhoa.push({ten:hvCT.TenKhoa, recs:hienTai, hienTai:true}); // khóa hiện tại
+    var coData=cacKhoa.filter(function(x){return x.recs.length;});
+    for(var q=coData.length-1;q>=0;q--){ khoiHTML += bangKhoa(coData[q].ten, q+1, coData[q].recs, coData[q].hienTai); }
   } else {
-    // KHÔNG có lịch sử (HS cũ) → chia theo số buổi khóa như trước
+    // HS cũ chưa gia hạn → chia theo số buổi khóa hiện tại như trước
     var soBuoiKhoa = soTienJS(hvCT.SoBuoiKhoa);
     if(!soBuoiKhoa || soBuoiKhoa<1) soBuoiKhoa = dsSx.length || 1;
     var soKhoa = Math.ceil(dsSx.length/soBuoiKhoa);
-    for(var k=soKhoa-1; k>=0; k--){
-      var nhomBuoi=dsSx.slice(k*soBuoiKhoa, k*soBuoiKhoa+soBuoiKhoa);
-      khoiHTML += bangKhoa(hvCT.TenKhoa||'', k+1, nhomBuoi);
+    for(var kk=soKhoa-1; kk>=0; kk--){
+      var nhomBuoi=dsSx.slice(kk*soBuoiKhoa, kk*soBuoiKhoa+soBuoiKhoa);
+      khoiHTML += bangKhoa(hvCT.TenKhoa||'', kk+1, nhomBuoi, kk===soKhoa-1);
     }
   }
   return tomTat + khoiHTML;
