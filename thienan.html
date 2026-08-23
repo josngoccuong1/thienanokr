@@ -2909,18 +2909,19 @@ async function locLichHoc(){
       var m=String(o.MaHV); if(seen[m]) return; seen[m]=1;
       var h=hvMap[m]||{MaHV:m,HoTen:o.HoTen||'(không rõ)'};
       if(coSo && h.CoSo!==coSo) return;
-      ds.push(h);
+      ds.push({h:h, gv:o.NguoiDiemDanh||''});
     });
-    ds.sort(function(a,b){ return String(a.CoSo||'').localeCompare(String(b.CoSo||''))||String(a.Lop||'').localeCompare(String(b.Lop||'')); });
-    _lhDs=ds;
+    ds.sort(function(a,b){ return String(a.h.CoSo||'').localeCompare(String(b.h.CoSo||''))||String(a.h.Lop||'').localeCompare(String(b.h.Lop||'')); });
+    _lhDs=ds.map(function(x){return x.h;});
     if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Ngày '+ngayVN+' ('+thu+') chưa có ai đi học'+(coSo?' — '+coSo:'')+'.</div>'; return; }
     box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> em đã đi học <b>'+thu+' '+ngayVN+'</b>'+(coSo?' — '+coSo:'')+'. Bấm <b>📅 Tuần trước</b> để xem tuần trước cùng thứ rồi nhắc các em này tuần này.</div>'
-      + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>Ngày học</th><th>SĐT phụ huynh</th></tr></thead><tbody>'
-      + ds.map(function(h,i){ return '<tr><td>'+(i+1)+'</td>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>GV điểm danh</th><th>Ngày học</th><th>SĐT phụ huynh</th></tr></thead><tbody>'
+      + ds.map(function(x,i){ var h=x.h; return '<tr><td>'+(i+1)+'</td>'
           + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
           + '<td>'+esc(h.CoSo||'—')+'</td>'
           + '<td>'+esc(h.Lop||'—')+'</td>'
           + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+          + '<td>'+esc(x.gv||'—')+'</td>'
           + '<td>'+esc(h.NgayHoc||'—')+'</td>'
           + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td></tr>'; }).join('')
       + '</tbody></table></div>';
