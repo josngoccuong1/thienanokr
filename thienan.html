@@ -775,6 +775,17 @@ main section{animation:hienLen .25s ease}
         <tbody id="bangGiaoVien"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
       </table></div></div>
 
+      <div class="the" style="padding:16px;margin-top:16px;border-color:#fde68a;background:#fffbeb">
+        <div style="font-weight:700;color:#92400e;margin-bottom:6px">🏢 Địa chỉ cơ sở & công ty</div>
+        <div style="font-size:13px;color:#78350f;line-height:1.5;margin-bottom:12px">Sửa địa chỉ ở đây sẽ cập nhật toàn hệ thống (phiếu thu, báo cáo, thông tin...).</div>
+        <div class="luoi">
+          <div class="o rong"><label>Địa chỉ Cơ sở 1 (CS1)</label><input id="cfgCS1" placeholder="VD: 424 Bà Triệu, P. Hạc Thành, Tỉnh Thanh Hoá"></div>
+          <div class="o rong"><label>Địa chỉ Cơ sở 2 (CS2)</label><input id="cfgCS2" placeholder="VD: Lô C14 KĐT Lam Kinh, P. Hạc Thành, Tỉnh Thanh Hoá"></div>
+          <div class="o rong"><label>Địa chỉ công ty (in trên phiếu thu)</label><input id="cfgCongTy" placeholder="Địa chỉ công ty"></div>
+        </div>
+        <div style="margin-top:10px"><button class="nutChinh" onclick="luuDiaChiCoSo()">Lưu địa chỉ</button></div>
+      </div>
+
       <div class="the" style="padding:16px;margin-top:16px;border-color:#bae6fd;background:#f0f9ff">
         <div style="font-weight:700;color:#075985;margin-bottom:6px">📢 Thông báo điểm danh qua Telegram</div>
         <div style="font-size:13px;color:#0c4a6e;line-height:1.6;margin-bottom:12px">
@@ -895,6 +906,7 @@ async function goi(hanhDong, dl){
     case 'lamSachHocVien':   return await fbLamSachHocVien();
     case 'luuGiaoVien':      return await fbLuuGiaoVien(dl);
     case 'luuTelegram':      return await fbLuuTelegram(dl);
+    case 'luuDiaChi':        return await fbLuuDiaChi(dl);
     case 'xoaHocVien':       return await fbXoaHocVien(dl);
     case 'xoaDiemDanh':      return await fbXoaDiemDanh(dl);
     case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
@@ -923,10 +935,10 @@ async function seedConfig(){
   var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
   if(!d.exists()){
     await FB.setDoc(ref, {
-      coSo:[{ma:'CS1',ten:'424 Bà Triệu, P. Đông Thọ'},{ma:'CS2',ten:'Lô C14 KĐT Lam Kinh, P. Đông Hương'}],
+      coSo:[{ma:'CS1',ten:'424 Bà Triệu, P. Hạc Thành, Tỉnh Thanh Hoá'},{ma:'CS2',ten:'Lô C14 KĐT Lam Kinh, P. Hạc Thành, Tỉnh Thanh Hoá'}],
       monHoc:[{ma:'PIANO',ten:'Piano'},{ma:'GUITAR',ten:'Guitar'},{ma:'ORGAN',ten:'Organ'},{ma:'THANHNHAC',ten:'Thanh nhạc'},{ma:'VIOLIN',ten:'Violin'},{ma:'TRONG',ten:'Trống'},{ma:'NHAY',ten:'Nhảy'}],
       giaoVien:[],
-      congTy:{TenCongTy:'CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN',TenDonVi:'HỌC VIỆN ÂM NHẠC THIÊN ÂN',DiaChi:'424 Bà Triệu, P. Đông Thọ, TP. Thanh Hóa',DienThoai:'',Website:'pianothienan.vn'}
+      congTy:{TenCongTy:'CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN',TenDonVi:'HỌC VIỆN ÂM NHẠC THIÊN ÂN',DiaChi:'424 Bà Triệu, P. Hạc Thành, Tỉnh Thanh Hoá',DienThoai:'',Website:'pianothienan.vn'}
     });
   }
 }
@@ -1250,6 +1262,18 @@ async function fbXoaHocVien(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV)
 }
 async function fbLuuTelegram(dl){
   await FB.setDoc(FB.doc(FB.db,'config','main'), {telegram:{token:String(dl.token||'').trim(), chatId:String(dl.chatId||'').trim(), bat:!!dl.bat}}, {merge:true});
+  return true;
+}
+async function fbLuuDiaChi(dl){
+  var ref=FB.doc(FB.db,'config','main'); var d=await FB.getDoc(ref);
+  var cur=d.exists()?d.data():{};
+  var coSo=(cur.coSo&&cur.coSo.length)?cur.coSo.slice():[{ma:'CS1',ten:''},{ma:'CS2',ten:''}];
+  // đảm bảo có CS1, CS2
+  function setCS(ma,ten){ var f=coSo.filter(function(c){return c.ma===ma;})[0]; if(f){f.ten=ten;} else {coSo.push({ma:ma,ten:ten});} }
+  setCS('CS1', String(dl.cs1||'').trim());
+  setCS('CS2', String(dl.cs2||'').trim());
+  var congTy=cur.congTy||{}; congTy.DiaChi=String(dl.congTy||'').trim();
+  await FB.setDoc(ref, {coSo:coSo, congTy:congTy}, {merge:true});
   return true;
 }
 function guiTelegram(text){
@@ -1744,6 +1768,23 @@ function napTelegramUI(){
   var tg=(DanhMuc&&DanhMuc.telegram)||{};
   var t=document.getElementById('tgToken'), c=document.getElementById('tgChatId'), b=document.getElementById('tgBat');
   if(t) t.value=tg.token||''; if(c) c.value=tg.chatId||''; if(b) b.checked=!!tg.bat;
+  // nạp địa chỉ cơ sở
+  var cs=(DanhMuc&&DanhMuc.coSo)||[];
+  var g=function(ma){ var f=cs.filter(function(c){return c.ma===ma;})[0]; return f?f.ten:''; };
+  var e1=document.getElementById('cfgCS1'), e2=document.getElementById('cfgCS2'), ec=document.getElementById('cfgCongTy');
+  if(e1) e1.value=g('CS1'); if(e2) e2.value=g('CS2');
+  if(ec) ec.value=((DanhMuc&&DanhMuc.congTy)||{}).DiaChi||'';
+}
+function luuDiaChiCoSo(){
+  var dl={ cs1:document.getElementById('cfgCS1').value, cs2:document.getElementById('cfgCS2').value, congTy:document.getElementById('cfgCongTy').value };
+  goi('luuDiaChi',dl).then(function(){
+    // cập nhật ngay bộ nhớ để không cần tải lại
+    if(!DanhMuc.coSo) DanhMuc.coSo=[];
+    function setCS(ma,ten){ var f=DanhMuc.coSo.filter(function(c){return c.ma===ma;})[0]; if(f)f.ten=ten; else DanhMuc.coSo.push({ma:ma,ten:ten}); }
+    setCS('CS1',dl.cs1.trim()); setCS('CS2',dl.cs2.trim());
+    if(!DanhMuc.congTy) DanhMuc.congTy={}; DanhMuc.congTy.DiaChi=dl.congTy.trim();
+    bao('✓ Đã cập nhật địa chỉ toàn hệ thống');
+  }).catch(function(e){ bao(e.message,true); });
 }
 function luuTelegramUI(){
   var dl={token:document.getElementById('tgToken').value, chatId:document.getElementById('tgChatId').value, bat:document.getElementById('tgBat').checked};
