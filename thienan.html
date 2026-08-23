@@ -979,10 +979,13 @@ async function fbXemHocVien(dl){
   var hd=await FB.getDoc(FB.doc(FB.db,'hocvien',maHV));
   if(!hd.exists()) throw new Error('Không tìm thấy học viên.');
   var hv=hd.data();
-  var lopHocRaw=await docsWhere('dangky','MaHV',maHV);
-  var hocPhiRaw=await docsWhere('hocphi','MaHV',maHV);
-  var phieuThuRaw=await docsWhere('phieuthu','MaHV',maHV);
-  var diemDanhRaw=await docsWhere('diemdanh','MaHV',maHV);
+  var _kq = await Promise.all([
+    docsWhere('dangky','MaHV',maHV),
+    docsWhere('hocphi','MaHV',maHV),
+    docsWhere('phieuthu','MaHV',maHV),
+    docsWhere('diemdanh','MaHV',maHV)
+  ]);
+  var lopHocRaw=_kq[0], hocPhiRaw=_kq[1], phieuThuRaw=_kq[2], diemDanhRaw=_kq[3];
   var diemDanh=diemDanhRaw.map(function(r){ return {NgayISO:r.NgayISO||'',Ngay:r.Ngay||'',TenLop:r.TenLop||'',TrangThai:r.TrangThai||'',GhiChu:r.GhiChu||'',NguoiDiemDanh:r.NguoiDiemDanh||''}; })
     .sort(function(a,b){return String(b.NgayISO).localeCompare(String(a.NgayISO));});
   var ddCoMat=0,ddVang=0,ddPhep=0;
