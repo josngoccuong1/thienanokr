@@ -2419,7 +2419,7 @@ function xacNhanGanKhoa(){
   };
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
     if(hocPhi>0){ var nay=new Date(); var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
-      return goi('luuHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyHoc:ky, TenKhoa:k.TenKhoa, PhaiThu:hocPhi, DaThu:0, SoBuoi:soBuoi, NgayTao:nay.toLocaleDateString('vi-VN')}, nguoiDung:NguoiDung.hoTen}); }
+      return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0}}); }
   }).then(function(){ dongModal(); bao('✓ Đã gia hạn khóa '+k.TenKhoa); moChiTiet(h.MaHV);
   }).catch(function(e){ var l=document.getElementById('loiForm'); if(l){l.textContent=e.message;l.classList.remove('an');} khoaLuu(false); bao(e.message, true); });
 }
