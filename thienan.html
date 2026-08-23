@@ -2503,18 +2503,26 @@ function bangDiemDanhHV(ds, tk){
       + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
       + rows + '</tbody></table></div></div>';
   }
-  if(lichSu.length && bdHT){
-    // Có mốc gia hạn → buổi CŨ (< mốc) chia theo số buổi thực đã lưu; buổi MỚI (>= mốc) = khóa hiện tại
+  if(bdHT){
+    // CÓ mốc gia hạn: buổi CŨ (< mốc) là các khóa đã xong; buổi từ mốc = khóa hiện tại
     var cũ = dsSx.filter(function(r){return _iso(r)<bdHT;});
     var hienTai = dsSx.filter(function(r){return _iso(r)>=bdHT;});
-    var cacKhoa=[]; var pos=0;
-    lichSu.forEach(function(ks){ var n=ks.SoBuoiThuc||ks.SoBuoi||0; cacKhoa.push({ten:ks.TenKhoa, recs:cũ.slice(pos,pos+n), hienTai:false}); pos+=n; });
-    if(pos<cũ.length){ cacKhoa.push({ten:hvCT.TenKhoa, recs:cũ.slice(pos), hienTai:false}); } // dư (an toàn)
+    var cacKhoa=[];
+    if(lichSu.length){
+      // chia buổi cũ theo số buổi thực đã lưu của từng khóa
+      var pos=0;
+      lichSu.forEach(function(ks){ var n=ks.SoBuoiThuc||ks.SoBuoi||0; cacKhoa.push({ten:ks.TenKhoa, recs:cũ.slice(pos,pos+n), hienTai:false}); pos+=n; });
+      if(pos<cũ.length){ cacKhoa.push({ten:'', recs:cũ.slice(pos), hienTai:false}); }
+    } else {
+      // chưa lưu lịch sử → chia buổi cũ theo số buổi khóa hiện tại
+      var sbC=soTienJS(hvCT.SoBuoiKhoa)||cũ.length||1;
+      for(var ii=0; ii<cũ.length; ii+=sbC){ cacKhoa.push({ten:'', recs:cũ.slice(ii,ii+sbC), hienTai:false}); }
+    }
     cacKhoa.push({ten:hvCT.TenKhoa, recs:hienTai, hienTai:true}); // khóa hiện tại
     var coData=cacKhoa.filter(function(x){return x.recs.length;});
     for(var q=coData.length-1;q>=0;q--){ khoiHTML += bangKhoa(coData[q].ten, q+1, coData[q].recs, coData[q].hienTai); }
   } else {
-    // HS cũ chưa gia hạn → chia theo số buổi khóa hiện tại như trước
+    // HS cũ chưa gia hạn bao giờ → chia theo số buổi khóa hiện tại
     var soBuoiKhoa = soTienJS(hvCT.SoBuoiKhoa);
     if(!soBuoiKhoa || soBuoiKhoa<1) soBuoiKhoa = dsSx.length || 1;
     var soKhoa = Math.ceil(dsSx.length/soBuoiKhoa);
