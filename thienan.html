@@ -1405,18 +1405,13 @@ async function fbBoSungHocVien(){
   var hpMap={}; hpAll.forEach(function(r){ var m=r.MaHV; if(!hpMap[m]) hpMap[m]={phaiThu:0,daThu:0}; hpMap[m].phaiThu+=soTienJS(r.PhaiThu); hpMap[m].daThu+=soTienJS(r.DaThu); });
   var ptAll = await docsCol('phieuthu');
   var payDate={}; ptAll.forEach(function(r){ var m=r.MaHV; var d=String(r.NgayThu||''); if(!payDate[m]||d>payDate[m]) payDate[m]=d; });
-  // ĐẾM THẲNG số buổi Có mặt từ điểm danh (chính xác, khỏi lệch)
-  var ddAll = await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
-  var demBuoi={}; ddAll.docs.forEach(function(d){ var mm=String(d.data().MaHV); demBuoi[mm]=(demBuoi[mm]||0)+1; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
   var m={};
   TatCaHV.forEach(function(h){
-    var soBuoi=soTienJS(h.SoBuoiKhoa);
-    var dh=demBuoi[String(h.MaHV)]||0;          // đếm thẳng từ điểm danh
-    var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
+    var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=soTienJS(h.DaHocKhoa); var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
     var hp=hpMap[h.MaHV];
     var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '';
-    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?Math.max(0,soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
+    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?(soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
   });
   return m;
 }
@@ -2354,12 +2349,28 @@ function bangDiemDanhHV(ds, tk){
   if(!ds.length) return tomTat + '<div class="trong" style="padding:12px">Chưa có buổi điểm danh nào.</div>';
   var mau=function(t){ return t==='Vắng'?'no':(t==='Có phép'?'bao':'du'); };
   var _iso=function(r){ if(r.NgayISO) return String(r.NgayISO); var m=String(r.Ngay||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?(m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)):''; };
-  var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // sắp tăng dần để đánh số buổi 1..n
-  var tong = dsSx.length;
-  return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
-    + dsSx.map(function(r,i){ var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:((ChiTiet&&ChiTiet.hocVien&&(ChiTiet.hocVien.Lop||ChiTiet.hocVien.TenKhoa))||''); return {stt:i+1, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(i+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
-        + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'}; }).reverse().map(function(x){return x.html;}).join('')
-    + '</tbody></table></div>';
+  var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // tăng dần theo thời gian
+  var soBuoiKhoa = (ChiTiet&&ChiTiet.hocVien)?soTienJS(ChiTiet.hocVien.SoBuoiKhoa):0;
+  if(!soBuoiKhoa || soBuoiKhoa<1) soBuoiKhoa = dsSx.length; // không có số buổi → gộp 1 khóa
+  // chia thành các khóa theo số buổi
+  var soKhoa = Math.ceil(dsSx.length/soBuoiKhoa);
+  var khoiHTML='';
+  for(var k=soKhoa-1; k>=0; k--){                       // khóa mới nhất lên trên
+    var batDau=k*soBuoiKhoa;
+    var nhomBuoi=dsSx.slice(batDau, batDau+soBuoiKhoa);
+    var soBuoiTrongKhoa=nhomBuoi.length;
+    var rows = nhomBuoi.map(function(r,idx){
+        var stt=idx+1;
+        var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:((ChiTiet&&ChiTiet.hocVien&&(ChiTiet.hocVien.Lop||ChiTiet.hocVien.TenKhoa))||'');
+        return {stt:stt, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+stt+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
+          + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'};
+      }).reverse().map(function(x){return x.html;}).join('');
+    khoiHTML += '<div style="margin-top:'+(k===soKhoa-1?'0':'14px')+'">'
+      + '<div style="font-weight:700;color:#0f7a4d;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:7px 12px;margin-bottom:6px">📚 Khóa '+(k+1)+' <span style="color:#6b7280;font-weight:500;font-size:13px">('+soBuoiTrongKhoa+' buổi)</span></div>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
+      + rows + '</tbody></table></div></div>';
+  }
+  return tomTat + khoiHTML;
 }
 function bangLopHoc(ds){  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
