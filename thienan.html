@@ -1805,9 +1805,10 @@ function napTelegramUIdummy(){}
 function napNguoiDung(){
   napGiaoVien();
   napTelegramUI();
-  if(!laAdmin()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
+  if(!laQuanLy()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
   var tb=document.getElementById('bangNguoiDung');
   goi('layNguoiDung').then(function(ds){
+    if(!laAdmin()){ var csM=NguoiDung?NguoiDung.coSo:''; ds=ds.filter(function(u){ return u.VaiTro!=='ADMIN' && (u.CoSo===csM); }); }
     if(!ds.length){ tb.innerHTML='<tr><td colspan="5" class="trong">Chưa có phân quyền nào. Bấm “Thêm người dùng”.</td></tr>'; return; }
     tb.innerHTML=ds.sort(function(a,b){return String(a.CoSo).localeCompare(String(b.CoSo));}).map(function(u){
       var vt = u.VaiTro==='ADMIN' ? '<span class="nhan du">Admin (xem tất cả)</span>'
@@ -1824,9 +1825,14 @@ function napNguoiDung(){
 }
 function moNguoiDung(u){
   u=u||{};
-  var optCoSo=(DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'"'+(u.CoSo===c.ma?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
+  var realAdmin = laAdmin();
+  var csMinh = NguoiDung ? NguoiDung.coSo : '';
+  // Quản lý cơ sở: chỉ được chọn cơ sở của mình
+  var dsCoSo = realAdmin ? (DanhMuc.coSo||[]) : (DanhMuc.coSo||[]).filter(function(c){return c.ma===csMinh;});
+  var optCoSo=dsCoSo.map(function(c){return '<option value="'+esc(c.ma)+'"'+((u.CoSo===c.ma||(!u.CoSo&&c.ma===csMinh))?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
   var optGV=(DanhMuc.giaoVien||[]).map(function(g){return '<option value="'+esc(g.ma)+'"'+(u.MaGV===g.ma?' selected':'')+'>'+esc(g.ten)+'</option>';}).join('');
-  var vt=['Nhân viên','Giáo viên','Quản lý cơ sở','ADMIN'];
+  // Quản lý cơ sở KHÔNG được tạo ADMIN
+  var vt = realAdmin ? ['Nhân viên','Giáo viên','Quản lý cơ sở','ADMIN'] : ['Nhân viên','Giáo viên','Quản lý cơ sở'];
   moModal((u.Email?'Sửa phân quyền':'Thêm người dùng'),
     '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
     + o('Email đăng nhập','<input id="nd_Email" value="'+esc(u.Email)+'" '+(u.Email?'readonly':'')+' placeholder="vd: colan@thienan.vn">',true)
@@ -1856,7 +1862,7 @@ function luuNguoiDungUI(){
     .catch(function(e){ loi.textContent=e.message; loi.classList.remove('an'); khoaLuu(false); });
 }
 function xacNhanLamSach(){
-  if(!laAdmin()){ bao('Chỉ admin mới được làm việc này.', true); return; }
+  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
   var g=prompt('⚠️ CẢNH BÁO: Thao tác này sẽ XÓA VĨNH VIỄN toàn bộ học viên, điểm danh, học phí, phiếu thu và dữ liệu CRM.\nKhông thể hoàn tác!\n\nGõ chữ   XOA   (in hoa) rồi bấm OK để xác nhận:');
   if(g===null) return;
   if(String(g).trim().toUpperCase()!=='XOA'){ bao('Bạn gõ chưa đúng chữ "XOA" — đã hủy, không xóa gì cả.'); return; }
@@ -1874,15 +1880,18 @@ function laAdmin(){ return !NguoiDung || NguoiDung.vaiTro==='ADMIN' || NguoiDung
 function laQuanLy(){ return laAdmin() || (NguoiDung && NguoiDung.vaiTro==='Quản lý cơ sở'); }
 function apDungPhanQuyen(){
   var admin = laAdmin();
+  var quanLy = laQuanLy();
   var laGV = NguoiDung && NguoiDung.vaiTro==='Giáo viên';
   GVDangDay = laGV ? (NguoiDung.maGV||'') : '';
   var sel = document.getElementById('chonCoSoXem');
   var tnd = document.getElementById('tab-nguoidung');
   if(!admin){
+    // Không phải admin thật → khóa vào cơ sở của mình
     CoSoDangXem = NguoiDung.coSo || '';
     try{ localStorage.setItem('thienan_coso', CoSoDangXem); }catch(e){}
     if(sel){ sel.value = CoSoDangXem; sel.disabled = true; sel.style.opacity = .8; sel.title='Bạn chỉ được xem cơ sở '+CoSoDangXem; }
-    if(tnd) tnd.style.display = 'none';
+    // Quản lý cơ sở vẫn thấy tab Người dùng (để quản lý nhân sự cơ sở mình); GV/Nhân viên thì ẩn
+    if(tnd) tnd.style.display = quanLy ? '' : 'none';
   } else {
     if(sel){ sel.disabled = false; sel.style.opacity = 1; }
     if(tnd) tnd.style.display = '';
@@ -3642,7 +3651,7 @@ function moCRM(){
 function moCrmSub(sub){ doiTab('crm'); doiCrm(sub); }
 /* ---------- LƯƠNG GIÁO VIÊN ---------- */
 function moLuongGV(){
-  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
   var n=new Date(); var thangMac=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
   moModal('💰 Bảng lương giáo viên',
     '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
