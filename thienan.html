@@ -1724,16 +1724,18 @@ function napTelegramUIdummy(){}
 function napNguoiDung(){
   napGiaoVien();
   napTelegramUI();
-  if(!laAdmin()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
+  if(!laQuanLy()){ document.getElementById('bangNguoiDung').innerHTML='<tr><td colspan="5" class="trong">Bạn không có quyền xem mục này.</td></tr>'; return; }
   var tb=document.getElementById('bangNguoiDung');
   goi('layNguoiDung').then(function(ds){
+    if(!laAdmin()){ var csM=NguoiDung?NguoiDung.coSo:''; ds=ds.filter(function(u){ return u.VaiTro!=='ADMIN' && u.CoSo===csM; }); }
     if(!ds.length){ tb.innerHTML='<tr><td colspan="5" class="trong">Chưa có phân quyền nào. Bấm “Thêm người dùng”.</td></tr>'; return; }
     tb.innerHTML=ds.sort(function(a,b){return String(a.CoSo).localeCompare(String(b.CoSo));}).map(function(u){
       var vt = u.VaiTro==='ADMIN' ? '<span class="nhan du">Admin (xem tất cả)</span>'
+             : (u.VaiTro==='Quản lý cơ sở' ? '<span class="nhan du" style="background:#5b21b6">Quản lý cơ sở</span>'
              : (u.VaiTro==='Giáo viên' ? '<span class="nhan hoc">Giáo viên</span>'
-             : '<span class="nhan bao">Nhân viên</span>');
+             : '<span class="nhan bao">Nhân viên</span>'));
       var cs = u.VaiTro==='ADMIN' ? 'Tất cả' : (u.CoSo||'—')
-             + (u.VaiTro==='Giáo viên' ? ' · chỉ điểm danh' : '');
+             + (u.VaiTro==='Giáo viên' ? ' · chỉ điểm danh' : (u.VaiTro==='Quản lý cơ sở' ? ' · toàn quyền cơ sở' : ''));
       return '<tr><td class="ma">'+esc(u.Email)+'</td><td><strong>'+esc(u.HoTen||'')+'</strong></td><td>'+vt+'</td><td>'+esc(cs)+'</td>'
         +'<td style="white-space:nowrap"><button class="nutNho" onclick=\'moNguoiDung('+JSON.stringify(u).replace(/'/g,"&#39;")+')\'>Sửa</button> '
         +'<button class="nutNho" style="background:#b42318" onclick="xoaNguoiDungUI(\''+esc(u.Email)+'\')">Xóa</button></td></tr>';
@@ -1742,9 +1744,12 @@ function napNguoiDung(){
 }
 function moNguoiDung(u){
   u=u||{};
-  var optCoSo=(DanhMuc.coSo||[]).map(function(c){return '<option value="'+esc(c.ma)+'"'+(u.CoSo===c.ma?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
+  var realAdmin = laAdmin();
+  var csMinh = NguoiDung ? NguoiDung.coSo : '';
+  var dsCoSo = realAdmin ? (DanhMuc.coSo||[]) : (DanhMuc.coSo||[]).filter(function(c){return c.ma===csMinh;});
+  var optCoSo=dsCoSo.map(function(c){return '<option value="'+esc(c.ma)+'"'+((u.CoSo===c.ma||(!u.CoSo&&c.ma===csMinh))?' selected':'')+'>'+esc(c.ma)+' — '+esc(c.ten)+'</option>';}).join('');
   var optGV=(DanhMuc.giaoVien||[]).map(function(g){return '<option value="'+esc(g.ma)+'"'+(u.MaGV===g.ma?' selected':'')+'>'+esc(g.ten)+'</option>';}).join('');
-  var vt=['Nhân viên','Giáo viên','ADMIN'];
+  var vt= realAdmin ? ['Nhân viên','Giáo viên','Quản lý cơ sở','ADMIN'] : ['Nhân viên','Giáo viên','Quản lý cơ sở'];
   moModal((u.Email?'Sửa phân quyền':'Thêm người dùng'),
     '<div class="baoLoi an" id="loiForm"></div><div class="luoi">'
     + o('Email đăng nhập','<input id="nd_Email" value="'+esc(u.Email)+'" '+(u.Email?'readonly':'')+' placeholder="vd: colan@thienan.vn">',true)
@@ -1774,7 +1779,7 @@ function luuNguoiDungUI(){
     .catch(function(e){ loi.textContent=e.message; loi.classList.remove('an'); khoaLuu(false); });
 }
 function xacNhanLamSach(){
-  if(!laAdmin()){ bao('Chỉ admin mới được làm việc này.', true); return; }
+  if(!laQuanLy()){ bao('Chỉ admin mới được làm việc này.', true); return; }
   var g=prompt('⚠️ CẢNH BÁO: Thao tác này sẽ XÓA VĨNH VIỄN toàn bộ học viên, điểm danh, học phí, phiếu thu và dữ liệu CRM.\nKhông thể hoàn tác!\n\nGõ chữ   XOA   (in hoa) rồi bấm OK để xác nhận:');
   if(g===null) return;
   if(String(g).trim().toUpperCase()!=='XOA'){ bao('Bạn gõ chưa đúng chữ "XOA" — đã hủy, không xóa gì cả.'); return; }
@@ -1788,7 +1793,9 @@ function xoaNguoiDungUI(email){  if(!confirm('Xóa phân quyền của "'+email+
   goi('xoaNguoiDung',{email:email}).then(function(){ bao('Đã xóa'); napNguoiDung(); }).catch(function(e){ bao(e.message,true); });
 }
 
-function laAdmin(){ return !NguoiDung || NguoiDung.vaiTro==='ADMIN' || NguoiDung.coSo==='ALL'; }function apDungPhanQuyen(){
+function laAdmin(){ return !NguoiDung || NguoiDung.vaiTro==='ADMIN' || NguoiDung.coSo==='ALL'; }
+function laQuanLy(){ return laAdmin() || (NguoiDung && NguoiDung.vaiTro==='Quản lý cơ sở'); }
+function apDungPhanQuyen(){
   var admin = laAdmin();
   var laGV = NguoiDung && NguoiDung.vaiTro==='Giáo viên';
   GVDangDay = laGV ? (NguoiDung.maGV||'') : '';
@@ -1798,7 +1805,8 @@ function laAdmin(){ return !NguoiDung || NguoiDung.vaiTro==='ADMIN' || NguoiDung
     CoSoDangXem = NguoiDung.coSo || '';
     try{ localStorage.setItem('thienan_coso', CoSoDangXem); }catch(e){}
     if(sel){ sel.value = CoSoDangXem; sel.disabled = true; sel.style.opacity = .8; sel.title='Bạn chỉ được xem cơ sở '+CoSoDangXem; }
-    if(tnd) tnd.style.display = 'none';
+    // Quản lý cơ sở vẫn thấy tab Người dùng (quản lý nhân sự cơ sở mình); GV/NV thì ẩn
+    if(tnd) tnd.style.display = laQuanLy() ? '' : 'none';
   } else {
     if(sel){ sel.disabled = false; sel.style.opacity = 1; }
     if(tnd) tnd.style.display = '';
@@ -2210,7 +2218,7 @@ function docSo(n){
 var ChiTiet = null;
 
 function xoaHocVienUI(maHV, hoTen){
-  if(!laAdmin()){ bao('Chỉ admin mới được xóa.', true); return; }
+  if(!laQuanLy()){ bao('Chỉ admin mới được xóa.', true); return; }
   if(!confirm('XÓA VĨNH VIỄN học viên "'+hoTen+'"?\n\nSẽ xóa cả: học phí, phiếu thu, điểm danh, đăng ký lớp của em này.\nKhông hoàn tác được!')) return;
   bao('Đang xóa...');
   goi('xoaHocVien',{maHV:maHV}).then(function(){
@@ -2268,7 +2276,7 @@ function veChiTiet(){
     + '<button class="nutPhu" onclick="ganKhoaTuChiTiet()">Gán khóa học</button>'
     + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
     + '<button class="nutPhu" onclick="moTaoHocPhi()">Thêm kỳ học phí</button>'
-    + (laAdmin()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
+    + (laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
     + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
 }
 
@@ -2349,28 +2357,12 @@ function bangDiemDanhHV(ds, tk){
   if(!ds.length) return tomTat + '<div class="trong" style="padding:12px">Chưa có buổi điểm danh nào.</div>';
   var mau=function(t){ return t==='Vắng'?'no':(t==='Có phép'?'bao':'du'); };
   var _iso=function(r){ if(r.NgayISO) return String(r.NgayISO); var m=String(r.Ngay||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?(m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)):''; };
-  var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // tăng dần theo thời gian
-  var soBuoiKhoa = (ChiTiet&&ChiTiet.hocVien)?soTienJS(ChiTiet.hocVien.SoBuoiKhoa):0;
-  if(!soBuoiKhoa || soBuoiKhoa<1) soBuoiKhoa = dsSx.length; // không có số buổi → gộp 1 khóa
-  // chia thành các khóa theo số buổi
-  var soKhoa = Math.ceil(dsSx.length/soBuoiKhoa);
-  var khoiHTML='';
-  for(var k=soKhoa-1; k>=0; k--){                       // khóa mới nhất lên trên
-    var batDau=k*soBuoiKhoa;
-    var nhomBuoi=dsSx.slice(batDau, batDau+soBuoiKhoa);
-    var soBuoiTrongKhoa=nhomBuoi.length;
-    var rows = nhomBuoi.map(function(r,idx){
-        var stt=idx+1;
-        var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:((ChiTiet&&ChiTiet.hocVien&&(ChiTiet.hocVien.Lop||ChiTiet.hocVien.TenKhoa))||'');
-        return {stt:stt, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+stt+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
-          + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'};
-      }).reverse().map(function(x){return x.html;}).join('');
-    khoiHTML += '<div style="margin-top:'+(k===soKhoa-1?'0':'14px')+'">'
-      + '<div style="font-weight:700;color:#0f7a4d;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:7px 12px;margin-bottom:6px">📚 Khóa '+(k+1)+' <span style="color:#6b7280;font-weight:500;font-size:13px">('+soBuoiTrongKhoa+' buổi)</span></div>'
-      + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
-      + rows + '</tbody></table></div></div>';
-  }
-  return tomTat + khoiHTML;
+  var dsSx = ds.slice().sort(function(a,b){ return _iso(a).localeCompare(_iso(b)); }); // sắp tăng dần để đánh số buổi 1..n
+  var tong = dsSx.length;
+  return tomTat + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
+    + dsSx.map(function(r,i){ var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:((ChiTiet&&ChiTiet.hocVien&&(ChiTiet.hocVien.Lop||ChiTiet.hocVien.TenKhoa))||''); return {stt:i+1, html:'<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(i+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
+        + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>'}; }).reverse().map(function(x){return x.html;}).join('')
+    + '</tbody></table></div>';
 }
 function bangLopHoc(ds){  if(!ds.length) return '<div class="trong" style="padding:22px">Chưa đăng ký lớp nào.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
@@ -2663,7 +2655,7 @@ function napLopChoDiemDanh(){
 }
 
 function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){
-  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!laQuanLy()){ bao('Chỉ admin.', true); return; }
   if(!confirm('Xóa lượt điểm danh này?')) return;
   if(btn){ btn.textContent='...'; btn.disabled=true; }
   goi('xoaDiemDanh',{maLop:maLop, ngayISO:ngayISO, maHV:maHV, trangThai:trangThai}).then(function(){
@@ -2749,7 +2741,7 @@ function renderDsDiemDanh(list){
   box.innerHTML = '<table class="nho"><thead><tr>'
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
     + '<th>Ngày</th><th>Người ĐD</th><th>Buổi còn lại</th><th class="tien">Thu</th>'
-    + (laAdmin()?'<th></th>':'')
+    + (laQuanLy()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + list.map(function(o,i){
         var maHV=String(o.MaHV); var hv=hvMap[maHV]||{}; var kh=khMap[hv.MaKhoa]||{};
@@ -2765,7 +2757,7 @@ function renderDsDiemDanh(list){
           + '<td>'+esc(o.NguoiDiemDanh||'—')+'</td>'
           + '<td>'+conLai+'</td>'
           + '<td class="tien">'+(thu===''?'—':tien(thu))+'</td>'
-          + (laAdmin()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(o.MaLop)+'\',\''+esc(o.NgayISO)+'\',\''+esc(maHV)+'\',\''+esc(o.TrangThai)+'\',this)">Xóa</button></td>':'')
+          + (laQuanLy()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(o.MaLop)+'\',\''+esc(o.NgayISO)+'\',\''+esc(maHV)+'\',\''+esc(o.TrangThai)+'\',this)">Xóa</button></td>':'')
           + '</tr>';
       }).join('')
     + '</tbody></table>';
@@ -3323,7 +3315,7 @@ function moCRM(){
 function moCrmSub(sub){ doiTab('crm'); doiCrm(sub); }
 /* ---------- LƯƠNG GIÁO VIÊN ---------- */
 function moLuongGV(){
-  if(!laAdmin()){ bao('Chỉ admin.', true); return; }
+  if(!laQuanLy()){ bao('Chỉ admin.', true); return; }
   var n=new Date(); var thangMac=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
   moModal('💰 Bảng lương giáo viên',
     '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
