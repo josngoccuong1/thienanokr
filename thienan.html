@@ -542,7 +542,6 @@ main section{animation:hienLen .25s ease}
         <button class="nutPhu" onclick="xuatDL('khoahoc')">⬇ Tải xuống</button>
         <button class="nutPhu" onclick="taiMau('khoahoc')">File mẫu</button>
         <button class="nutPhu" onclick="ganKhoaHangLoat()" style="margin-left:auto;border-color:#12294d;color:#12294d">🔗 Gắn khóa cho học sinh</button>
-        <button class="nutPhu" onclick="dongBoBuoiHoc()" style="border-color:#0f7a4d;color:#0f7a4d">🔄 Đồng bộ số buổi đã học (theo điểm danh)</button>
       </div>
       <div class="the">
         <div class="cuonBang"><table>
@@ -1406,13 +1405,18 @@ async function fbBoSungHocVien(){
   var hpMap={}; hpAll.forEach(function(r){ var m=r.MaHV; if(!hpMap[m]) hpMap[m]={phaiThu:0,daThu:0}; hpMap[m].phaiThu+=soTienJS(r.PhaiThu); hpMap[m].daThu+=soTienJS(r.DaThu); });
   var ptAll = await docsCol('phieuthu');
   var payDate={}; ptAll.forEach(function(r){ var m=r.MaHV; var d=String(r.NgayThu||''); if(!payDate[m]||d>payDate[m]) payDate[m]=d; });
+  // ĐẾM THẲNG số buổi Có mặt từ điểm danh (chính xác, khỏi lệch)
+  var ddAll = await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
+  var demBuoi={}; ddAll.docs.forEach(function(d){ var mm=String(d.data().MaHV); demBuoi[mm]=(demBuoi[mm]||0)+1; });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
   var m={};
   TatCaHV.forEach(function(h){
-    var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=soTienJS(h.DaHocKhoa); var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
+    var soBuoi=soTienJS(h.SoBuoiKhoa);
+    var dh=demBuoi[String(h.MaHV)]||0;          // đếm thẳng từ điểm danh
+    var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
     var hp=hpMap[h.MaHV];
     var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '';
-    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?(soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
+    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?Math.max(0,soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
   });
   return m;
 }
