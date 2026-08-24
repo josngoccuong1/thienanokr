@@ -952,6 +952,23 @@ function ganListeners(){
   });
   FB.onSnapshot(FB.collection(FB.db,'lop'), function(snap){ DsLop = snap.docs.map(docToObj); });
   FB.onSnapshot(FB.collection(FB.db,'khoahoc'), function(snap){ DsKhoa = snap.docs.map(docToObj); });
+  // Realtime: có điểm danh mới → tự cập nhật số buổi đã học/còn lại (danh sách)
+  var thangNay=new Date().getFullYear()+'-'+('0'+(new Date().getMonth()+1)).slice(-2);
+  var _boLan=0;
+  FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thangNay)), function(){
+    _boLan++; var lanNay=_boLan;
+    if(window._timerBS) clearTimeout(window._timerBS);
+    window._timerBS=setTimeout(function(){
+      if(lanNay!==_boLan) return;
+      goi('boSungHocVien').then(function(m){ MapBoSung=m;
+        var v=document.getElementById('vung-hocvien');
+        if(NguoiDung && v && !v.classList.contains('an')) taiHocVien(TrangHV||1);
+        // làm mới bảng điểm danh (cột buổi còn lại) nếu đang mở
+        var ve=document.getElementById('vung-diemdanh');
+        if(ve && !ve.classList.contains('an') && typeof veDsDiemDanh==='function' && document.getElementById('dsDiemDanhBox')) veDsDiemDanh();
+      }).catch(function(){});
+    }, 5000);
+  });
 }
 
 async function fbTaiBanDau(){
@@ -3106,18 +3123,22 @@ function renderDsDiemDanh(list){
   });
   box.innerHTML = '<table class="nho"><thead><tr>'
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
-    + '<th>Ngày</th><th>Người ĐD</th><th>SĐT phụ huynh</th><th class="tien">Thu</th>'
+    + '<th>Buổi còn lại</th><th>Ngày</th><th>Người ĐD</th><th>SĐT phụ huynh</th><th class="tien">Thu</th>'
     + (laQuanLy()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + list.map(function(o,i){
         var maHV=String(o.MaHV); var hv=hvMap[maHV]||{}; var kh=khMap[hv.MaKhoa]||{};
         var thu=(kh.GiaTien&&kh.SoBuoi)?Math.round(kh.GiaTien/kh.SoBuoi):'';
         var sdt=hv.SDT||'';
+        var bs=(typeof MapBoSung!=='undefined'?MapBoSung[maHV]:null)||{};
+        var cl=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):'';
+        var conLaiHtml = cl==='' ? '—' : '<span class="nhan '+(cl<=0?'nghi':(cl<=3?'no':'hoc'))+'">'+cl+(cl<=3&&cl>0?' ⚠️':'')+'</span>';
         var mauTT = o.TrangThai==='Vắng'?'nghi':(o.TrangThai==='Có phép'?'bao':'hoc');
         return '<tr><td>'+(i+1)+'</td>'
           + '<td>'+esc((o.TenLop && o.TenLop!=='Buổi học') ? o.TenLop : (hv.Lop||o.TenLop||'—'))+'</td>'
           + '<td>'+esc(hv.TenKhoa||'—')+'</td>'
           + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span></td>'
+          + '<td>'+conLaiHtml+'</td>'
           + '<td>'+esc(o.Ngay||'')+'</td>'
           + '<td>'+esc(o.NguoiDiemDanh||'—')+'</td>'
           + '<td>'+(sdt?'<a href="tel:'+esc(sdt)+'">'+esc(sdt)+'</a>':'—')+'</td>'
