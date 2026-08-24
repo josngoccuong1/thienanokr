@@ -966,7 +966,7 @@ async function fbLuuHocVien(dl){
   var laMoi = !String(hv.MaHV||'').trim();
   var maHV=String(hv.MaHV||'').trim() || sinhMaMoi('HV', TatCaHV, 'MaHV');
   var obj={};
-  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa','LichSuKhoa'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
+  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa','LichSuKhoa','CacKhoa'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
   obj.MaHV=maHV; if(!obj.TrangThai) obj.TrangThai='Đang học';
   if(laMoi){ var _n=new Date(); obj.NgayTao=_n.toLocaleDateString('vi-VN'); obj.ThangTao=_n.getFullYear()+'-'+('0'+(_n.getMonth()+1)).slice(-2); }
   obj.NgayCapNhat=new Date().toLocaleString('vi-VN'); obj.NguoiCapNhat=dl.nguoiDung||'';
@@ -990,8 +990,12 @@ async function fbXemHocVien(dl){
     .sort(function(a,b){return String(b.NgayISO).localeCompare(String(a.NgayISO));});
   var ddCoMat=0,ddVang=0,ddPhep=0;
   diemDanh.forEach(function(r){ if(r.TrangThai==='Có mặt')ddCoMat++; else if(r.TrangThai==='Vắng')ddVang++; else if(r.TrangThai==='Có phép')ddPhep++; });
-  var _bdKhoa=_bdISO(hv.NgayBatDauKhoa);
-  var ddCoMatKhoa=0; diemDanh.forEach(function(r){ if(r.TrangThai==='Có mặt' && (!_bdKhoa || String(r.NgayISO||'')>=_bdKhoa)) ddCoMatKhoa++; });
+  var _ddSx = diemDanh.slice().sort(function(a,b){return String(a.NgayISO||'').localeCompare(String(b.NgayISO||''));});
+  var _kqKhoa = _chiaKhoa(_ddSx, hv.CacKhoa, soTienJS(hv.SoBuoiKhoa));
+  var _curChunk = _kqKhoa.chunks[_kqKhoa.cur] || {coMat:0, soBuoi:soTienJS(hv.SoBuoiKhoa), ten:hv.TenKhoa};
+  var ddCoMatKhoa=_curChunk.coMat;
+  var _soBuoiKhoaHT=_curChunk.soBuoi||soTienJS(hv.SoBuoiKhoa);
+  var _tenKhoaHT=_curChunk.ten||hv.TenKhoa||'';
   var timLop=function(ma){ return DsLop.filter(function(l){return String(l.MaLop)===String(ma);})[0]||{}; };
   var lopHoc=lopHocRaw.map(function(r){ var l=timLop(r.MaLop);
     return {_dong:r._dong,MaDK:r._dong,MaLop:r.MaLop,TenLop:r.TenLop||l.TenLop||'',MonHoc:l.MonHoc||'',TenGV:l.TenGV||'',Thu:l.Thu||'',Gio:(l.GioBatDau||'')+(l.GioKetThuc?' - '+l.GioKetThuc:''),CoSo:l.CoSo||'',NgayDangKy:r.NgayBatDau||'',TrangThai:r.TrangThai||'Đang học'}; });
@@ -1007,7 +1011,7 @@ async function fbXemHocVien(dl){
     phieuThu:phieuThu,
     hocVien:{_dong:maHV,MaHV:hv.MaHV,HoTen:hv.HoTen,NgaySinh:hv.NgaySinh||'',GioiTinh:hv.GioiTinh,TenPhuHuynh:hv.TenPhuHuynh,SDT_PhuHuynh:String(hv.SDT_PhuHuynh||''),DiaChi:hv.DiaChi,CoSo:hv.CoSo,NgayNhapHoc:hv.NgayNhapHoc||'',TrangThai:hv.TrangThai,GhiChu:hv.GhiChu,MaKhoa:hv.MaKhoa||'',TenKhoa:hv.TenKhoa||'',SoBuoiKhoa:soTienJS(hv.SoBuoiKhoa),DaHocKhoa:soTienJS(hv.DaHocKhoa),SoBuoiConLaiKhoa:soTienJS(hv.SoBuoiKhoa)-soTienJS(hv.DaHocKhoa),NgayHoc:hv.NgayHoc||'',NgayBatDauKhoa:hv.NgayBatDauKhoa||'',LichSuKhoa:Array.isArray(hv.LichSuKhoa)?hv.LichSuKhoa:[]},
     lopHoc:lopHoc, hocPhi:hocPhi,
-    diemDanh:diemDanh, ddThongKe:{coMat:ddCoMat,vang:ddVang,coPhep:ddPhep,coMatKhoa:ddCoMatKhoa},
+    diemDanh:diemDanh, ddThongKe:{coMat:ddCoMat,vang:ddVang,coPhep:ddPhep,coMatKhoa:ddCoMatKhoa,soBuoiKhoaHT:_soBuoiKhoaHT,tenKhoaHT:_tenKhoaHT},
     tongKet:{tongPhaiThu:tPT,tongDaThu:tDT,conNo:conNo,tongBuoi:tB,tongBuoiDaHoc:tBH,soBuoiConLai:tB-tBH,tinhTrang:conNo<=0?'Đã thanh toán đủ':'Còn nợ'}
   };
 }
@@ -1472,16 +1476,25 @@ async function fbBoSungHocVien(){
   var hpMap={}; hpAll.forEach(function(r){ var m=r.MaHV; if(!hpMap[m]) hpMap[m]={phaiThu:0,daThu:0}; hpMap[m].phaiThu+=soTienJS(r.PhaiThu); hpMap[m].daThu+=soTienJS(r.DaThu); });
   var ptAll = await docsCol('phieuthu');
   var payDate={}; ptAll.forEach(function(r){ var m=r.MaHV; var d=String(r.NgayThu||''); if(!payDate[m]||d>payDate[m]) payDate[m]=d; });
-  var ddAll = await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('TrangThai','==','Có mặt')));
-  var bdMap={}; TatCaHV.forEach(function(h){ bdMap[String(h.MaHV)]=_bdISO(h.NgayBatDauKhoa); });
-  var demBuoi={}; ddAll.docs.forEach(function(d){ var o=d.data(); var mm=String(o.MaHV); var bd=bdMap[mm]; var iso=String(o.NgayISO||''); if(!bd || (iso && iso>=bd)) demBuoi[mm]=(demBuoi[mm]||0)+1; });
+  var ddAll = await FB.getDocs(FB.collection(FB.db,'diemdanh'));
+  var ddTheoHV={}; ddAll.docs.forEach(function(d){ var o=d.data(); var mm=String(o.MaHV); if(!ddTheoHV[mm]) ddTheoHV[mm]=[]; ddTheoHV[mm].push({NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||''}); });
+  Object.keys(ddTheoHV).forEach(function(mm){ ddTheoHV[mm].sort(function(a,b){return a.NgayISO.localeCompare(b.NgayISO);}); });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
   var m={};
   TatCaHV.forEach(function(h){
-    var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=demBuoi[String(h.MaHV)]||0; var coKhoa=String(h.MaKhoa||'').trim() && soBuoi>0;
+    var soBuoiGoc=soTienJS(h.SoBuoiKhoa);
+    var coKhoa=String(h.MaKhoa||'').trim() && soBuoiGoc>0;
+    var recs=ddTheoHV[String(h.MaHV)]||[];
+    var dh='', conLai='', tenKhoaHT=h.TenKhoa||'', soBuoiHT=soBuoiGoc;
+    if(coKhoa){
+      var kq=_chiaKhoa(recs, h.CacKhoa, soBuoiGoc);
+      var cur=kq.chunks[kq.cur]||{coMat:0,soBuoi:soBuoiGoc,ten:tenKhoaHT};
+      dh=cur.coMat; soBuoiHT=cur.soBuoi||soBuoiGoc; if(cur.ten) tenKhoaHT=cur.ten;
+      conLai=Math.max(0, soBuoiHT - dh);
+    }
     var hp=hpMap[h.MaHV];
     var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '';
-    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?Math.max(0,soBuoi-dh):'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
+    m[h.MaHV]={ Lop:lopMap[h.MaHV]||'', DaHoc:coKhoa?dh:'', ConLai:coKhoa?conLai:'', SoBuoiHT:coKhoa?soBuoiHT:'', TenKhoaHT:coKhoa?tenKhoaHT:'', HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0, NgayDong:payDate[h.MaHV]||'', TTHocPhi:ttHP };
   });
   return m;
 }
@@ -2027,10 +2040,11 @@ function taiHocVien(trang){
     tbody.innerHTML = danhSach.map(function(h, idx){
       var bs = MapBoSung[h.MaHV] || {};
       var stt = batDau + idx + 1;
-      var soBuoiKhoa = soTienJS(h.SoBuoiKhoa);
-      var daHoc = soTienJS(h.DaHocKhoa);
-      var coKhoa = soBuoiKhoa > 0;
-      var conLai = coKhoa ? (soBuoiKhoa - daHoc) : '';
+      var soBuoiKhoa = (bs.SoBuoiHT!==''&&bs.SoBuoiHT!==undefined) ? soTienJS(bs.SoBuoiHT) : soTienJS(h.SoBuoiKhoa);
+      var daHoc = (bs.DaHoc!==''&&bs.DaHoc!==undefined) ? soTienJS(bs.DaHoc) : soTienJS(h.DaHocKhoa);
+      var coKhoa = soTienJS(h.SoBuoiKhoa) > 0;
+      var conLai = coKhoa ? ((bs.ConLai!==''&&bs.ConLai!==undefined)?soTienJS(bs.ConLai):(soBuoiKhoa - daHoc)) : '';
+      var tenKhoaHien = bs.TenKhoaHT || h.TenKhoa || '';
       var ttKhoa = h.TrangThai||'Đang học';
       var mauTTK = h.TrangThai==='Đã nghỉ'?'nghi':(h.TrangThai==='Bảo lưu'?'bao':'hoc');
       var mauCL = coKhoa ? (conLai<=0?'nghi':(conLai<=3?'no':'hoc')) : '';
@@ -2044,7 +2058,7 @@ function taiHocVien(trang){
         + '<td><span class="nhan '+mauTTK+'">'+esc(ttKhoa)+'</span></td>'
         + '<td class="ma">'+esc(h.SDT_PhuHuynh)+'</td>'
         + '<td>'+esc(h.Lop||bs.Lop||'—')+'</td>'
-        + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+        + '<td>'+esc(tenKhoaHien||'—')+'</td>'
         + '<td>'+(ngay||'—')+'</td>'
         + '<td>'+(coKhoa?soBuoiKhoa:'—')+'</td>'
         + '<td>'+(coKhoa?daHoc:'—')+'</td>'
@@ -2327,7 +2341,7 @@ function veChiTiet(){
   var d = ChiTiet, h = d.hocVien, t = d.tongKet;
   var noLop = t.conNo > 0 ? 'no' : 'du';
   // Số buổi đã học = đếm "Có mặt" thực tế từ lịch sử điểm danh
-  var soBuoiKhoa = soTienJS(h.SoBuoiKhoa);
+  var soBuoiKhoa = (d.ddThongKe && d.ddThongKe.soBuoiKhoaHT) ? soTienJS(d.ddThongKe.soBuoiKhoaHT) : soTienJS(h.SoBuoiKhoa);
   var daHocThuc = (d.ddThongKe && d.ddThongKe.coMatKhoa!==undefined ? d.ddThongKe.coMatKhoa : (d.ddThongKe && d.ddThongKe.coMat)) || 0;
   var conLaiThuc = soBuoiKhoa>0 ? Math.max(0, soBuoiKhoa - daHocThuc) : 0;
   var mauSoKhoa = soBuoiKhoa>0 ? soBuoiKhoa : daHocThuc;
@@ -2416,6 +2430,31 @@ function _bdISO(s){
   var m2=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m2) return m2[3]+'-'+('0'+m2[2]).slice(-2)+'-'+('0'+m2[1]).slice(-2);
   return '';
 }
+// Chia điểm danh thành các khóa theo HÀNG ĐỢI: mỗi khóa đủ số buổi (Có mặt) mới sang khóa sau.
+// records: đã sắp tăng dần theo thời gian. cacKhoa: [{TenKhoa,SoBuoi}] (có thể rỗng → chia đều theo soBuoiMacDinh).
+function _chiaKhoa(records, cacKhoa, soBuoiMacDinh){
+  var dungSeq = Array.isArray(cacKhoa) && cacKhoa.length>0;
+  var seq = dungSeq ? cacKhoa.map(function(k){ return {ten:k.TenKhoa||'', soBuoi:soTienJS(k.SoBuoi)||soBuoiMacDinh||9999}; }) : [];
+  var chunks=[]; 
+  function themChunk(){ var i=chunks.length; var sb, ten; if(dungSeq){ if(i<seq.length){ sb=seq[i].soBuoi; ten=seq[i].ten; } else { sb=(seq[seq.length-1]?seq[seq.length-1].soBuoi:(soBuoiMacDinh||9999)); ten=''; } } else { sb=soBuoiMacDinh||9999; ten=''; } chunks.push({ten:ten,soBuoi:sb,recs:[],coMat:0}); }
+  themChunk();
+  var ci=0;
+  records.forEach(function(r){
+    while(ci>=chunks.length) themChunk();
+    chunks[ci].recs.push(r);
+    if(r.TrangThai==='Có mặt'){
+      chunks[ci].coMat++;
+      if(chunks[ci].coMat>=chunks[ci].soBuoi){
+        // đủ số buổi → chuyển sang khóa sau
+        if(dungSeq){ if(ci+1<seq.length){ ci++; } } // hết hàng đợi thì dồn vào khóa cuối
+        else { ci++; }
+      }
+    }
+  });
+  // khóa hiện tại = khóa đang được đổ vào
+  var cur=Math.min(ci, chunks.length-1);
+  return {chunks:chunks, cur:cur};
+}
 function xacNhanGanKhoa(){
   var maKhoa = document.getElementById('gk_Khoa').value;
   var h = ChiTiet.hocVien;
@@ -2424,38 +2463,30 @@ function xacNhanGanKhoa(){
   var soBuoi = soTienJS(k.SoBuoi); var hocPhi = soTienJS(k.GiaTien);
   khoaLuu(true);
   var nay=new Date();
-  var todayISO = nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
-  // Danh sách điểm danh (mọi buổi) sắp tăng dần
-  var _iso=function(r){ if(r.NgayISO) return String(r.NgayISO); var m=String(r.Ngay||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?(m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2)):''; };
-  var dd = ((ChiTiet&&ChiTiet.diemDanh)||[]).slice().sort(function(a,b){return _iso(a).localeCompare(_iso(b));});
-  var bdHienTai = _bdISO(h.NgayBatDauKhoa);
-  var sbHienTai = soTienJS(h.SoBuoiKhoa)||0;
-  var lichSu = Array.isArray(h.LichSuKhoa) ? h.LichSuKhoa.slice() : [];
-  if(String(h.MaKhoa||'').trim() && String(h.TenKhoa||'').trim()){
-    if(bdHienTai){
-      // Đã có mốc → chốt riêng khóa hiện tại (các buổi từ mốc trở đi)
-      var cur = dd.filter(function(r){return _iso(r)>=bdHienTai;});
-      lichSu.push({ TenKhoa:h.TenKhoa, SoBuoi:sbHienTai, SoBuoiThuc:cur.length });
-    } else {
-      // HS cũ chưa có mốc → CHIA toàn bộ buổi cũ thành nhiều khóa theo số buổi
-      var sbCu = sbHienTai || dd.length || 1;
-      for(var i=0;i<dd.length;i+=sbCu){
-        var chunk=dd.slice(i, i+sbCu);
-        lichSu.push({ TenKhoa:h.TenKhoa, SoBuoi:sbCu, SoBuoiThuc:chunk.length });
-      }
+  // Xây HÀNG ĐỢI KHÓA (CacKhoa). Nếu chưa có → dựng từ hiện trạng.
+  var cacKhoa = Array.isArray(h.CacKhoa) ? h.CacKhoa.slice() : null;
+  if(!cacKhoa){
+    cacKhoa=[];
+    var coMatHienCo = (ChiTiet && ChiTiet.ddThongKe && ChiTiet.ddThongKe.coMat) || 0;
+    var sbCu = soTienJS(h.SoBuoiKhoa)||0;
+    if(String(h.MaKhoa||'').trim() && sbCu>0){
+      // số khóa cũ = đủ để chứa số buổi Có mặt hiện có (tối thiểu 1)
+      var soKhoaCu = Math.max(1, Math.ceil(coMatHienCo / sbCu));
+      for(var i=0;i<soKhoaCu;i++){ cacKhoa.push({TenKhoa:h.TenKhoa, SoBuoi:sbCu, MaKhoa:h.MaKhoa}); }
     }
   }
+  // Thêm khóa mới vào CUỐI hàng đợi (điểm danh sẽ đổ vào đây sau khi khóa trước đầy)
+  cacKhoa.push({TenKhoa:k.TenKhoa, SoBuoi:soBuoi, MaKhoa:k.MaKhoa});
   var hv = {
     _dong: h._dong, MaHV: h.MaHV, HoTen: h.HoTen, NgaySinh: h.NgaySinh, GioiTinh: h.GioiTinh,
     TenPhuHuynh: h.TenPhuHuynh, SDT_PhuHuynh: h.SDT_PhuHuynh, DiaChi: h.DiaChi, CoSo: h.CoSo,
     NgayNhapHoc: h.NgayNhapHoc, TrangThai: h.TrangThai, GhiChu: h.GhiChu, NgayHoc: h.NgayHoc, Lop: h.Lop,
-    MaKhoa: k.MaKhoa, TenKhoa: k.TenKhoa, SoBuoiKhoa: soBuoi, DaHocKhoa: 0,
-    NgayBatDauKhoa: todayISO, LichSuKhoa: lichSu
+    MaKhoa: k.MaKhoa, TenKhoa: k.TenKhoa, SoBuoiKhoa: soBuoi, CacKhoa: cacKhoa
   };
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
     if(hocPhi>0){ var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
       return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0}}); }
-  }).then(function(){ dongModal(); bao('✓ Đã gia hạn khóa '+k.TenKhoa+' (khóa cũ đã được chốt lại)'); moChiTiet(h.MaHV);
+  }).then(function(){ dongModal(); bao('✓ Đã thêm khóa '+k.TenKhoa+' vào hàng đợi (điểm danh hết khóa cũ sẽ tự sang khóa này)'); moChiTiet(h.MaHV);
   }).catch(function(e){ var l=document.getElementById('loiForm'); if(l){l.textContent=e.message;l.classList.remove('an');} khoaLuu(false); bao(e.message, true); });
 }
 function goBoKhoaHV(){
@@ -2503,33 +2534,14 @@ function bangDiemDanhHV(ds, tk){
       + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
       + rows + '</tbody></table></div></div>';
   }
-  if(bdHT){
-    // CÓ mốc gia hạn: buổi CŨ (< mốc) là các khóa đã xong; buổi từ mốc = khóa hiện tại
-    var cũ = dsSx.filter(function(r){return _iso(r)<bdHT;});
-    var hienTai = dsSx.filter(function(r){return _iso(r)>=bdHT;});
-    var cacKhoa=[];
-    if(lichSu.length){
-      // chia buổi cũ theo số buổi thực đã lưu của từng khóa
-      var pos=0;
-      lichSu.forEach(function(ks){ var n=ks.SoBuoiThuc||ks.SoBuoi||0; cacKhoa.push({ten:ks.TenKhoa, recs:cũ.slice(pos,pos+n), hienTai:false}); pos+=n; });
-      if(pos<cũ.length){ cacKhoa.push({ten:'', recs:cũ.slice(pos), hienTai:false}); }
-    } else {
-      // chưa lưu lịch sử → chia buổi cũ theo số buổi khóa hiện tại
-      var sbC=soTienJS(hvCT.SoBuoiKhoa)||cũ.length||1;
-      for(var ii=0; ii<cũ.length; ii+=sbC){ cacKhoa.push({ten:'', recs:cũ.slice(ii,ii+sbC), hienTai:false}); }
-    }
-    cacKhoa.push({ten:hvCT.TenKhoa, recs:hienTai, hienTai:true}); // khóa hiện tại
-    var coData=cacKhoa.filter(function(x){return x.recs.length;});
-    for(var q=coData.length-1;q>=0;q--){ khoiHTML += bangKhoa(coData[q].ten, q+1, coData[q].recs, coData[q].hienTai); }
-  } else {
-    // HS cũ chưa gia hạn bao giờ → chia theo số buổi khóa hiện tại
-    var soBuoiKhoa = soTienJS(hvCT.SoBuoiKhoa);
-    if(!soBuoiKhoa || soBuoiKhoa<1) soBuoiKhoa = dsSx.length || 1;
-    var soKhoa = Math.ceil(dsSx.length/soBuoiKhoa);
-    for(var kk=soKhoa-1; kk>=0; kk--){
-      var nhomBuoi=dsSx.slice(kk*soBuoiKhoa, kk*soBuoiKhoa+soBuoiKhoa);
-      khoiHTML += bangKhoa(hvCT.TenKhoa||'', kk+1, nhomBuoi, kk===soKhoa-1);
-    }
+  var kq = _chiaKhoa(dsSx, hvCT.CacKhoa, soTienJS(hvCT.SoBuoiKhoa));
+  var chunks = kq.chunks.filter(function(c){return c.recs.length;});
+  var curIdx = kq.cur;
+  // map chunk gốc -> vị trí trong chunks đã lọc để đánh dấu "đang học"
+  var chunkHT = kq.chunks[curIdx];
+  for(var q=chunks.length-1;q>=0;q--){
+    var laHT = (chunks[q]===chunkHT);
+    khoiHTML += bangKhoa(chunks[q].ten||hvCT.TenKhoa||'', q+1, chunks[q].recs, laHT);
   }
   return tomTat + khoiHTML;
 }
