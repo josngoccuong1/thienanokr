@@ -375,6 +375,8 @@ main section{animation:hienLen .25s ease}
         <a onclick="doiTab('hocvien')"><span class="ic">groups</span> Tất cả học viên</a>
         <a onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_bottom</span> Học sinh sắp hết khóa</a>
         <a onclick="moTamNghi()"><span class="ic">pause_circle</span> Học sinh nghỉ lâu chưa đi học</a>
+        <a onclick="moLocTT('Bảo lưu')"><span class="ic">bookmark</span> Học sinh bảo lưu</a>
+        <a onclick="moLocTT('Đã nghỉ')"><span class="ic">person_off</span> Học sinh đã nghỉ</a>
       </div>
     </div>
     <button id="tab-lop" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
@@ -640,6 +642,15 @@ main section{animation:hienLen .25s ease}
         <button class="nutChinh" onclick="locTamNghi()">Lọc</button>
       </div>
       <div class="the"><div id="tnKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
+
+    <!-- TRANG LỌC THEO TRẠNG THÁI (đã nghỉ / bảo lưu) -->
+    <section id="vung-loctt" class="an">
+      <div class="the" style="padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#12294d" id="lttTieuDe">Học sinh</span>
+        <select id="lttCoSo" onchange="veLocTT()" style="min-width:150px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+      </div>
+      <div class="the"><div id="lttKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
 
     <!-- TRANG LỊCH NHẮC HỌC SINH -->
@@ -2041,7 +2052,7 @@ function doiTab(ten){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
-  ['tamnghi','lichhoc'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
+  ['tamnghi','lichhoc','loctt'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
   if(ten==='trangchu') napTrangChu();
   if(ten==='nguoidung') napNguoiDung();
   if(ten==='hocvien') lamMoiDsHocVien();
@@ -2936,13 +2947,39 @@ function napDsDiemDanh(){
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
 function _anMoiVung(tabChon){
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung','tamnghi','lichhoc'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung','tamnghi','lichhoc','loctt'].forEach(function(t){
     var b=document.getElementById('tab-'+t); if(b) b.classList.remove('chon');
     var v=document.getElementById('vung-'+t); if(v) v.classList.add('an');
   });
   var b=document.getElementById('tab-'+tabChon); if(b) b.classList.add('chon');
 }
 function _ngayTuChuoi(s){ var m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?new Date(+m[3],+m[2]-1,+m[1]):null; }
+var _lttTT='';
+function moLocTT(tt){
+  _lttTT=tt;
+  _anMoiVung('hocvien');
+  var v=document.getElementById('vung-loctt'); if(v) v.classList.remove('an');
+  var td=document.getElementById('lttTieuDe');
+  if(td) td.textContent = (tt==='Đã nghỉ'?'🚪 Học sinh đã nghỉ':(tt==='Bảo lưu'?'🔖 Học sinh bảo lưu':'Học sinh'));
+  veLocTT();
+}
+function veLocTT(){
+  var box=document.getElementById('lttKetQua'); if(!box) return;
+  var coSo=(document.getElementById('lttCoSo')||{}).value||'';
+  var ds=TatCaHV.filter(function(h){ if(String(h.TrangThai||'')!==_lttTT) return false; if(coSo && h.CoSo!==coSo) return false; return true; });
+  ds.sort(function(a,b){ return String(a.CoSo||'').localeCompare(String(b.CoSo||''))||String(a.HoTen||'').localeCompare(String(b.HoTen||'')); });
+  if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có học sinh nào ở trạng thái "'+esc(_lttTT)+'"'+(coSo?' — '+coSo:'')+'.</div>'; return; }
+  box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> học sinh '+(_lttTT==='Đã nghỉ'?'đã nghỉ':'bảo lưu')+(coSo?' — '+coSo:'')+'.</div>'
+    + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Lớp</th><th>Khóa học</th><th>SĐT phụ huynh</th><th></th></tr></thead><tbody>'
+    + ds.map(function(h,i){ return '<tr><td>'+(i+1)+'</td>'
+        + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+        + '<td>'+esc(h.CoSo||'—')+'</td>'
+        + '<td>'+esc(h.Lop||'—')+'</td>'
+        + '<td>'+esc(h.TenKhoa||'—')+'</td>'
+        + '<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'—')+'</td>'
+        + '<td><button class="nutNho" onclick="moChiTiet(\''+esc(h.MaHV)+'\')">Xem</button></td></tr>'; }).join('')
+    + '</tbody></table></div>';
+}
 function moTamNghi(){
   _anMoiVung('hocvien');
   var vt=document.getElementById('vung-tamnghi'); if(vt) vt.classList.remove('an');
