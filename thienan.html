@@ -887,6 +887,7 @@ async function goi(hanhDong, dl){
     case 'timHVThemVaoLop':  return await fbTimHVThemVaoLop(dl);
     case 'layDiemDanh':      return await fbLayDiemDanh(dl);
     case 'luuDiemDanh':      return await fbLuuDiemDanh(dl);
+    case 'demCaHomNay':      return await fbDemCaHomNay(dl);
     case 'dsDiemDanh':       return await fbDsDiemDanh(dl);
     case 'taoHocPhi':        return await fbTaoHocPhi(dl);
     case 'thuTien':          return await fbThuTien(dl);
@@ -1090,8 +1091,14 @@ async function fbLayDiemDanh(dl){
     .sort(function(a,b){return String(a.HoTen).localeCompare(String(b.HoTen),'vi');});
   return { lop:{MaLop:lop.MaLop,TenLop:lop.TenLop,MaGV:lop.MaGV,TenGV:lop.TenGV}, ngay:ngay, danhSach:danhSach };
 }
-async function fbLuuDiemDanh(dl){
-  var maLop=String(dl.maLop||'').trim(), ngayISO=String(dl.ngay||'').trim();
+async function fbDemCaHomNay(dl){
+  var ngayISO=String(dl.ngayISO||'').trim(), maLop=String(dl.maLop||'').trim(), maHV=String(dl.maHV||'').trim();
+  if(!ngayISO||!maHV) return 0;
+  var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',ngayISO)));
+  var n=0; snap.docs.forEach(function(d){ var o=d.data(); if(String(o.MaHV)===maHV && String(o.MaLop)===maLop) n++; });
+  return n;
+}
+async function fbLuuDiemDanh(dl){  var maLop=String(dl.maLop||'').trim(), ngayISO=String(dl.ngay||'').trim();
   if(!maLop) throw new Error('Chưa chọn lớp.'); if(!ngayISO) throw new Error('Chưa chọn ngày.');
   if(!dl.danhSach||!dl.danhSach.length) throw new Error('Không có học viên để lưu.');
   var ngay=ngayISO.split('-').reverse().join('/'), thang=ngayISO.slice(0,7);
@@ -1100,11 +1107,16 @@ async function fbLuuDiemDanh(dl){
   var chamCu=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',ngayISO)));
   var ttCu={}; chamCu.docs.forEach(function(d){ var o=d.data(); if(String(o.MaLop)===maLop) ttCu[String(o.MaHV)]=o.TrangThai; });
   var batch=FB.writeBatch(FB.db); var tg=new Date().toLocaleString('vi-VN'); var ts=Date.now();
+  var soCa=soTienJS(dl.soCa)||1;
   dl.danhSach.forEach(function(hs){ var maHV=String(hs.maHV||'').trim(); if(!maHV) return;
-    batch.set(FB.doc(FB.db,'diemdanh', maLop+'_'+ngayISO+'_'+maHV), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg,TS:ts});
-    var cu=(ttCu[maHV]==='Có mặt')?1:0, moi=((hs.trangThai||'Có mặt')==='Có mặt')?1:0, delta=moi-cu;
-    if(delta!==0) batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(delta)});
-    // Cập nhật ngày đi học gần nhất (nếu buổi này có mặt và mới hơn)
+    var docId = maLop+'_'+ngayISO+'_'+maHV + (soCa>=2?('_c'+soCa):'');
+    batch.set(FB.doc(FB.db,'diemdanh', docId), {NgayISO:ngayISO,Ngay:ngay,Thang:thang,MaLop:maLop,TenLop:lop.TenLop||'',MaHV:maHV,HoTen:hs.hoTen||'',TrangThai:hs.trangThai||'Có mặt',GhiChu:hs.ghiChu||'',MaGV:lop.MaGV||'',NguoiDiemDanh:dl.nguoiDiemDanh||'',ThoiGian:tg,TS:ts,Ca:soCa});
+    if(soCa>=2){
+      if((hs.trangThai||'Có mặt')==='Có mặt') batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(1)});
+    } else {
+      var cu=(ttCu[maHV]==='Có mặt')?1:0, moi=((hs.trangThai||'Có mặt')==='Có mặt')?1:0, delta=moi-cu;
+      if(delta!==0) batch.update(FB.doc(FB.db,'hocvien',maHV), {DaHocKhoa: FB.increment(delta)});
+    }
     if((hs.trangThai||'Có mặt')==='Có mặt'){
       var hvCu=TatCaHV.filter(function(x){return x.MaHV===maHV;})[0];
       if(!hvCu || !hvCu.NgayHocCuoi || ngayISO>=String(hvCu.NgayHocCuoi))
@@ -3165,10 +3177,31 @@ function chonHSDiemDanh(maHV){
             + '<button class="ttBtn" data-tt="Có mặt" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có mặt\')">Có mặt</button>'
             + '<button class="ttBtn" data-tt="Vắng" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Vắng\')">Vắng</button>'
             + '<button class="ttBtn" data-tt="Có phép" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có phép\')">Có phép</button>'
+            + '<button class="ttBtn" style="background:#eef4fb;border-color:#1b3c6b;color:#1b3c6b" onclick="themCaHoc(\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\''+esc(hv.HoTen)+'\')">➕ Thêm ca (học 2 buổi/ngày)</button>'
             + '<div class="ddXacNhan" style="margin-top:8px;font-size:13px;color:#0f7a4d;font-weight:600;display:none"></div>'
             + '</div>';
         }).join('');
   }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
+}
+function themCaHoc(maHV, maLop, hoTen){
+  var ngay = ngayDangChon(); if(!ngay){ bao('Chưa chọn ngày', true); return; }
+  var ngayISO = (document.getElementById('ddNgay')||{}).value || '';
+  // đếm số ca hôm nay của em này ở lớp này
+  goi('demCaHomNay', {maHV:maHV, maLop:maLop, ngayISO:ngayISO}).then(function(soCaHienCo){
+    var caMoi = (soCaHienCo||0) + 1;
+    if(caMoi>2){
+      if(!confirm('⚠️ '+hoTen+' hôm nay đã điểm danh '+soCaHienCo+' ca.\nĐây sẽ là CA THỨ '+caMoi+' — bất thường (thường tối đa 2 ca/ngày).\n\nBạn có chắc muốn thêm ca này không?')) return;
+    }
+    goi('luuDiemDanh', {maLop:maLop, ngay:ngayISO, nguoiDiemDanh:NguoiDung.hoTen, soCa:caMoi,
+      danhSach:[{maHV:maHV, hoTen:hoTen, trangThai:'Có mặt', ghiChu:'Ca '+caMoi}]})
+    .then(function(){
+      bao('✓ '+hoTen+' · Có mặt (ca '+caMoi+')');
+      var gioNow=new Date().toLocaleString('vi-VN');
+      guiTelegram('🎹 <b>Điểm danh Thiên Ân</b>\n👤 '+hoTen+' — ✅ <b>Có mặt (ca '+caMoi+')</b>'
+        +'\n👩‍🏫 GV: '+((NguoiDung&&NguoiDung.hoTen)||'')+'\n🕐 '+gioNow);
+      napDsDiemDanh();
+    }).catch(function(e){ bao(e.message, true); });
+  }).catch(function(e){ bao(e.message, true); });
 }
 
 function diemDanhMotHS(btn, maHV, maLop, tt){
