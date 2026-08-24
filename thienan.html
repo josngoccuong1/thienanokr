@@ -909,6 +909,8 @@ async function goi(hanhDong, dl){
     case 'luuDiaChi':        return await fbLuuDiaChi(dl);
     case 'xoaHocVien':       return await fbXoaHocVien(dl);
     case 'xoaDiemDanh':      return await fbXoaDiemDanh(dl);
+    case 'xoaDiemDanhNgay':  return await fbXoaDiemDanhNgay(dl);
+    case 'xoaDiemDanhNhieu': return await fbXoaDiemDanhNhieu(dl);
     case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
@@ -1269,17 +1271,38 @@ async function fbXoaNguoiDung(dl){
   return true;
 }
 async function fbXoaDiemDanh(dl){
-  var id=String(dl.maLop||'')+'_'+String(dl.ngayISO||'')+'_'+String(dl.maHV||'');
-  await FB.deleteDoc(FB.doc(FB.db,'diemdanh',id));
-  // Nếu là "Có mặt" thì trừ 1 buổi đã học
-  if(dl.trangThai==='Có mặt' && dl.maHV){
-    try{
-      var ref=FB.doc(FB.db,'hocvien',String(dl.maHV));
-      var d=await FB.getDoc(ref);
-      if(d.exists()){ var dh=soTienJS(d.data().DaHocKhoa); if(dh>0) await FB.setDoc(ref,{DaHocKhoa:dh-1},{merge:true}); }
-    }catch(e){}
+  var base=String(dl.maLop||'')+'_'+String(dl.ngayISO||'')+'_'+String(dl.maHV||'');
+  // Xóa bản ghi chính + mọi ca phụ (_c2, _c3...) của em này trong ngày/lớp
+  var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',String(dl.ngayISO||''))));
+  var batch=FB.writeBatch(FB.db); var n=0;
+  snap.docs.forEach(function(d){ if(String(d.data().MaLop)===String(dl.maLop) && String(d.data().MaHV)===String(dl.maHV)){ batch.delete(d.ref); n++; } });
+  if(n===0){ try{ await FB.deleteDoc(FB.doc(FB.db,'diemdanh',base)); }catch(e){} }
+  else { await batch.commit(); }
+  return {ok:true, soLuong:n};
+}
+async function fbXoaDiemDanhNhieu(dl){
+  var ids=(dl.ids||[]).filter(function(x){return x;});
+  if(!ids.length) return {ok:true, soLuong:0};
+  var n=0;
+  for(var i=0;i<ids.length;i+=400){
+    var batch=FB.writeBatch(FB.db);
+    ids.slice(i,i+400).forEach(function(id){ batch.delete(FB.doc(FB.db,'diemdanh',String(id))); n++; });
+    await batch.commit();
   }
-  return {ok:true};
+  return {ok:true, soLuong:n};
+}
+async function fbXoaDiemDanhNgay(dl){  var ngayISO=String(dl.ngayISO||'').trim(); if(!ngayISO) throw new Error('Thiếu ngày.');
+  var coSo=String(dl.coSo||'').trim();
+  var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('NgayISO','==',ngayISO)));
+  var hvCoSo={}; if(coSo){ TatCaHV.forEach(function(h){ if(h.CoSo===coSo) hvCoSo[String(h.MaHV)]=1; }); }
+  var docs=snap.docs.filter(function(d){ if(!coSo) return true; return hvCoSo[String(d.data().MaHV)]; });
+  var n=0;
+  for(var i=0;i<docs.length;i+=400){
+    var batch=FB.writeBatch(FB.db);
+    docs.slice(i,i+400).forEach(function(d){ batch.delete(d.ref); n++; });
+    await batch.commit();
+  }
+  return {ok:true, soLuong:n};
 }
 async function fbXoaHocVien(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
   // Xóa các bản ghi liên quan của em này
@@ -2881,8 +2904,19 @@ function napLopChoDiemDanh(){
   napDsDiemDanh();
 }
 
-function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){
-  if(!laQuanLy()){ bao('Chỉ admin.', true); return; }
+function xoaHetDiemDanhNgay(){
+  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
+  var ngayISO=(document.getElementById('ddNgayLoc')||{}).value||'';
+  if(!ngayISO){ bao('Hãy chọn 1 NGÀY cụ thể (ô Ngày) trước khi xóa.', true); return; }
+  var ngayVN=ngayISO.split('-').reverse().join('/');
+  var coSo=CoSoDangXem||'';
+  if(!confirm('⚠️ XÓA HẾT điểm danh ngày '+ngayVN+(coSo?' (cơ sở '+coSo+')':' (TẤT CẢ cơ sở)')+'?\n\nThao tác này KHÔNG hoàn tác được. Chỉ dùng khi đang test/dọn dữ liệu.')) return;
+  bao('Đang xóa...', false);
+  goi('xoaDiemDanhNgay',{ngayISO:ngayISO, coSo:coSo}).then(function(kq){
+    bao('✓ Đã xóa '+(kq.soLuong||0)+' lượt điểm danh ngày '+ngayVN); napDsDiemDanh(); lamMoiDsHocVien();
+  }).catch(function(e){ bao(e.message, true); });
+}
+function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){  if(!laQuanLy()){ bao('Chỉ admin.', true); return; }
   if(!confirm('Xóa lượt điểm danh này?')) return;
   if(btn){ btn.textContent='...'; btn.disabled=true; }
   goi('xoaDiemDanh',{maLop:maLop, ngayISO:ngayISO, maHV:maHV, trangThai:trangThai}).then(function(){
@@ -2897,7 +2931,7 @@ function napDsDiemDanh(){
   if(!thang){ box.innerHTML=''; return; }
   box.innerHTML = '<div class="dangTai" style="padding:20px">Đang tải danh sách...</div>';
   _ddUnsub = FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thang)),
-    function(snap){ _ddList = snap.docs.map(function(d){return d.data();}); veDsDiemDanh(); },
+    function(snap){ _ddList = snap.docs.map(function(d){var o=d.data();o._id=d.id;return o;}); veDsDiemDanh(); },
     function(err){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(err.message)+'</div>'; });
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
@@ -3121,7 +3155,9 @@ function renderDsDiemDanh(list){
     if(ta!==tb) return tb-ta;
     return String(b.NgayISO||'').localeCompare(String(a.NgayISO||''));
   });
-  box.innerHTML = '<table class="nho"><thead><tr>'
+  box.innerHTML = (laQuanLy()?'<div style="padding:8px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="ddChonTatCa" onclick="ddTickTatCa(this)" style="width:auto"> Chọn tất cả</label><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhDaChon()">🗑️ Xóa các dòng đã chọn</button><span id="ddSoChon" style="font-size:13px;color:#6b7280"></span></div>':'')
+    + '<table class="nho"><thead><tr>'
+    + (laQuanLy()?'<th style="width:34px"></th>':'')
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
     + '<th>Buổi còn lại</th><th>Ngày</th><th>Người ĐD</th><th>SĐT phụ huynh</th><th class="tien">Thu</th>'
     + (laQuanLy()?'<th></th>':'')
@@ -3134,19 +3170,37 @@ function renderDsDiemDanh(list){
         var cl=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):'';
         var conLaiHtml = cl==='' ? '—' : '<span class="nhan '+(cl<=0?'nghi':(cl<=3?'no':'hoc'))+'">'+cl+(cl<=3&&cl>0?' ⚠️':'')+'</span>';
         var mauTT = o.TrangThai==='Vắng'?'nghi':(o.TrangThai==='Có phép'?'bao':'hoc');
-        return '<tr><td>'+(i+1)+'</td>'
+        return '<tr>'
+          + (laQuanLy()?'<td><input type="checkbox" class="ddTick" value="'+esc(String(o._id||''))+'" onclick="ddDemChon()" style="width:auto"></td>':'')
+          + '<td>'+(i+1)+'</td>'
           + '<td>'+esc((o.TenLop && o.TenLop!=='Buổi học') ? o.TenLop : (hv.Lop||o.TenLop||'—'))+'</td>'
           + '<td>'+esc(hv.TenKhoa||'—')+'</td>'
-          + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span></td>'
+          + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span>'+(soTienJS(o.Ca)>=2?' <span class="nhan bao">ca '+soTienJS(o.Ca)+'</span>':'')+'</td>'
           + '<td>'+conLaiHtml+'</td>'
           + '<td>'+esc(o.Ngay||'')+'</td>'
           + '<td>'+esc(o.NguoiDiemDanh||'—')+'</td>'
           + '<td>'+(sdt?'<a href="tel:'+esc(sdt)+'">'+esc(sdt)+'</a>':'—')+'</td>'
           + '<td class="tien">'+(thu===''?'—':tien(thu))+'</td>'
-          + (laQuanLy()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaDiemDanhUI(\''+esc(o.MaLop)+'\',\''+esc(o.NgayISO)+'\',\''+esc(maHV)+'\',\''+esc(o.TrangThai)+'\',this)">Xóa</button></td>':'')
+          + (laQuanLy()?'<td><button class="nutNho" style="background:#b42318" onclick="xoaMotDiemDanh(\''+esc(String(o._id||''))+'\',this)">Xóa</button></td>':'')
           + '</tr>';
       }).join('')
     + '</tbody></table>';
+}
+function ddTickTatCa(cb){ document.querySelectorAll('.ddTick').forEach(function(x){ x.checked=cb.checked; }); ddDemChon(); }
+function ddDemChon(){ var n=document.querySelectorAll('.ddTick:checked').length; var s=document.getElementById('ddSoChon'); if(s) s.textContent=n?('Đã chọn '+n+' dòng'):''; }
+function xoaMotDiemDanh(id, btn){
+  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
+  if(!confirm('Xóa lượt điểm danh này?')) return;
+  if(btn){ btn.textContent='...'; btn.disabled=true; }
+  goi('xoaDiemDanhNhieu',{ids:[id]}).then(function(){ bao('✓ Đã xóa'); napDsDiemDanh(); lamMoiDsHocVien(); }).catch(function(e){ bao(e.message,true); if(btn){btn.textContent='Xóa';btn.disabled=false;} });
+}
+function xoaDiemDanhDaChon(){
+  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
+  var ids=[]; document.querySelectorAll('.ddTick:checked').forEach(function(x){ if(x.value) ids.push(x.value); });
+  if(!ids.length){ bao('Chưa tick dòng nào.', true); return; }
+  if(!confirm('Xóa '+ids.length+' lượt điểm danh đã chọn?\nKhông hoàn tác được.')) return;
+  bao('Đang xóa '+ids.length+' dòng...', false);
+  goi('xoaDiemDanhNhieu',{ids:ids}).then(function(kq){ bao('✓ Đã xóa '+(kq.soLuong||ids.length)+' lượt'); napDsDiemDanh(); lamMoiDsHocVien(); }).catch(function(e){ bao(e.message,true); });
 }
 
 /* ---------- Điểm danh nhanh theo tên (tức thì, tìm trên máy) ---------- */
