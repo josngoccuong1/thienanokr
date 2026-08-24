@@ -1010,7 +1010,7 @@ async function fbXemHocVien(dl){
   var conNo=tPT-tDT;
   return {
     phieuThu:phieuThu,
-    hocVien:{_dong:maHV,MaHV:hv.MaHV,HoTen:hv.HoTen,NgaySinh:hv.NgaySinh||'',GioiTinh:hv.GioiTinh,TenPhuHuynh:hv.TenPhuHuynh,SDT_PhuHuynh:String(hv.SDT_PhuHuynh||''),DiaChi:hv.DiaChi,CoSo:hv.CoSo,NgayNhapHoc:hv.NgayNhapHoc||'',TrangThai:hv.TrangThai,GhiChu:hv.GhiChu,MaKhoa:hv.MaKhoa||'',TenKhoa:hv.TenKhoa||'',SoBuoiKhoa:soTienJS(hv.SoBuoiKhoa),DaHocKhoa:soTienJS(hv.DaHocKhoa),SoBuoiConLaiKhoa:soTienJS(hv.SoBuoiKhoa)-soTienJS(hv.DaHocKhoa),NgayHoc:hv.NgayHoc||'',NgayBatDauKhoa:hv.NgayBatDauKhoa||'',LichSuKhoa:Array.isArray(hv.LichSuKhoa)?hv.LichSuKhoa:[]},
+    hocVien:{_dong:maHV,MaHV:hv.MaHV,HoTen:hv.HoTen,NgaySinh:hv.NgaySinh||'',GioiTinh:hv.GioiTinh,TenPhuHuynh:hv.TenPhuHuynh,SDT_PhuHuynh:String(hv.SDT_PhuHuynh||''),DiaChi:hv.DiaChi,CoSo:hv.CoSo,NgayNhapHoc:hv.NgayNhapHoc||'',TrangThai:hv.TrangThai,GhiChu:hv.GhiChu,MaKhoa:hv.MaKhoa||'',TenKhoa:hv.TenKhoa||'',SoBuoiKhoa:soTienJS(hv.SoBuoiKhoa),DaHocKhoa:soTienJS(hv.DaHocKhoa),SoBuoiConLaiKhoa:soTienJS(hv.SoBuoiKhoa)-soTienJS(hv.DaHocKhoa),NgayHoc:hv.NgayHoc||'',NgayBatDauKhoa:hv.NgayBatDauKhoa||'',LichSuKhoa:Array.isArray(hv.LichSuKhoa)?hv.LichSuKhoa:[],CacKhoa:Array.isArray(hv.CacKhoa)?hv.CacKhoa:null},
     lopHoc:lopHoc, hocPhi:hocPhi,
     diemDanh:diemDanh, ddThongKe:{coMat:ddCoMat,vang:ddVang,coPhep:ddPhep,coMatKhoa:ddCoMatKhoa,soBuoiKhoaHT:_soBuoiKhoaHT,tenKhoaHT:_tenKhoaHT},
     tongKet:{tongPhaiThu:tPT,tongDaThu:tDT,conNo:conNo,tongBuoi:tB,tongBuoiDaHoc:tBH,soBuoiConLai:tB-tBH,tinhTrang:conNo<=0?'Đã thanh toán đủ':'Còn nợ'}
