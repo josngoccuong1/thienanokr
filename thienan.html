@@ -666,6 +666,7 @@ main section{animation:hienLen .25s ease}
         <select id="bctCoSo" style="min-width:140px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
         <button class="nutChinh" onclick="locBaoCaoThue()">Lọc</button>
         <button class="nutPhu" onclick="taiExcelBaoCaoThue()">⬇ Tải Excel</button>
+        <button class="nutPhu" onclick="xemWebBaoCaoThue()" style="border-color:#0f7a4d;color:#0f7a4d">🖨️ Xem/In dạng web</button>
       </div>
       <div class="the"><div id="bctKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
@@ -1004,6 +1005,9 @@ function ganListeners(){
 async function fbTaiBanDau(){
   await seedConfig(); ganListeners();
   var r = await Promise.all([ docsCol('hocvien'), docsCol('lop'), docsCol('khoahoc'), layConfig() ]);
+  TatCaHV=r[0]; DsLop=r[1]; DsKhoa=r[2];
+  // Tải sẵn số buổi còn lại (để chặn điểm danh khi hết khóa, kể cả tài khoản Giáo viên)
+  try{ MapBoSung = await fbBoSungHocVien(); }catch(e){}
   return { hocVien:r[0], lop:r[1], khoaHoc:r[2], danhMuc:r[3] };
 }
 
@@ -3019,6 +3023,38 @@ async function locBaoCaoThue(){
       + '</tbody></table></div>';
   }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">'+esc(e.message)+'</div>'; }
 }
+function xemWebBaoCaoThue(){
+  if(!_bctDs.length){ bao('Chưa có danh sách. Bấm Lọc trước.', true); return; }
+  var coSo=(document.getElementById('bctCoSo')||{}).value||'';
+  var soTuan=parseInt((document.getElementById('bctSoTuan')||{}).value||'4',10)||4;
+  var congTy=(DanhMuc&&DanhMuc.congTy)||{};
+  var ngay=new Date().toLocaleDateString('vi-VN');
+  var rows=_bctDs.map(function(x,i){ var h=x.h; return '<tr>'
+    + '<td style="text-align:center">'+(i+1)+'</td>'
+    + '<td>'+esc(h.HoTen||'')+'</td>'
+    + '<td style="text-align:center">'+esc(h.NgaySinh||'')+'</td>'
+    + '<td>'+esc(h.DiaChi||'')+'</td>'
+    + '<td style="text-align:center">'+esc(h.CoSo||'')+'</td>'
+    + '<td>'+esc(h.TenKhoa||'')+'</td>'
+    + '<td style="text-align:center">'+x.soBuoi+'</td>'
+    + '<td style="text-align:center">'+(Math.round(x.buoiTuan*10)/10)+'</td>'
+    + '<td style="text-align:center">'+esc(String(h.SDT_PhuHuynh||''))+'</td>'
+    + '</tr>'; }).join('');
+  var html='<!doctype html><html><head><meta charset="utf-8"><title>Danh sách học sinh báo cáo thuế</title>'
+    +'<style>body{font-family:Arial,sans-serif;margin:24px;color:#111} h1{font-size:18px;text-align:center;margin:4px 0} h2{font-size:15px;text-align:center;font-weight:normal;margin:2px 0 4px} .meta{text-align:center;font-size:13px;color:#444;margin-bottom:14px} table{width:100%;border-collapse:collapse;font-size:13px} th,td{border:1px solid #333;padding:6px 8px} th{background:#eee} .ff{margin-top:24px;display:flex;justify-content:space-between} .ff div{text-align:center;width:40%} @media print{.noprint{display:none}} .noprint{text-align:center;margin-bottom:16px} button{padding:8px 16px;font-size:14px;cursor:pointer;margin:0 4px}</style></head><body>'
+    +'<div class="noprint"><button onclick="window.print()">🖨️ In / Lưu PDF</button><button onclick="window.close()">Đóng</button></div>'
+    +'<h1>'+esc(congTy.TenDonVi||'HỌC VIỆN ÂM NHẠC THIÊN ÂN')+'</h1>'
+    +'<h2>'+esc(congTy.TenCongTy||'')+'</h2>'
+    +'<div class="meta">'+esc(congTy.DiaChi||'')+'</div>'
+    +'<h1 style="margin-top:14px">DANH SÁCH HỌC SINH BÁO CÁO THUẾ</h1>'
+    +'<div class="meta">(Học sinh đi học đều — xét '+soTuan+' tuần gần đây'+(coSo?', cơ sở '+esc(coSo):'')+') · Ngày lập: '+ngay+' · Tổng: '+_bctDs.length+' học sinh</div>'
+    +'<table><thead><tr><th>STT</th><th>Họ và tên</th><th>Ngày sinh</th><th>Địa chỉ</th><th>Cơ sở</th><th>Khóa học</th><th>Số buổi</th><th>Buổi/tuần</th><th>SĐT phụ huynh</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="ff"><div>Người lập<br><br><br>................................</div><div>Giám đốc<br><br><br>................................</div></div>'
+    +'</body></html>';
+  var w=window.open('','_blank');
+  if(!w){ bao('Trình duyệt chặn cửa sổ. Cho phép pop-up rồi thử lại.', true); return; }
+  w.document.write(html); w.document.close();
+}
 function taiExcelBaoCaoThue(){
   if(!_bctDs.length){ bao('Chưa có danh sách. Bấm Lọc trước.', true); return; }
   var rows=[['STT','Họ tên','Cơ sở','Lớp','Khóa học','Số buổi','Buổi/tuần','SĐT phụ huynh','Ngày sinh','Địa chỉ']];
@@ -3372,6 +3408,8 @@ function chonHSDiemDanh(maHV){
 function themCaHoc(maHV, maLop, hoTen){
   var ngay = ngayDangChon(); if(!ngay){ bao('Chưa chọn ngày', true); return; }
   var ngayISO = (document.getElementById('ddNgay')||{}).value || '';
+  var kt=coTheDiemDanh(maHV);
+  if(!kt.ok){ bao('⛔ '+hoTen+' đã HẾT KHÓA. Cần GIA HẠN khóa mới trước khi thêm ca.', true); return; }
   // đếm số ca hôm nay của em này ở lớp này
   goi('demCaHomNay', {maHV:maHV, maLop:maLop, ngayISO:ngayISO}).then(function(soCaHienCo){
     var caMoi = (soCaHienCo||0) + 1;
@@ -3390,10 +3428,27 @@ function themCaHoc(maHV, maLop, hoTen){
   }).catch(function(e){ bao(e.message, true); });
 }
 
+function coTheDiemDanh(maHV){
+  // Trả về {ok:bool, tenKhoa, soBuoi} — chặn nếu hết khóa mà không có khóa mới trong hàng đợi
+  var bs = (typeof MapBoSung!=='undefined') ? MapBoSung[String(maHV)] : null;
+  if(!bs) return {ok:true};
+  if(bs.ConLai===''||bs.ConLai===undefined||bs.ConLai===null) return {ok:true}; // không gán khóa → cho phép
+  if(soTienJS(bs.ConLai) > 0) return {ok:true}; // còn buổi (hoặc đã có khóa mới trong hàng đợi) → cho phép
+  return {ok:false, tenKhoa: bs.TenKhoaHT||'', soBuoi: bs.SoBuoiHT||''}; // hết khóa, chưa đăng ký mới → chặn
+}
 function diemDanhMotHS(btn, maHV, maLop, tt){
   var hv = TatCaHV.filter(function(h){return h.MaHV===maHV;})[0] || {HoTen:''};
   var ngay = document.getElementById('ddNgay').value;
   if(!ngay){ bao('Chưa chọn ngày', true); return; }
+  // CHẶN nếu hết khóa mà chưa đăng ký khóa mới (chỉ chặn "Có mặt" — buổi tính tiền)
+  if(tt==='Có mặt'){
+    var kt=coTheDiemDanh(maHV);
+    if(!kt.ok){
+      bao('⛔ '+hv.HoTen+' đã HẾT KHÓA'+(kt.soBuoi?' ('+kt.soBuoi+'/'+kt.soBuoi+' buổi)':'')+'. Cần GIA HẠN khóa mới trước khi điểm danh.', true);
+      if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.display='block'; xn.style.color='#b42318'; xn.innerHTML='⛔ Hết khóa — <a href="#" onclick="moChiTiet(\''+esc(maHV)+'\');return false;" style="color:#1b3c6b;font-weight:700">bấm để gia hạn</a>'; } }
+      return;
+    }
+  }
   // Đổi màu nút ngay lập tức cho thấy đã chọn
   if(btn){
     var box=btn.parentNode;
@@ -3477,10 +3532,23 @@ function luuDiemDanh(){
   var maLop = document.getElementById('ddLop').value;
   var ngay = document.getElementById('ddNgay').value;
   var btn = document.getElementById('nutLuuDD');
+  // Lọc các em HẾT KHÓA (chưa gia hạn) trong danh sách Có mặt → chặn, báo tên
+  var hetKhoa=[];
+  (DiemDanhHienTai||[]).forEach(function(hs){
+    if(hs.trangThai==='Có mặt'){ var kt=coTheDiemDanh(hs.maHV); if(!kt.ok) hetKhoa.push(hs.hoTen||hs.maHV); }
+  });
+  if(hetKhoa.length){
+    var ds=hetKhoa.slice(0,8).join(', ')+(hetKhoa.length>8?(' và '+(hetKhoa.length-8)+' em nữa'):'');
+    if(!confirm('⛔ '+hetKhoa.length+' em đã HẾT KHÓA, chưa gia hạn:\n'+ds+'\n\nCác em này sẽ bị BỎ QUA (không điểm danh Có mặt) cho đến khi gia hạn khóa mới.\n\nBấm OK để lưu điểm danh cho các em CÒN khóa, bỏ qua các em hết khóa.\nBấm Cancel để dừng lại và đi gia hạn.')){
+      if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; } return;
+    }
+  }
+  var dsGui=(DiemDanhHienTai||[]).filter(function(hs){ if(hs.trangThai==='Có mặt'){ return coTheDiemDanh(hs.maHV).ok; } return true; });
+  if(!dsGui.length){ bao('Không có em nào hợp lệ để điểm danh (tất cả đã hết khóa).', true); if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; } return; }
   if(btn){ btn.disabled=true; btn.textContent='Đang lưu...'; }
-  goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen, danhSach:DiemDanhHienTai})
+  goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen, danhSach:dsGui})
   .then(function(kq){
-    bao('Đã lưu điểm danh '+kq.soLuong+' học viên · '+kq.ngay); napDsDiemDanh();
+    bao('Đã lưu điểm danh '+kq.soLuong+' học viên · '+kq.ngay+(hetKhoa.length?(' (bỏ qua '+hetKhoa.length+' em hết khóa)'):'')); napDsDiemDanh();
     if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; }
   }).catch(function(e){
     bao(e.message, true);
