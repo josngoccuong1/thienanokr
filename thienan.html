@@ -3371,8 +3371,12 @@ function ddTimTheoTen(){
   if(!ds.length){ box.innerHTML='<div class="trong" style="padding:12px">Không tìm thấy học sinh.</div>'; return; }
   box.innerHTML = '<div class="the cuonBang"><table class="nho"><tbody>'
     + ds.map(function(h){
+        var monTxt = h.Lop || h.TenKhoa || '';
         return '<tr onclick="chonHSDiemDanh(\''+esc(h.MaHV)+'\')" style="cursor:pointer">'
-          + '<td><strong>'+esc(h.HoTen)+'</strong><br><span class="ma">'+esc(h.MaHV)+' · '+esc(h.SDT_PhuHuynh||'')+'</span></td>'
+          + '<td><strong>'+esc(h.HoTen)+'</strong>'+(h.CoSo?' <span class="nhan" style="background:#eef4fb;color:#1b3c6b">'+esc(h.CoSo)+'</span>':'')+'<br>'
+            + '<span class="ma">'+esc(h.MaHV)+' · '+esc(h.SDT_PhuHuynh||'')+'</span>'
+            + (monTxt?'<br><span style="font-size:12px;color:#0f7a4d">🎵 '+esc(monTxt)+'</span>':'')
+            + '</td>'
           + '<td style="text-align:right;color:#12294d;font-weight:600">Chọn ›</td></tr>';
       }).join('')
     + '</tbody></table></div>';
@@ -3394,8 +3398,14 @@ function chonHSDiemDanh(maHV){
     box.innerHTML = '<div style="font-weight:600;margin-bottom:10px">'
       + esc(hv.HoTen)+' — điểm danh ngày '+esc(ngay)+':</div>'
       + active.map(function(r){
+          var lop = DsLop.filter(function(l){return l.MaLop===r.MaLop;})[0] || {};
+          var mon = lop.MonHoc || r.MonHoc || '';
+          var gv = lop.TenGV || r.TenGV || '';
+          var lich = [lop.Thu||r.Thu||'', lop.Gio||r.Gio||''].filter(function(x){return x;}).join(' · ');
+          var chiTietLop = [mon?('🎵 '+mon):'', gv?('👩‍🏫 '+gv):'', lich?('🕐 '+lich):''].filter(function(x){return x;}).join('  ·  ');
           return '<div style="border:1px solid #dfe4ec;border-radius:8px;padding:11px 13px;margin-bottom:9px" data-lop="'+esc(r.MaLop)+'">'
-            + '<div style="font-weight:600;margin-bottom:8px">'+esc(r.TenLop)+'</div>'
+            + '<div style="font-weight:700;margin-bottom:2px;color:#12294d">'+esc(r.TenLop)+(mon?' <span class="nhan bao" style="font-weight:600">'+esc(mon)+'</span>':'')+'</div>'
+            + (chiTietLop?'<div style="font-size:12.5px;color:#6b7280;margin-bottom:8px">'+esc(chiTietLop)+'</div>':'<div style="margin-bottom:6px"></div>')
             + '<button class="ttBtn" data-tt="Có mặt" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có mặt\')">Có mặt</button>'
             + '<button class="ttBtn" data-tt="Vắng" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Vắng\')">Vắng</button>'
             + '<button class="ttBtn" data-tt="Có phép" onclick="diemDanhMotHS(this,\''+esc(maHV)+'\',\''+esc(r.MaLop)+'\',\'Có phép\')">Có phép</button>'
