@@ -980,6 +980,9 @@ function ganListeners(){
     TatCaHV = snap.docs.map(docToObj);
     var v=document.getElementById('vung-hocvien');
     if(NguoiDung && v && !v.classList.contains('an')) taiHocVien(TrangHV||1);
+    // cập nhật lại số buổi còn lại (gia hạn/gỡ khóa/sửa hồ sơ làm đổi khóa)
+    if(window._timerBShv) clearTimeout(window._timerBShv);
+    window._timerBShv=setTimeout(function(){ goi('boSungHocVien').then(function(m){ MapBoSung=m; var vv=document.getElementById('vung-hocvien'); if(NguoiDung && vv && !vv.classList.contains('an')) taiHocVien(TrangHV||1); }).catch(function(){}); }, 3000);
   });
   FB.onSnapshot(FB.collection(FB.db,'lop'), function(snap){ DsLop = snap.docs.map(docToObj); });
   FB.onSnapshot(FB.collection(FB.db,'khoahoc'), function(snap){ DsKhoa = snap.docs.map(docToObj); });
@@ -2570,7 +2573,9 @@ function xacNhanGanKhoa(){
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
     if(hocPhi>0){ var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
       return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0}}); }
-  }).then(function(){ dongModal(); bao('✓ Đã thêm khóa '+k.TenKhoa+' vào hàng đợi (điểm danh hết khóa cũ sẽ tự sang khóa này)'); moChiTiet(h.MaHV);
+  }).then(function(){ dongModal(); bao('✓ Đã thêm khóa '+k.TenKhoa+' vào hàng đợi (điểm danh hết khóa cũ sẽ tự sang khóa này)');
+    goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
+    moChiTiet(h.MaHV);
   }).catch(function(e){ var l=document.getElementById('loiForm'); if(l){l.textContent=e.message;l.classList.remove('an');} khoaLuu(false); bao(e.message, true); });
 }
 function goBoKhoaHV(){
@@ -3454,9 +3459,11 @@ function diemDanhMotHS(btn, maHV, maLop, tt){
   if(tt==='Có mặt'){
     var kt=coTheDiemDanh(maHV);
     if(!kt.ok){
-      bao('⛔ '+hv.HoTen+' đã HẾT KHÓA'+(kt.soBuoi?' ('+kt.soBuoi+'/'+kt.soBuoi+' buổi)':'')+'. Cần GIA HẠN khóa mới trước khi điểm danh.', true);
-      if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.display='block'; xn.style.color='#b42318'; xn.innerHTML='⛔ Hết khóa — <a href="#" onclick="moChiTiet(\''+esc(maHV)+'\');return false;" style="color:#1b3c6b;font-weight:700">bấm để gia hạn</a>'; } }
-      return;
+      var oke=confirm('⛔ '+hv.HoTen+' đang báo HẾT KHÓA'+(kt.soBuoi?' ('+kt.soBuoi+'/'+kt.soBuoi+' buổi)':'')+'.\n\n• Nếu ĐÃ gia hạn khóa mới rồi → bấm OK để vẫn điểm danh.\n• Nếu CHƯA → bấm Cancel để đi gia hạn.');
+      if(!oke){
+        if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.display='block'; xn.style.color='#b42318'; xn.innerHTML='⛔ Hết khóa — <a href="#" onclick="moChiTiet(\''+esc(maHV)+'\');return false;" style="color:#1b3c6b;font-weight:700">bấm để gia hạn</a>'; } }
+        return;
+      }
     }
   }
   // Đổi màu nút ngay lập tức cho thấy đã chọn
