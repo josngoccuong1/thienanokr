@@ -346,10 +346,13 @@ main section{animation:hienLen .25s ease}
     <p>Hệ thống quản lý đào tạo</p>
     <div id="loiDangNhap" class="baoLoi an"></div>
     <label for="oTen">Tên đăng nhập</label>
-    <input id="oTen" autocomplete="username" placeholder="admin">
+    <input id="oTen" name="ten_thienan_hs" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="admin">
     <label for="oMk">Mật khẩu</label>
-    <input id="oMk" type="password" autocomplete="current-password" placeholder="••••••••">
-    <button class="nutChinh" style="width:100%;margin-top:22px;padding:12px;font-size:15px" onclick="dangNhap()">Đăng nhập</button>
+    <input id="oMk" type="password" name="mk_thienan_hs" autocomplete="new-password" placeholder="••••••••">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13.5px;color:#48566b;cursor:pointer;font-weight:400">
+      <input type="checkbox" id="oGhiNho" style="width:auto"> Ghi nhớ đăng nhập trên máy này
+    </label>
+    <button class="nutChinh" style="width:100%;margin-top:16px;padding:12px;font-size:15px" onclick="dangNhap()">Đăng nhập</button>
     <div class="dnChan">© Thiên Ân · pianothienan.vn</div>
   </div>
 </div>
@@ -2039,7 +2042,10 @@ function dangNhap(){
   goi('dangNhap', {tenDangNhap:ten, matKhau:mk}).then(function(){
     var email = ten.indexOf('@')>=0 ? ten : ten+'@thienan.vn';
     return goi('hoSoNguoiDung',{email:email});
-  }).then(function(nd){ NguoiDung = nd; vaoApp(); })
+  }).then(function(nd){ NguoiDung = nd;
+    var ghiNho = (document.getElementById('oGhiNho')||{}).checked;
+    try{ if(ghiNho){ localStorage.setItem('thienan_hs_phien', (nd.email||'').toLowerCase()); } else { localStorage.removeItem('thienan_hs_phien'); } }catch(e){}
+    vaoApp(); })
     .catch(function(e){ loi.textContent = e.message; loi.classList.remove('an'); });
 }
 function vaoApp(){
@@ -2055,17 +2061,24 @@ function vaoApp(){
 document.getElementById('oMk').addEventListener('keydown', function(e){ if(e.key==='Enter') dangNhap(); });
 
 function thoat(){
-  try{ localStorage.removeItem('thienan_coso'); }catch(e){}
+  try{ localStorage.removeItem('thienan_coso'); localStorage.removeItem('thienan_hs_phien'); }catch(e){}
   if(window.FB && FB.auth){
     FB.signOut(FB.auth).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
   } else location.reload();
 }
 
 window.onFbReady = function(){
+  // Xóa nội dung trình duyệt tự điền vào ô đăng nhập (tránh hiện tài khoản app khác)
+  setTimeout(function(){ var a=document.getElementById('oTen'), b=document.getElementById('oMk'); if(a&&!daVaoApp)a.value=''; if(b&&!daVaoApp)b.value=''; }, 400);
   FB.onAuthStateChanged(FB.auth, function(user){
     if(user && !daVaoApp){
-      goi('hoSoNguoiDung',{email:user.email}).then(function(nd){ NguoiDung = nd; vaoApp(); })
-        .catch(function(){ NguoiDung = { hoTen:(user.email||'').split('@')[0], vaiTro:'ADMIN', coSo:'ALL' }; vaoApp(); });
+      // Chỉ tự vào nếu ĐÃ đăng nhập app HỌC SINH này trước đó (không ăn theo phiên app khác)
+      var phien=null; try{ phien=localStorage.getItem('thienan_hs_phien'); }catch(e){}
+      if(phien && phien===String(user.email||'').toLowerCase()){
+        goi('hoSoNguoiDung',{email:user.email}).then(function(nd){ NguoiDung = nd; vaoApp(); })
+          .catch(function(){ NguoiDung = { hoTen:(user.email||'').split('@')[0], vaiTro:'ADMIN', coSo:'ALL' }; vaoApp(); });
+      }
+      // else: có phiên Firebase từ app khác nhưng chưa đăng nhập app này → giữ màn hình đăng nhập
     }
   });
 };
