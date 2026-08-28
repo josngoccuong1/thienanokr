@@ -916,6 +916,7 @@ async function goi(hanhDong, dl){
     case 'themVaoLop':       return await fbThemVaoLop(dl);
     case 'xoaDangKy':        return await fbXoaDangKy(dl);
     case 'xoaHocPhi':        return await fbXoaHocPhi(dl);
+    case 'xoaPhieuThu':      return await fbXoaPhieuThu(dl);
     case 'timHVThemVaoLop':  return await fbTimHVThemVaoLop(dl);
     case 'layDiemDanh':      return await fbLayDiemDanh(dl);
     case 'luuDiemDanh':      return await fbLuuDiemDanh(dl);
@@ -1111,6 +1112,20 @@ async function fbThemVaoLop(dl){
 async function fbXoaHocPhi(dl){
   if(!dl._dong) throw new Error('Thiếu mã kỳ học phí.');
   await FB.deleteDoc(FB.doc(FB.db,'hocphi',dl._dong));
+  return true;
+}
+async function fbXoaPhieuThu(dl){
+  var maPT=String(dl.maPT||'').trim(); if(!maPT) throw new Error('Thiếu mã phiếu thu.');
+  var soTien=soTienJS(dl.soTien); var maHD=String(dl.maHD||'').trim();
+  // Trừ lại DaThu trên kỳ học phí (nếu còn)
+  if(maHD){
+    try{
+      var ref=FB.doc(FB.db,'hocphi',maHD); var d=await FB.getDoc(ref);
+      if(d.exists()){ var hp=d.data(); var daThu=Math.max(0, soTienJS(hp.DaThu)-soTien); var phaiThu=soTienJS(hp.PhaiThu);
+        await FB.setDoc(ref, {DaThu:daThu, ConNo:phaiThu-daThu}, {merge:true}); }
+    }catch(e){}
+  }
+  await FB.deleteDoc(FB.doc(FB.db,'phieuthu',maPT));
   return true;
 }
 async function fbXoaDangKy(dl){
@@ -2708,8 +2723,13 @@ function roiLopChiTiet(dong){
   goi('xoaDangKy', {_dong:dong}).then(function(){ bao('✓ Đã rời lớp'); moChiTiet(maHV); }).catch(function(e){ bao(e.message, true); });
 }
 
-function xoaHocPhiUI(dong, ky, daThu){
+function xoaPhieuThuUI(maPT, maHD, soTien){
   if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
+  if(!confirm('Xóa phiếu thu '+maPT+' ('+tien(soTien)+'đ)?\n\nSố tiền này sẽ được TRỪ khỏi "đã thu" của kỳ học phí (kỳ đó sẽ nợ lại).')) return;
+  var maHV = ChiTiet.hocVien.MaHV;
+  goi('xoaPhieuThu', {maPT:maPT, maHD:maHD, soTien:soTien}).then(function(){ bao('✓ Đã xóa phiếu thu'); moChiTiet(maHV); }).catch(function(e){ bao(e.message, true); });
+}
+function xoaHocPhiUI(dong, ky, daThu){  if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
   var canhBao = daThu>0 ? '\n\n⚠️ Kỳ này ĐÃ THU '+tien(daThu)+'đ — xóa sẽ mất ghi nhận đã thu!' : '';
   if(!confirm('Xóa kỳ học phí "'+ky+'"?'+canhBao)) return;
   var maHV = ChiTiet.hocVien.MaHV;
@@ -2748,7 +2768,9 @@ function bangPhieuThu(ds){
         return '<tr><td class="ma">'+esc(p.MaPT)+'</td><td>'+esc(p.NgayThu)+'</td>'
           + '<td class="tien"><strong>'+tien(p.SoTien)+'</strong></td>'
           + '<td>'+esc(p.HinhThuc)+'</td>'
-          + '<td><button class="nutNho vien" onclick="inHoaDon(\''+esc(p.MaPT)+'\')">In hóa đơn</button></td></tr>';
+          + '<td><button class="nutNho vien" onclick="inHoaDon(\''+esc(p.MaPT)+'\')">In hóa đơn</button>'
+          + (laQuanLy()?' <button class="nutNho" style="background:#b42318" onclick="xoaPhieuThuUI(\''+esc(String(p.MaPT))+'\',\''+esc(String(p.MaHD||''))+'\','+soTienJS(p.SoTien)+')">Xóa</button>':'')
+          + '</td></tr>';
       }).join('')
     + '</tbody></table></div>';
 }
