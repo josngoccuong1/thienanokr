@@ -1224,8 +1224,9 @@ async function fbThuTien(dl){
     if(soTien>conNo) throw new Error('Số tiền vượt quá công nợ còn lại ('+conNo.toLocaleString('vi-VN')+' đ).');
     var daThuMoi=daThuCu+soTien; conNoConLai=phaiThu-daThuMoi;
     t.update(hdRef, {DaThu:daThuMoi, ConNo:conNoConLai});
-    var _n=new Date(); var _iso=_n.getFullYear()+'-'+('0'+(_n.getMonth()+1)).slice(-2)+'-'+('0'+_n.getDate()).slice(-2);
-    t.set(FB.doc(FB.db,'phieuthu',maPT), {MaPT:maPT,NgayThu:new Date().toLocaleString('vi-VN'),NgayThuISO:_iso,ThangThu:_iso.slice(0,7),MaHD:maHD,MaHV:hp.MaHV,HoTen:hp.HoTen,SoTien:soTien,HinhThuc:dl.hinhThuc||'Tiền mặt',NguoiThu:dl.nguoiThu||'',GhiChu:dl.ghiChu||''});
+    var _n=new Date(); var _iso=String(dl.ngayThuISO||'').trim() || (_n.getFullYear()+'-'+('0'+(_n.getMonth()+1)).slice(-2)+'-'+('0'+_n.getDate()).slice(-2));
+    var _hienThi = String(dl.ngayThuISO||'').trim() ? _iso.split('-').reverse().join('/') : new Date().toLocaleString('vi-VN');
+    t.set(FB.doc(FB.db,'phieuthu',maPT), {MaPT:maPT,NgayThu:_hienThi,NgayThuISO:_iso,ThangThu:_iso.slice(0,7),MaHD:maHD,MaHV:hp.MaHV,HoTen:hp.HoTen,SoTien:soTien,HinhThuc:dl.hinhThuc||'Tiền mặt',NguoiThu:dl.nguoiThu||'',GhiChu:dl.ghiChu||''});
   });
   return {MaPT:maPT, conNo:conNoConLai};
 }
@@ -2517,12 +2518,86 @@ function ganKhoaTuChiTiet(){
   var h = ChiTiet.hocVien;
   var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
   if(!khoaMo.length){ bao('Chưa có khóa học nào. Tạo khóa ở tab Khóa học trước.', true); return; }
-  var opt = khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
-  moModal('📚 Gia hạn / Đăng ký khóa cho '+esc(h.HoTen),
+  var optKhoa = '<option value="">— Chọn khóa học —</option>'+khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+soTienJS(k.SoBuoi)+'" data-gia="'+soTienJS(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
+  var lopEm = (ChiTiet.lopHoc||[]).filter(function(l){return l.TrangThai!=='Đã nghỉ';});
+  var optLop = '<option value="">— Không gắn lớp cụ thể —</option>'+lopEm.map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'">'+esc(l.TenLop)+(l.MonHoc?' ('+esc(l.MonHoc)+')':'')+'</option>'; }).join('');
+  var nay=new Date(); var isoNay=nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
+  moModal('📚 Gia hạn / Đăng ký khóa — '+esc(h.HoTen),
     '<div class="baoLoi an" id="loiForm"></div>'
-    + '<div style="font-size:13px;color:#6b7280;margin-bottom:8px">Chọn khóa rồi bấm nút xanh. App tự: đặt khóa, số buổi về 0, tạo kỳ học phí.</div>'
-    + '<select id="gk_Khoa" style="width:100%;font-size:15px;padding:11px">'+opt+'</select>',
-    'xacNhanGanKhoa()', {chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="xacNhanGanKhoa()">✓ Gia hạn ngay</button>'});
+    + '<div class="luoi">'
+    +   '<div class="o rong"><label>Lớp học</label><select id="gk_Lop">'+optLop+'</select></div>'
+    +   '<div class="o rong"><label>Khóa học <span style="color:#b42318">*</span></label><select id="gk_Khoa" onchange="gkTinhTien()">'+optKhoa+'</select></div>'
+    +   '<div class="o"><label>Số buổi</label><input id="gk_SoBuoi" readonly style="background:#f1f5f9"></div>'
+    +   '<div class="o"><label>Học phí (phải thu)</label><input id="gk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700;color:#0f7a4d"></div>'
+    +   '<div class="o rong"><label>Trạng thái học phí</label><select id="gk_TTHP" onchange="gkTinhTien()"><option value="Đã đóng đủ">Đã đóng đủ</option><option value="Đóng một phần">Đóng một phần</option><option value="Chưa đóng">Chưa đóng</option></select></div>'
+    +   '<div class="o"><label>Số tiền đóng</label><input id="gk_DaThu" inputmode="numeric" oninput="gkFmtTien(this)"></div>'
+    +   '<div class="o"><label>Ngày đóng</label><input type="date" id="gk_Ngay" value="'+isoNay+'"></div>'
+    +   '<div class="o rong"><label>Hình thức</label><select id="gk_HinhThuc"><option>Tiền mặt</option><option>Chuyển khoản</option><option>Quẹt thẻ</option></select></div>'
+    + '</div>'
+    + '<div style="font-size:12.5px;color:#6b7280;margin-top:8px">💡 App tự thêm khóa vào hàng đợi (điểm danh hết khóa cũ mới sang khóa này) + tạo kỳ học phí + phiếu thu (nếu đã đóng).</div>',
+    'xacNhanGanKhoa()', {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="xacNhanGanKhoa(false)">✓ Gia hạn</button><button class="nutChinh" style="background:#0f7a4d" onclick="xacNhanGanKhoa(true)">✓ Gia hạn & In hóa đơn</button>'});
+  setTimeout(gkTinhTien, 50);
+}
+function gkFmtTien(el){ var v=el.value.replace(/[^0-9]/g,''); el.value=v?Number(v).toLocaleString('vi-VN'):''; }
+function gkTinhTien(){
+  var sel=document.getElementById('gk_Khoa'); if(!sel) return;
+  var opt=sel.options[sel.selectedIndex];
+  var buoi=opt?soTienJS(opt.getAttribute('data-buoi')):0;
+  var gia=opt?soTienJS(opt.getAttribute('data-gia')):0;
+  var eB=document.getElementById('gk_SoBuoi'), eP=document.getElementById('gk_PhaiThu'), eD=document.getElementById('gk_DaThu');
+  if(eB) eB.value=buoi?buoi+' buổi':'';
+  if(eP) eP.value=gia?tien(gia)+' đ':'';
+  var tt=(document.getElementById('gk_TTHP')||{}).value;
+  if(eD){
+    if(tt==='Đã đóng đủ'){ eD.value=gia?tien(gia):''; eD.readOnly=true; eD.style.background='#f1f5f9'; }
+    else if(tt==='Chưa đóng'){ eD.value='0'; eD.readOnly=true; eD.style.background='#f1f5f9'; }
+    else { eD.readOnly=false; eD.style.background='#fff'; if(!soTienJS(eD.value)) eD.value=''; }
+  }
+}
+function xacNhanGanKhoa(inHD){
+  var maKhoa=(document.getElementById('gk_Khoa')||{}).value;
+  var h = ChiTiet.hocVien;
+  var k = DsKhoa.filter(function(x){return x.MaKhoa===maKhoa;})[0];
+  var loiEl=document.getElementById('loiForm');
+  function loi(m){ if(loiEl){loiEl.textContent=m;loiEl.classList.remove('an');} bao(m,true); khoaLuu(false); }
+  if(!k){ loi('Hãy chọn khóa học.'); return; }
+  var soBuoi = soTienJS(k.SoBuoi); var hocPhi = soTienJS(k.GiaTien);
+  var lopSel=document.getElementById('gk_Lop'); var maLop=lopSel?lopSel.value:''; var tenLop=(lopSel&&lopSel.options[lopSel.selectedIndex])?lopSel.options[lopSel.selectedIndex].getAttribute('data-ten'):'';
+  var ttHP=(document.getElementById('gk_TTHP')||{}).value||'Chưa đóng';
+  var daThu=soTienJS((document.getElementById('gk_DaThu')||{}).value);
+  var ngayDong=(document.getElementById('gk_Ngay')||{}).value||'';
+  var hinhThuc=(document.getElementById('gk_HinhThuc')||{}).value||'Tiền mặt';
+  if(ttHP==='Đã đóng đủ') daThu=hocPhi;
+  if(ttHP==='Chưa đóng') daThu=0;
+  if(ttHP==='Đóng một phần' && (daThu<=0 || daThu>=hocPhi)){ loi('Đóng một phần: số tiền phải lớn hơn 0 và nhỏ hơn học phí.'); return; }
+  khoaLuu(true);
+  // Xây hàng đợi khóa
+  var cacKhoa = Array.isArray(h.CacKhoa) ? h.CacKhoa.slice() : null;
+  if(!cacKhoa){
+    cacKhoa=[]; var coMatHienCo=(ChiTiet&&ChiTiet.ddThongKe&&ChiTiet.ddThongKe.coMat)||0; var sbCu=soTienJS(h.SoBuoiKhoa)||0;
+    if(String(h.MaKhoa||'').trim() && sbCu>0){ var soKhoaCu=Math.max(1,Math.ceil(coMatHienCo/sbCu)); for(var i=0;i<soKhoaCu;i++){ cacKhoa.push({TenKhoa:h.TenKhoa,SoBuoi:sbCu,MaKhoa:h.MaKhoa}); } }
+  }
+  cacKhoa.push({TenKhoa:k.TenKhoa, SoBuoi:soBuoi, MaKhoa:k.MaKhoa});
+  var hv = { _dong:h._dong, MaHV:h.MaHV, HoTen:h.HoTen, NgaySinh:h.NgaySinh, GioiTinh:h.GioiTinh, TenPhuHuynh:h.TenPhuHuynh, SDT_PhuHuynh:h.SDT_PhuHuynh, DiaChi:h.DiaChi, CoSo:h.CoSo, NgayNhapHoc:h.NgayNhapHoc, TrangThai:h.TrangThai, GhiChu:h.GhiChu, NgayHoc:h.NgayHoc, Lop:tenLop||h.Lop, MaKhoa:k.MaKhoa, TenKhoa:k.TenKhoa, SoBuoiKhoa:soBuoi, CacKhoa:cacKhoa };
+  var nay=new Date(); var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
+  var maHDLuu='';
+  goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen})
+  .then(function(){
+    return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:tenLop||k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0, NgayLap:(ngayDong?ngayDong.split('-').reverse().join('/'):'')}});
+  })
+  .then(function(kqHP){
+    maHDLuu=kqHP.MaHD;
+    if(daThu>0){ return goi('thuTien', {maHD:kqHP.MaHD, soTien:daThu, hinhThuc:hinhThuc, nguoiThu:NguoiDung.hoTen, ngayThuISO:ngayDong, ghiChu:'Đóng khóa '+k.TenKhoa}); }
+    return null;
+  })
+  .then(function(kqThu){
+    dongModal();
+    bao('✓ Đã gia hạn khóa '+k.TenKhoa+(daThu>0?(' · đã thu '+tien(daThu)+'đ'):' · chưa thu'));
+    goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
+    if(inHD && kqThu && kqThu.MaPT){ inHoaDon(kqThu.MaPT); }
+    else { if(inHD && daThu<=0) bao('Chưa đóng tiền nên không có hóa đơn để in.', true); moChiTiet(h.MaHV); }
+  })
+  .catch(function(e){ loi(e.message); });
 }
 function _bdISO(s){
   s=String(s||'').trim(); if(!s) return '';
@@ -2554,42 +2629,6 @@ function _chiaKhoa(records, cacKhoa, soBuoiMacDinh){
   // khóa hiện tại = khóa đang được đổ vào
   var cur=Math.min(ci, chunks.length-1);
   return {chunks:chunks, cur:cur};
-}
-function xacNhanGanKhoa(){
-  var maKhoa = document.getElementById('gk_Khoa').value;
-  var h = ChiTiet.hocVien;
-  var k = DsKhoa.filter(function(x){return x.MaKhoa===maKhoa;})[0];
-  if(!k){ return; }
-  var soBuoi = soTienJS(k.SoBuoi); var hocPhi = soTienJS(k.GiaTien);
-  khoaLuu(true);
-  var nay=new Date();
-  // Xây HÀNG ĐỢI KHÓA (CacKhoa). Nếu chưa có → dựng từ hiện trạng.
-  var cacKhoa = Array.isArray(h.CacKhoa) ? h.CacKhoa.slice() : null;
-  if(!cacKhoa){
-    cacKhoa=[];
-    var coMatHienCo = (ChiTiet && ChiTiet.ddThongKe && ChiTiet.ddThongKe.coMat) || 0;
-    var sbCu = soTienJS(h.SoBuoiKhoa)||0;
-    if(String(h.MaKhoa||'').trim() && sbCu>0){
-      // số khóa cũ = đủ để chứa số buổi Có mặt hiện có (tối thiểu 1)
-      var soKhoaCu = Math.max(1, Math.ceil(coMatHienCo / sbCu));
-      for(var i=0;i<soKhoaCu;i++){ cacKhoa.push({TenKhoa:h.TenKhoa, SoBuoi:sbCu, MaKhoa:h.MaKhoa}); }
-    }
-  }
-  // Thêm khóa mới vào CUỐI hàng đợi (điểm danh sẽ đổ vào đây sau khi khóa trước đầy)
-  cacKhoa.push({TenKhoa:k.TenKhoa, SoBuoi:soBuoi, MaKhoa:k.MaKhoa});
-  var hv = {
-    _dong: h._dong, MaHV: h.MaHV, HoTen: h.HoTen, NgaySinh: h.NgaySinh, GioiTinh: h.GioiTinh,
-    TenPhuHuynh: h.TenPhuHuynh, SDT_PhuHuynh: h.SDT_PhuHuynh, DiaChi: h.DiaChi, CoSo: h.CoSo,
-    NgayNhapHoc: h.NgayNhapHoc, TrangThai: h.TrangThai, GhiChu: h.GhiChu, NgayHoc: h.NgayHoc, Lop: h.Lop,
-    MaKhoa: k.MaKhoa, TenKhoa: k.TenKhoa, SoBuoiKhoa: soBuoi, CacKhoa: cacKhoa
-  };
-  goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(){
-    if(hocPhi>0){ var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
-      return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0}}); }
-  }).then(function(){ dongModal(); bao('✓ Đã thêm khóa '+k.TenKhoa+' vào hàng đợi (điểm danh hết khóa cũ sẽ tự sang khóa này)');
-    goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
-    moChiTiet(h.MaHV);
-  }).catch(function(e){ var l=document.getElementById('loiForm'); if(l){l.textContent=e.message;l.classList.remove('an');} khoaLuu(false); bao(e.message, true); });
 }
 function goBoKhoaHV(){
   var h = ChiTiet.hocVien;
