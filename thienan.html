@@ -1156,21 +1156,49 @@ async function fbTimDiemDanhMoCoi(dl){
   return Object.keys(nhom).map(function(k){ var g=nhom[k]; return {MaHV:g.MaHV, HoTen:g.HoTen, soBuoi:g.soBuoi, ngayDau:g.isoDau?g.isoDau.split('-').reverse().join('/'):'', ngayCuoi:g.isoCuoi?g.isoCuoi.split('-').reverse().join('/'):''}; }).sort(function(a,b){return b.soBuoi-a.soBuoi;});
 }
 async function fbNhapBuDiemDanh(dl){
-  var recs=dl.records||[]; if(!recs.length) return {ok:true, soLuong:0};
-  var tg=new Date().toLocaleString('vi-VN'); var n=0;
-  for(var i=0;i<recs.length;i+=350){
+  var students=dl.students||[]; if(!students.length) return {ok:true, soLuong:0, soEm:0};
+  var tg=new Date().toLocaleString('vi-VN');
+  // 1) Đọc toàn bộ điểm danh hiện có; tách riêng bản ghi BUCA (của công cụ này) để làm lại cho sạch
+  var snap=await FB.getDocs(FB.collection(FB.db,'diemdanh'));
+  var existing={}; var bucaRefs=[];
+  snap.docs.forEach(function(d){
+    var o=d.data(); var laBuca=(d.id.indexOf('BUCA_')===0)||(o.MaLop==='BUCA');
+    if(laBuca){ bucaRefs.push(d.ref); return; }
+    var key=String(o.MaHV)+'|'+String(o.NgayISO||'');
+    existing[key]=(existing[key]||0)+1;
+  });
+  // 2) Xóa các bản ghi BUCA cũ (để đối chiếu lại chuẩn, không cộng dồn)
+  for(var b=0;b<bucaRefs.length;b+=350){
+    var bat=FB.writeBatch(FB.db); bucaRefs.slice(b,b+350).forEach(function(rf){ bat.delete(rf); }); await bat.commit();
+  }
+  // 3) Đối chiếu: mỗi ngày cần 'desired' buổi, đang có 'have' (từ dữ liệu gốc) → bù phần thiếu
+  var toAdd=[]; var emCo={};
+  students.forEach(function(s){
+    var mm=String(s.MaHV);
+    Object.keys(s.days||{}).forEach(function(iso){
+      var desired=s.days[iso]||0; var have=existing[mm+'|'+iso]||0;
+      for(var k=have+1;k<=desired;k++){
+        toAdd.push({ id:'BUCA_'+mm+'_'+iso+'_c'+k, MaHV:mm, HoTen:s.HoTen||'', NgayISO:iso,
+          Ngay:iso.split('-').reverse().join('/'), Thang:iso.slice(0,7), TenLop:s.TenLop||'', Ca:k });
+        emCo[mm]=1;
+      }
+    });
+  });
+  // 4) Ghi các buổi bù
+  var n=0;
+  for(var i=0;i<toAdd.length;i+=350){
     var batch=FB.writeBatch(FB.db);
-    recs.slice(i,i+350).forEach(function(r){
+    toAdd.slice(i,i+350).forEach(function(r){
       batch.set(FB.doc(FB.db,'diemdanh', r.id), {
-        NgayISO:r.NgayISO, Ngay:r.Ngay, Thang:r.Thang, MaLop:'BUCA', TenLop:r.TenLop||'', MaHV:String(r.MaHV),
-        HoTen:r.HoTen||'', TrangThai:'Có mặt', GhiChu:'Ca '+r.Ca+' (nhập bù)', Ca:r.Ca,
+        NgayISO:r.NgayISO, Ngay:r.Ngay, Thang:r.Thang, MaLop:'BUCA', TenLop:r.TenLop||'', MaHV:r.MaHV,
+        HoTen:r.HoTen||'', TrangThai:'Có mặt', GhiChu:'Nhập bù từ dữ liệu cũ (ca '+r.Ca+')', Ca:r.Ca,
         NguoiDiemDanh:dl.nguoi||'Nhập bù', ThoiGian:tg, TS:Date.now()
       });
       n++;
     });
     await batch.commit();
   }
-  return {ok:true, soLuong:n};
+  return {ok:true, soLuong:n, soEm:Object.keys(emCo).length};
 }
 async function fbGanLaiDiemDanh(dl){  var maCu=String(dl.maCu||'').trim(), maMoi=String(dl.maMoi||'').trim(), hoTen=String(dl.hoTen||'').trim();
   if(!maCu||!maMoi) throw new Error('Thiếu mã.');
@@ -2021,32 +2049,27 @@ function nhapBuHaiCa(){
       function timCot(ten){ return keys.filter(function(k){return k.trim().toLowerCase()===ten.toLowerCase();})[0]; }
       var cID=timCot('ID'), cTen=timCot('Họ và tên'), cLop=timCot('Tên lớp'), cND=timCot('Ngày điểm danh');
       if(!cID || !cND){ box.innerHTML='<div class="baoLoi">Không thấy cột "ID" hoặc "Ngày điểm danh" trong file.</div>'; return; }
-      // gom các ca cần bù
-      var buRecs=[]; var soEm=0, soCaBu=0;
+      // gom số buổi mỗi ngày cho từng em
+      var perEm={}; var tongSes=0;
       rows.forEach(function(r){
         var maHV=String(r[cID]||'').trim(); var nd=String(r[cND]||'').trim();
         if(!maHV || !nd) return;
         var tenLop=cLop?String(r[cLop]||'').split(',')[0].trim():''; var hoTen=cTen?String(r[cTen]||'').trim():'';
         var ngays=nd.replace(/;/g,',').split(',').map(function(x){return x.trim().split(' ')[0];}).filter(function(x){return x;});
-        var dem={};
-        ngays.forEach(function(d){ dem[d]=(dem[d]||0)+1; });
-        var emCoBu=false;
-        Object.keys(dem).forEach(function(d){
-          var n=dem[d]; if(n<2) return;
+        if(!ngays.length) return;
+        if(!perEm[maHV]) perEm[maHV]={HoTen:hoTen, TenLop:tenLop, days:{}};
+        ngays.forEach(function(d){
           var m=d.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(!m) return;
           var iso=m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
-          for(var k=2;k<=n;k++){
-            buRecs.push({id:'BUCA_'+maHV+'_'+iso+'_c'+k, MaHV:maHV, HoTen:hoTen, NgayISO:iso, Ngay:d, Thang:iso.slice(0,7), TenLop:tenLop, Ca:k});
-            soCaBu++; emCoBu=true;
-          }
+          perEm[maHV].days[iso]=(perEm[maHV].days[iso]||0)+1; tongSes++;
         });
-        if(emCoBu) soEm++;
       });
-      if(!buRecs.length){ box.innerHTML='<div class="trong" style="padding:10px">Không tìm thấy buổi 2 ca nào cần bù trong file này.</div>'; return; }
-      if(!confirm('Tìm thấy '+soCaBu+' buổi (ca) bị thiếu của '+soEm+' em.\n\nNhập bù các buổi này vào hệ thống?\n(Chạy lại không bị trùng.)')){ box.innerHTML=''; return; }
-      box.innerHTML='<div class="dangTai" style="padding:10px">Đang nhập '+soCaBu+' buổi... (giữ nguyên trang)</div>';
-      goi('nhapBuDiemDanh', {records:buRecs, nguoi:(NguoiDung&&NguoiDung.hoTen)||''}).then(function(kq){
-        box.innerHTML='<div style="padding:10px;color:#0f7a4d;font-weight:600">✓ Đã nhập bù '+(kq.soLuong||soCaBu)+' buổi cho '+soEm+' em. Mở lại hồ sơ các em để kiểm tra lịch sử điểm danh.</div>';
+      var payload=Object.keys(perEm).map(function(mm){ return {MaHV:mm, HoTen:perEm[mm].HoTen, TenLop:perEm[mm].TenLop, days:perEm[mm].days}; });
+      if(!payload.length){ box.innerHTML='<div class="trong" style="padding:10px">Không đọc được dữ liệu điểm danh trong file.</div>'; return; }
+      if(!confirm('File có '+payload.length+' em, tổng '+tongSes+' buổi điểm danh.\n\nApp sẽ ĐỐI CHIẾU với dữ liệu hiện có và bù đúng những buổi còn THIẾU (kể cả buổi 2 ca). Không tạo trùng.\n\nBắt đầu?')){ box.innerHTML=''; return; }
+      box.innerHTML='<div class="dangTai" style="padding:10px">Đang đối chiếu & nhập bù... (có thể mất 30-60 giây, giữ nguyên trang)</div>';
+      goi('nhapBuDiemDanh', {students:payload, nguoi:(NguoiDung&&NguoiDung.hoTen)||''}).then(function(kq){
+        box.innerHTML='<div style="padding:10px;color:#0f7a4d;font-weight:600">✓ Đã bù '+(kq.soLuong||0)+' buổi còn thiếu cho '+(kq.soEm||0)+' em. Mở lại hồ sơ các em để kiểm tra.</div>';
         goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
       }).catch(function(err){ box.innerHTML='<div class="baoLoi" style="padding:10px">'+esc(err.message)+'</div>'; });
     }catch(ex){ box.innerHTML='<div class="baoLoi" style="padding:10px">Lỗi đọc file: '+esc(ex.message)+'</div>'; }
