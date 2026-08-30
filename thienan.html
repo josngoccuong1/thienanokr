@@ -806,6 +806,26 @@ main section{animation:hienLen .25s ease}
         <tbody id="bangGiaoVien"><tr><td colspan="5" class="dangTai">Đang tải...</td></tr></tbody>
       </table></div></div>
 
+      <div class="the" style="padding:16px;margin-top:16px;border-color:#c7d2fe;background:#eef2ff">
+        <div style="font-weight:700;color:#3730a3;margin-bottom:6px">🔗 Tìm & gắn lại điểm danh (dữ liệu cũ)</div>
+        <div style="font-size:13px;color:#3730a3;line-height:1.5;margin-bottom:12px">Dùng khi 1 em có điểm danh ở phần mềm cũ nhưng app mới không hiện lịch sử (do điểm danh gắn mã cũ). Gõ TÊN hoặc MÃ CŨ để tìm, rồi gắn lại vào đúng hồ sơ.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="glTuKhoa" placeholder="Tên (VD: Đức Minh) hoặc mã cũ (VD: 845)" style="flex:1;min-width:220px">
+          <button class="nutChinh" onclick="timDiemDanhMoCoi()">🔍 Tìm điểm danh</button>
+        </div>
+        <div id="glKetQua" style="margin-top:12px"></div>
+      </div>
+
+      <div class="the" style="padding:16px;margin-top:16px;border-color:#fbcfe8;background:#fdf2f8">
+        <div style="font-weight:700;color:#9d174d;margin-bottom:6px">🔧 Nhập bù buổi 2 ca bị mất (từ file cũ)</div>
+        <div style="font-size:13px;color:#9d174d;line-height:1.5;margin-bottom:12px">Khi chuyển dữ liệu, em nào học 2 ca/ngày bị mất 1 ca. Công cụ này đọc cột "Ngày điểm danh" trong file Excel cũ và thêm lại các ca bị thiếu. <b>Chạy 1 lần là đủ</b> (chạy lại không bị trùng).</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input type="file" id="bcFile" accept=".xlsx,.xls" style="flex:1;min-width:220px">
+          <button class="nutChinh" onclick="nhapBuHaiCa()">🔧 Quét & nhập bù</button>
+        </div>
+        <div id="bcKetQua" style="margin-top:12px;font-size:13px"></div>
+      </div>
+
       <div class="the" style="padding:16px;margin-top:16px;border-color:#fde68a;background:#fffbeb">
         <div style="font-weight:700;color:#92400e;margin-bottom:6px">🏢 Địa chỉ cơ sở & công ty</div>
         <div style="font-size:13px;color:#78350f;line-height:1.5;margin-bottom:12px">Sửa địa chỉ ở đây sẽ cập nhật toàn hệ thống (phiếu thu, báo cáo...).</div>
@@ -825,12 +845,16 @@ main section{animation:hienLen .25s ease}
         </div>
         <div class="luoi">
           <div class="o rong"><label>Bot Token</label><input id="tgToken" placeholder="VD: 1234567890:AAH..."></div>
-          <div class="o"><label>Chat ID (nhóm/kênh)</label><input id="tgChatId" placeholder="VD: -1001234567890"></div>
-          <div class="o" style="display:flex;align-items:flex-end;gap:8px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="tgBat" style="width:auto"> Bật gửi thông báo</label></div>
+          <div class="o"><label>Chat ID điểm danh (GV)</label><input id="tgChatId" placeholder="VD: -1001234567890"></div>
+          <div class="o" style="display:flex;align-items:flex-end;gap:8px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="tgBat" style="width:auto"> Bật báo điểm danh</label></div>
+          <div class="o"><label>Chat ID Quản lý (thu tiền, gia hạn, HS mới)</label><input id="tgChatIdQL" placeholder="VD: -1009876543210"></div>
+          <div class="o" style="display:flex;align-items:flex-end;gap:8px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="tgBatQL" style="width:auto"> Bật báo quản lý</label></div>
         </div>
+        <div style="font-size:12.5px;color:#075985;margin-top:8px">💡 Để riêng nhóm Quản lý: tạo 1 nhóm Telegram mới cho quản lý, thêm bot vào, lấy Chat ID nhóm đó điền vào ô "Chat ID Quản lý". Cùng 1 Bot Token là được.</div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="nutChinh" onclick="luuTelegramUI()">Lưu cài đặt</button>
-          <button class="nutPhu" onclick="testTelegram()">Gửi thử</button>
+          <button class="nutPhu" onclick="testTelegram()">Gửi thử (điểm danh)</button>
+          <button class="nutPhu" onclick="testTelegramQL()">Gửi thử (quản lý)</button>
         </div>
       </div>
 
@@ -917,6 +941,9 @@ async function goi(hanhDong, dl){
     case 'xoaDangKy':        return await fbXoaDangKy(dl);
     case 'xoaHocPhi':        return await fbXoaHocPhi(dl);
     case 'xoaPhieuThu':      return await fbXoaPhieuThu(dl);
+    case 'timDiemDanhMoCoi': return await fbTimDiemDanhMoCoi(dl);
+    case 'ganLaiDiemDanh':   return await fbGanLaiDiemDanh(dl);
+    case 'nhapBuDiemDanh':   return await fbNhapBuDiemDanh(dl);
     case 'timHVThemVaoLop':  return await fbTimHVThemVaoLop(dl);
     case 'layDiemDanh':      return await fbLayDiemDanh(dl);
     case 'luuDiemDanh':      return await fbLuuDiemDanh(dl);
@@ -1114,8 +1141,49 @@ async function fbXoaHocPhi(dl){
   await FB.deleteDoc(FB.doc(FB.db,'hocphi',dl._dong));
   return true;
 }
-async function fbXoaPhieuThu(dl){
-  var maPT=String(dl.maPT||'').trim(); if(!maPT) throw new Error('Thiếu mã phiếu thu.');
+async function fbTimDiemDanhMoCoi(dl){
+  var tk=boDauJS(String(dl.tuKhoa||'').trim());
+  var snap=await FB.getDocs(FB.collection(FB.db,'diemdanh'));
+  var nhom={};
+  snap.docs.forEach(function(d){ var o=d.data(); var mm=String(o.MaHV||''); var ten=String(o.HoTen||'');
+    var khop = boDauJS(ten).indexOf(tk)>-1 || boDauJS(mm).indexOf(tk)>-1 || mm===String(dl.tuKhoa).trim();
+    if(!khop) return;
+    if(!nhom[mm]) nhom[mm]={MaHV:mm, HoTen:ten, soBuoi:0, isoDau:'', isoCuoi:''};
+    var g=nhom[mm]; g.soBuoi++;
+    if(ten && !g.HoTen) g.HoTen=ten;
+    var iso=String(o.NgayISO||''); if(iso){ if(!g.isoDau||iso<g.isoDau)g.isoDau=iso; if(!g.isoCuoi||iso>g.isoCuoi)g.isoCuoi=iso; }
+  });
+  return Object.keys(nhom).map(function(k){ var g=nhom[k]; return {MaHV:g.MaHV, HoTen:g.HoTen, soBuoi:g.soBuoi, ngayDau:g.isoDau?g.isoDau.split('-').reverse().join('/'):'', ngayCuoi:g.isoCuoi?g.isoCuoi.split('-').reverse().join('/'):''}; }).sort(function(a,b){return b.soBuoi-a.soBuoi;});
+}
+async function fbNhapBuDiemDanh(dl){
+  var recs=dl.records||[]; if(!recs.length) return {ok:true, soLuong:0};
+  var tg=new Date().toLocaleString('vi-VN'); var n=0;
+  for(var i=0;i<recs.length;i+=350){
+    var batch=FB.writeBatch(FB.db);
+    recs.slice(i,i+350).forEach(function(r){
+      batch.set(FB.doc(FB.db,'diemdanh', r.id), {
+        NgayISO:r.NgayISO, Ngay:r.Ngay, Thang:r.Thang, MaLop:'BUCA', TenLop:r.TenLop||'', MaHV:String(r.MaHV),
+        HoTen:r.HoTen||'', TrangThai:'Có mặt', GhiChu:'Ca '+r.Ca+' (nhập bù)', Ca:r.Ca,
+        NguoiDiemDanh:dl.nguoi||'Nhập bù', ThoiGian:tg, TS:Date.now()
+      });
+      n++;
+    });
+    await batch.commit();
+  }
+  return {ok:true, soLuong:n};
+}
+async function fbGanLaiDiemDanh(dl){  var maCu=String(dl.maCu||'').trim(), maMoi=String(dl.maMoi||'').trim(), hoTen=String(dl.hoTen||'').trim();
+  if(!maCu||!maMoi) throw new Error('Thiếu mã.');
+  var snap=await FB.getDocs(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('MaHV','==',maCu)));
+  var docs=snap.docs; var n=0;
+  for(var i=0;i<docs.length;i+=350){
+    var batch=FB.writeBatch(FB.db);
+    docs.slice(i,i+350).forEach(function(d){ batch.update(d.ref, {MaHV:maMoi, HoTen:hoTen||d.data().HoTen}); n++; });
+    await batch.commit();
+  }
+  return {ok:true, soLuong:n};
+}
+async function fbXoaPhieuThu(dl){  var maPT=String(dl.maPT||'').trim(); if(!maPT) throw new Error('Thiếu mã phiếu thu.');
   var soTien=soTienJS(dl.soTien); var maHD=String(dl.maHD||'').trim();
   // Trừ lại DaThu trên kỳ học phí (nếu còn)
   if(maHD){
@@ -1376,7 +1444,7 @@ async function fbXoaHocVien(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV)
   return {maHV:maHV};
 }
 async function fbLuuTelegram(dl){
-  await FB.setDoc(FB.doc(FB.db,'config','main'), {telegram:{token:String(dl.token||'').trim(), chatId:String(dl.chatId||'').trim(), bat:!!dl.bat}}, {merge:true});
+  await FB.setDoc(FB.doc(FB.db,'config','main'), {telegram:{token:String(dl.token||'').trim(), chatId:String(dl.chatId||'').trim(), bat:!!dl.bat, chatIdQL:String(dl.chatIdQL||'').trim(), batQL:!!dl.batQL}}, {merge:true});
   return true;
 }
 async function fbLuuDiaChi(dl){
@@ -1395,6 +1463,14 @@ function guiTelegram(text){
   try{
     fetch('https://api.telegram.org/bot'+tg.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({chat_id:tg.chatId,text:text,parse_mode:'HTML',disable_web_page_preview:true})}).catch(function(){});
+  }catch(e){}
+}
+function guiTelegramQL(text){
+  var tg=(DanhMuc&&DanhMuc.telegram)||{};
+  if(!tg.batQL || !tg.token || !tg.chatIdQL) return;
+  try{
+    fetch('https://api.telegram.org/bot'+tg.token+'/sendMessage',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:tg.chatIdQL,text:text,parse_mode:'HTML',disable_web_page_preview:true})}).catch(function(){});
   }catch(e){}
 }
 async function fbLuuGiaoVien(dl){  var g=dl.giaoVien; if(!String(g.ten||'').trim()) throw new Error('Chưa nhập tên giáo viên.');
@@ -1889,10 +1965,99 @@ function xoaGiaoVienUI(ma){
   goi('xoaGiaoVien',{ma:ma}).then(function(r){ DanhMuc.giaoVien=r.giaoVien; bao('Đã xóa'); napGiaoVien(); }).catch(function(e){ bao(e.message,true); });
 }
 
-function napTelegramUI(){
-  var tg=(DanhMuc&&DanhMuc.telegram)||{};
+var _glNhom=[];
+function timDiemDanhMoCoi(){
+  if(!laQuanLy()){ bao('Chỉ admin/quản lý.', true); return; }
+  var tk=(document.getElementById('glTuKhoa')||{}).value.trim();
+  var box=document.getElementById('glKetQua');
+  if(!tk){ bao('Nhập tên hoặc mã cũ để tìm.', true); return; }
+  box.innerHTML='<div class="dangTai" style="padding:14px">Đang tìm điểm danh...</div>';
+  goi('timDiemDanhMoCoi', {tuKhoa:tk}).then(function(nhom){
+    _glNhom=nhom;
+    if(!nhom.length){ box.innerHTML='<div class="trong" style="padding:14px">Không tìm thấy điểm danh nào khớp "'+esc(tk)+'".</div>'; return; }
+    var hvOpt='<option value="">— Chọn hồ sơ để gắn vào —</option>'+TatCaHV.map(function(h){ return '<option value="'+esc(h.MaHV)+'">'+esc(h.HoTen)+' ('+esc(h.MaHV)+(h.CoSo?' · '+esc(h.CoSo):'')+')</option>'; }).join('');
+    box.innerHTML = nhom.map(function(g,i){
+      var khop = TatCaHV.some(function(h){return String(h.MaHV)===String(g.MaHV);});
+      return '<div style="border:1px solid #c7d2fe;border-radius:8px;padding:11px 13px;margin-bottom:10px;background:#fff">'
+        + '<div style="font-weight:600;color:#12294d">'+esc(g.HoTen||'(không tên)')+' <span class="ma">· mã ĐD: '+esc(g.MaHV)+'</span></div>'
+        + '<div style="font-size:13px;color:#48566b;margin:4px 0">'+g.soBuoi+' buổi điểm danh'+(g.ngayDau?(' · từ '+esc(g.ngayDau)+' đến '+esc(g.ngayCuoi)):'')+' · '+(khop?'<span style="color:#0f7a4d">✓ đang khớp 1 hồ sơ</span>':'<span style="color:#b42318">⚠️ mồ côi (không khớp hồ sơ nào)</span>')+'</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">'
+        + '<select id="glTarget'+i+'" style="flex:1;min-width:220px">'+hvOpt+'</select>'
+        + '<button class="nutChinh" onclick="ganLaiDiemDanh('+i+')">Gắn '+g.soBuoi+' buổi vào hồ sơ này</button>'
+        + '</div></div>';
+    }).join('');
+  }).catch(function(e){ box.innerHTML='<div class="baoLoi" style="padding:12px">'+esc(e.message)+'</div>'; });
+}
+function ganLaiDiemDanh(i){
+  var g=_glNhom[i]; if(!g) return;
+  var maMoi=(document.getElementById('glTarget'+i)||{}).value;
+  if(!maMoi){ bao('Chọn hồ sơ đích trước.', true); return; }
+  var hv=TatCaHV.filter(function(h){return String(h.MaHV)===String(maMoi);})[0];
+  if(!hv) return;
+  if(!confirm('Gắn '+g.soBuoi+' buổi điểm danh (mã cũ '+g.MaHV+') vào hồ sơ:\n'+hv.HoTen+' ('+maMoi+')?\n\nLịch sử điểm danh sẽ hiện trong hồ sơ này.')) return;
+  bao('Đang gắn lại...', false);
+  goi('ganLaiDiemDanh', {maCu:g.MaHV, maMoi:maMoi, hoTen:hv.HoTen}).then(function(kq){
+    bao('✓ Đã gắn '+(kq.soLuong||g.soBuoi)+' buổi vào '+hv.HoTen);
+    goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
+    timDiemDanhMoCoi();
+  }).catch(function(e){ bao(e.message, true); });
+}
+function nhapBuHaiCa(){
+  if(!laQuanLy()){ bao('Chỉ admin/quản lý.', true); return; }
+  var f=(document.getElementById('bcFile')||{}).files;
+  var box=document.getElementById('bcKetQua');
+  if(!f || !f.length){ bao('Chọn file Excel cũ (Học viên...) trước.', true); return; }
+  if(typeof XLSX==='undefined'){ bao('Thư viện đọc Excel chưa tải xong, thử lại sau vài giây.', true); return; }
+  box.innerHTML='<div class="dangTai" style="padding:10px">Đang đọc file...</div>';
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(!rows.length){ box.innerHTML='<div class="baoLoi">File trống.</div>'; return; }
+      // tìm tên cột
+      var keys=Object.keys(rows[0]);
+      function timCot(ten){ return keys.filter(function(k){return k.trim().toLowerCase()===ten.toLowerCase();})[0]; }
+      var cID=timCot('ID'), cTen=timCot('Họ và tên'), cLop=timCot('Tên lớp'), cND=timCot('Ngày điểm danh');
+      if(!cID || !cND){ box.innerHTML='<div class="baoLoi">Không thấy cột "ID" hoặc "Ngày điểm danh" trong file.</div>'; return; }
+      // gom các ca cần bù
+      var buRecs=[]; var soEm=0, soCaBu=0;
+      rows.forEach(function(r){
+        var maHV=String(r[cID]||'').trim(); var nd=String(r[cND]||'').trim();
+        if(!maHV || !nd) return;
+        var tenLop=cLop?String(r[cLop]||'').split(',')[0].trim():''; var hoTen=cTen?String(r[cTen]||'').trim():'';
+        var ngays=nd.replace(/;/g,',').split(',').map(function(x){return x.trim().split(' ')[0];}).filter(function(x){return x;});
+        var dem={};
+        ngays.forEach(function(d){ dem[d]=(dem[d]||0)+1; });
+        var emCoBu=false;
+        Object.keys(dem).forEach(function(d){
+          var n=dem[d]; if(n<2) return;
+          var m=d.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(!m) return;
+          var iso=m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+          for(var k=2;k<=n;k++){
+            buRecs.push({id:'BUCA_'+maHV+'_'+iso+'_c'+k, MaHV:maHV, HoTen:hoTen, NgayISO:iso, Ngay:d, Thang:iso.slice(0,7), TenLop:tenLop, Ca:k});
+            soCaBu++; emCoBu=true;
+          }
+        });
+        if(emCoBu) soEm++;
+      });
+      if(!buRecs.length){ box.innerHTML='<div class="trong" style="padding:10px">Không tìm thấy buổi 2 ca nào cần bù trong file này.</div>'; return; }
+      if(!confirm('Tìm thấy '+soCaBu+' buổi (ca) bị thiếu của '+soEm+' em.\n\nNhập bù các buổi này vào hệ thống?\n(Chạy lại không bị trùng.)')){ box.innerHTML=''; return; }
+      box.innerHTML='<div class="dangTai" style="padding:10px">Đang nhập '+soCaBu+' buổi... (giữ nguyên trang)</div>';
+      goi('nhapBuDiemDanh', {records:buRecs, nguoi:(NguoiDung&&NguoiDung.hoTen)||''}).then(function(kq){
+        box.innerHTML='<div style="padding:10px;color:#0f7a4d;font-weight:600">✓ Đã nhập bù '+(kq.soLuong||soCaBu)+' buổi cho '+soEm+' em. Mở lại hồ sơ các em để kiểm tra lịch sử điểm danh.</div>';
+        goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
+      }).catch(function(err){ box.innerHTML='<div class="baoLoi" style="padding:10px">'+esc(err.message)+'</div>'; });
+    }catch(ex){ box.innerHTML='<div class="baoLoi" style="padding:10px">Lỗi đọc file: '+esc(ex.message)+'</div>'; }
+  };
+  reader.readAsArrayBuffer(f[0]);
+}
+function napTelegramUI(){  var tg=(DanhMuc&&DanhMuc.telegram)||{};
   var t=document.getElementById('tgToken'), c=document.getElementById('tgChatId'), b=document.getElementById('tgBat');
   if(t) t.value=tg.token||''; if(c) c.value=tg.chatId||''; if(b) b.checked=!!tg.bat;
+  var cq=document.getElementById('tgChatIdQL'), bq=document.getElementById('tgBatQL');
+  if(cq) cq.value=tg.chatIdQL||''; if(bq) bq.checked=!!tg.batQL;
   var cs=(DanhMuc&&DanhMuc.coSo)||[];
   var g=function(ma){ var f=cs.filter(function(c){return c.ma===ma;})[0]; return f?f.ten:''; };
   var e1=document.getElementById('cfgCS1'), e2=document.getElementById('cfgCS2'), ec=document.getElementById('cfgCongTy');
@@ -1910,18 +2075,27 @@ function luuDiaChiCoSo(){
   }).catch(function(e){ bao(e.message,true); });
 }
 function luuTelegramUI(){
-  var dl={token:document.getElementById('tgToken').value, chatId:document.getElementById('tgChatId').value, bat:document.getElementById('tgBat').checked};
+  var dl={token:document.getElementById('tgToken').value, chatId:document.getElementById('tgChatId').value, bat:document.getElementById('tgBat').checked,
+          chatIdQL:document.getElementById('tgChatIdQL').value, batQL:document.getElementById('tgBatQL').checked};
   goi('luuTelegram',dl).then(function(){
-    DanhMuc.telegram={token:dl.token.trim(),chatId:dl.chatId.trim(),bat:dl.bat};
+    DanhMuc.telegram={token:dl.token.trim(),chatId:dl.chatId.trim(),bat:dl.bat,chatIdQL:dl.chatIdQL.trim(),batQL:dl.batQL};
     bao('✓ Đã lưu cài đặt Telegram');
   }).catch(function(e){ bao(e.message,true); });
 }
 function testTelegram(){
   var tg={token:document.getElementById('tgToken').value.trim(),chatId:document.getElementById('tgChatId').value.trim(),bat:true};
-  if(!tg.token||!tg.chatId){ bao('Nhập Bot Token và Chat ID trước.',true); return; }
-  DanhMuc.telegram=tg; // tạm để gửi thử
-  guiTelegram('🎹 <b>Thiên Ân</b> — Thử kết nối Telegram thành công! ✅\nTừ giờ điểm danh sẽ báo về đây.');
-  bao('Đã gửi tin thử. Kiểm tra nhóm Telegram xem có nhận được không.');
+  if(!tg.token||!tg.chatId){ bao('Nhập Bot Token và Chat ID điểm danh trước.',true); return; }
+  DanhMuc.telegram=Object.assign(DanhMuc.telegram||{},tg);
+  guiTelegram('🎹 <b>Thiên Ân</b> — Thử kết nối Telegram ĐIỂM DANH thành công! ✅');
+  bao('Đã gửi tin thử vào nhóm điểm danh.');
+}
+function testTelegramQL(){
+  var token=document.getElementById('tgToken').value.trim();
+  var chatIdQL=document.getElementById('tgChatIdQL').value.trim();
+  if(!token||!chatIdQL){ bao('Nhập Bot Token và Chat ID Quản lý trước.',true); return; }
+  DanhMuc.telegram=Object.assign(DanhMuc.telegram||{},{token:token,chatIdQL:chatIdQL,batQL:true});
+  guiTelegramQL('👔 <b>Thiên Ân — Kênh Quản lý</b>\nThử kết nối thành công! ✅\nTừ giờ sẽ báo: thu tiền, gia hạn khóa, học viên mới về đây.');
+  bao('Đã gửi tin thử vào nhóm quản lý.');
 }
 function napTelegramUI2(){}
 function napTelegramUIdummy(){}
@@ -2304,6 +2478,13 @@ function luuHocVien(dong, ma){
     }
     chain.then(function(kqHP){
       dongModal(); taiHocVien(TrangHV); lamMoiDsHocVien();
+      if(!dong){ // chỉ báo khi THÊM MỚI (không phải sửa)
+        guiTelegramQL('👔 <b>HỌC VIÊN MỚI</b>\n👤 '+esc(hv.HoTen)+' ('+esc(hv.CoSo||'')+')'
+          +(hv.TenKhoa?('\n📚 Khóa: '+esc(hv.TenKhoa)):'')
+          +(tenLopXep?('\n🏫 Lớp: '+esc(tenLopXep)):'')
+          +(hv.SDT_PhuHuynh?('\n📞 '+esc(hv.SDT_PhuHuynh)):'')
+          +'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||'')+' · 🕐 '+new Date().toLocaleString('vi-VN'));
+      }
       if(coTaoHP && kqHP && kqHP.MaHD){
         if(confirm('✓ Đã thêm học viên '+maHVMoi+'\n✓ Đã tạo học phí: '+tien(hocPhiKhoa)+' đ\n\nThu tiền và in hóa đơn ngay bây giờ?')){
           moThuTienNgay(maHVMoi, kqHP.MaHD, hocPhiKhoa);
@@ -2608,6 +2789,12 @@ function xacNhanGanKhoa(inHD){
   .then(function(kqThu){
     dongModal();
     bao('✓ Đã gia hạn khóa '+k.TenKhoa+(daThu>0?(' · đã thu '+tien(daThu)+'đ'):' · chưa thu'));
+    var gioNow=new Date().toLocaleString('vi-VN');
+    guiTelegramQL('👔 <b>GIA HẠN / ĐĂNG KÝ KHÓA</b>\n👤 '+esc(h.HoTen)+' ('+esc(h.CoSo||'')+')'
+      +'\n📚 Khóa: <b>'+esc(k.TenKhoa)+'</b> · '+soBuoi+' buổi'
+      +(tenLop?('\n🏫 Lớp: '+esc(tenLop)):'')
+      +'\n💰 Học phí: '+tien(hocPhi)+'đ · '+(daThu>0?('<b>Đã thu '+tien(daThu)+'đ</b> ('+esc(hinhThuc)+')'):'<b>CHƯA THU</b>')
+      +'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||'')+' · 🕐 '+gioNow);
     goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
     if(inHD && kqThu && kqThu.MaPT){ inHoaDon(kqThu.MaPT); }
     else { if(inHD && daThu<=0) bao('Chưa đóng tiền nên không có hóa đơn để in.', true); moChiTiet(h.MaHV); }
@@ -2854,6 +3041,11 @@ function luuThuTien(maHD){
     nguoiThu: NguoiDung.hoTen
   }).then(function(kq){
     bao('Đã thu tiền · phiếu ' + kq.MaPT);
+    var hoTen=(ChiTiet&&ChiTiet.hocVien)?ChiTiet.hocVien.HoTen:''; var coSo=(ChiTiet&&ChiTiet.hocVien)?ChiTiet.hocVien.CoSo:'';
+    guiTelegramQL('👔 <b>THU HỌC PHÍ</b>\n👤 '+esc(hoTen)+' ('+esc(coSo||'')+')'
+      +'\n💰 Số tiền: <b>'+tien(document.getElementById('t_SoTien').value)+'đ</b> ('+esc(document.getElementById('t_HinhThuc').value)+')'
+      +(kq.conNo>0?('\n⚠️ Còn nợ: '+tien(kq.conNo)+'đ'):'\n✅ Đã đóng đủ')
+      +'\n🧾 Phiếu: '+esc(kq.MaPT)+'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||'')+' · 🕐 '+new Date().toLocaleString('vi-VN'));
     inHoaDon(kq.MaPT);
   }).catch(function(e){
     loi.textContent = e.message; loi.classList.remove('an'); khoaLuu(false);
