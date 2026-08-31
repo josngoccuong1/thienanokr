@@ -440,6 +440,13 @@ async function apiPost(d){
     return {};
   }catch(e){ console.error("apiPost(FB)",d.action,e); return {}; }
 }
+// Có form/hộp thoại nào đang mở không → để tạm dừng tự tải lại, tránh mất dữ liệu đang nhập
+function anyModalOpen(){
+  return !!(state.showBHModal||state.showBHServiceModal||state.showCCEmp||state.showMyAccount||state.showPlanForm||state.showTxForm||state.showLuongModal||state.showLoTrinhModal||state.showUserModal||state.showImport||state.showOKREditor||state.showStudentForm);
+}
+// Người dùng có đang gõ trong một ô nhập không
+function isTypingNow(){ var a=document.activeElement; return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
+
 async function loadActuals(){
   try{
     const d=await apiGet({action:"getActuals",quarter:state.quarter});
@@ -1199,7 +1206,7 @@ function enterApp(u){
       .then(()=>loadThuChiFromSheets("")).then(()=>render())
       .then(()=>doneLoading("Đã đồng bộ ✓"))
       .catch(()=>hideLoading());
-    setInterval(()=>{ if(state.screen==="app") loadActuals(); }, 30000);
+    setInterval(()=>{ if(state.screen==="app" && !anyModalOpen() && !isTypingNow()) loadActuals(); }, 30000);
   }, 500);
 }
 
