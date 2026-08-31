@@ -124,6 +124,22 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0F2F5;min-height:100vh
 .plan-status{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
 /* LUONG */
 .luong-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F5F5F5;flex-wrap:wrap}
+/* ===== POLISH: viền mềm + hover rõ ràng hơn (toàn app) ===== */
+.form-input:focus{border-color:#D4AF37;box-shadow:0 0 0 3px rgba(212,175,55,.18)}
+.tbl th{background:#F4F7FC;color:#3a4457;border-bottom:2px solid #E1E7F0}
+.tbl td{border-bottom:1px solid #EDF1F7}
+.tbl tbody tr:hover td{background:#F1F6FF}
+.okr-table th,.okr-table td{border-color:#E7ECF5}
+.okr-table tbody tr:not(.okr-sec):hover td{background:#F1F6FF}
+.card{border:1px solid #EEF1F8}
+.card:hover{box-shadow:0 6px 20px rgba(15,52,96,.12)}
+.main tbody tr:hover{outline:2px solid rgba(212,175,55,.45);outline-offset:-2px}
+.bh-card{transition:box-shadow .15s,transform .15s;border:1px solid #EEF1F8}
+.bh-card:hover{box-shadow:0 8px 22px rgba(15,52,96,.14);transform:translateY(-2px)}
+.plan-item:hover,.luong-row:hover{background:#F7FAFF;border-radius:8px}
+button{transition:filter .12s,transform .08s}
+.btn-primary:hover,.btn-success:hover,.btn-gold:hover{filter:brightness(1.06)}
+button:active{transform:scale(.97)}
 /* FOOTER */
 .footer{text-align:center;color:#bbb;font-size:10px;padding:14px 0 28px}
 </style>
@@ -1612,7 +1628,7 @@ window.goTab=function(id){
 // ===== TÀI KHOẢN CỦA TÔI (admin tự đổi tên đăng nhập + mật khẩu) =====
 function renderMyAccountModal(){
   const u=state.user||{};
-  return `<div class="modal-bg" onclick="if(event.target===this)maClose()">
+  return `<div class="modal-bg" onmousedown="if(event.target===this)maClose()">
     <div class="modal" style="max-width:430px">
       <h3 style="margin:0 0 6px">⚙️ Tài khoản của tôi</h3>
       <p style="font-size:12.5px;color:#666;margin:0 0 14px">Đổi tên đăng nhập / mật khẩu của Thầy. Lưu lên Firebase nên mọi thiết bị đều dùng được.</p>
@@ -2382,7 +2398,7 @@ function renderBHModal(){
   const E=state.bh_edit||{};
   const ea=s=>String(s==null?"":s).replace(/"/g,'&quot;');
   const loais=["Piano cơ Nhật","Piano điện","Guitar","Organ","Trống","Khác"];
-  return`<div class="modal-overlay" id="bhOverlay" onclick="if(event.target.id==='bhOverlay')bhClose()">
+  return`<div class="modal-overlay" id="bhOverlay" onmousedown="if(event.target.id==='bhOverlay')bhClose()">
    <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">${E.id?"✏️ Sửa hồ sơ":"➕ Thêm đàn bảo hành"}</span><button class="btn-sm" style="background:#eee" onclick="bhClose()">✕</button></div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:8px"><div class="form-label">Tên khách hàng *</div><input class="form-input" id="bh_khach" value="${ea(E.khach)}"/></div>
@@ -2401,7 +2417,7 @@ function renderBHModal(){
 }
 function renderBHServiceModal(){
   const today=new Date().toISOString().slice(0,10);
-  return`<div class="modal-overlay" id="bhSvOverlay" onclick="if(event.target.id==='bhSvOverlay')bhClose()">
+  return`<div class="modal-overlay" id="bhSvOverlay" onmousedown="if(event.target.id==='bhSvOverlay')bhClose()">
    <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">🗓 Thêm lần sửa / bảo dưỡng</span><button class="btn-sm" style="background:#eee" onclick="bhClose()">✕</button></div>
     <div class="modal-body">
       <div class="form-group" style="margin-bottom:8px"><div class="form-label">Ngày</div><input class="form-input" type="date" id="sv_ngay" value="${today}"/></div>
@@ -3078,7 +3094,7 @@ function renderCCluong(){
 /* ---------- MODAL: thêm/sửa nhân viên ---------- */
 function renderCCEmpModal(){
   const opts=CC_BOPHAN.map(b=>`<option value="${b}" ${state.cc_e_bophan===b?'selected':''}>${b}</option>`).join("");
-  return `<div class="modal-bg" onclick="if(event.target===this)ccCloseEmp()">
+  return `<div class="modal-bg" onmousedown="if(event.target===this)ccCloseEmp()">
     <div class="modal" style="max-width:420px">
       <h3 style="margin:0 0 14px">${state.cc_e_id?'✏️ Sửa nhân viên':'➕ Thêm nhân viên'}</h3>
       <label style="font-size:12px;font-weight:700;color:#555">Họ và tên</label>
