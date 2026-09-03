@@ -397,6 +397,7 @@ let state={
   notifs:[], showNotifPanel:false,
   crm:[], crm_filter:"all", showCRMModal:false, crm_edit:null, showCRMLog:false, crm_logFor:null,
   pp:{}, pp_mon:"Piano", showPPModal:false, pp_edit:null,
+  kho_sp:[], kho_tx:[], kho_view:"ton", kho_filter:"all", showSPModal:false, sp_edit:null, showKhoModal:false, kho_txType:"nhap", kho_txSp:"",
   // Plan
   plans:ls_get("ta_plans")||[],
   showPlanForm:false,
@@ -1222,6 +1223,7 @@ function enterApp(u){
   loadBaoHanh();
   loadCRM();
   loadPhuongPhap();
+  loadKho();
   loadChamCong();
   startNotifListener();
   initForegroundPush();
@@ -1480,6 +1482,7 @@ function renderApp(){
     {id:"phuongphap",label:"📚 Phương pháp",show:true},
     {id:"baohanh",label:"🛠 Bảo hành",show:true},
     {id:"crm",label:"🤝 CRM",show:true},
+    {id:"kho",label:"📦 Kho",show:true},
     {id:"plan",label:"🗓 Kế hoạch",show:true},
     {id:"luong",label:"💵 Lương",show:true},
     {id:"chamcong",label:"🕒 Chấm công",show:u.isAdmin},
@@ -1511,6 +1514,7 @@ function renderApp(){
     ${state.tab==="phuongphap"?renderPhuongPhap():""}
     ${state.tab==="baohanh"?renderBaoHanh():""}
     ${state.tab==="crm"?renderCRM():""}
+    ${state.tab==="kho"?renderKho():""}
     ${state.tab==="plan"?renderPlan():""}
     ${state.tab==="luong"?renderLuong():""}
     ${state.tab==="chamcong"?renderChamCong():""}
@@ -1528,6 +1532,8 @@ function renderApp(){
   ${state.showCRMModal?renderCRMModal():""}
   ${state.showCRMLog?renderCRMLogModal():""}
   ${state.showPPModal?renderPPModal():""}
+  ${state.showSPModal?renderSPModal():""}
+  ${state.showKhoModal?renderKhoTxModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showMyAccount?renderMyAccountModal():""}
   ${state.showNotifPanel?renderNotifPanel():""}
@@ -1568,6 +1574,7 @@ function renderHome(){
     {id:"luong",icon:"💵",label:"Lương",desc:"Bảng lương nhân viên",c:"#E67E22"},
     {id:"baohanh",icon:"🛠",label:"Bảo hành",desc:"Bảo hành & sửa chữa đàn",c:"#8E44AD"},
     {id:"crm",icon:"🤝",label:"CRM",desc:"Khách hàng, lead & chăm sóc",c:"#2980B9"},
+    {id:"kho",icon:"📦",label:"Kho",desc:"Nhập xuất tồn kho nhạc cụ",c:"#16A085"},
     {id:"plan",icon:"🗓",label:"Kế hoạch",desc:"Kế hoạch công việc",c:"#2980B9"},
     {id:"lotrinh",icon:"🎹",label:"Lộ trình",desc:"Lộ trình đào tạo",c:"#C0392B"},
     {id:"phuongphap",icon:"📚",label:"Phương pháp",desc:"Phương pháp đào tạo từng môn",c:"#0F3460"},
@@ -1650,6 +1657,7 @@ window.goTab=function(id){
     if(id==="lotrinh"){loadLoTrinhFromSheets();}
     if(id==="baohanh"){loadBaoHanh();}
     if(id==="crm"){loadCRM();}
+    if(id==="kho"){loadKho();}
     if(id==="phuongphap"){loadPhuongPhap();}
     if(id==="chamcong"){loadChamCong();}
   }catch(e){console.error("goTab",e);}
@@ -2493,6 +2501,155 @@ function renderLoTrinh(){
   </div>`;
 }
 
+// ===== 📦 KHO — NHẬP / XUẤT / TỒN (Firestore: ql_sanpham, ql_khohang) =====
+const KHO_CATS=["Piano cơ Nhật","Piano điện","Guitar","Organ","Trống","Phụ kiện","Khác"];
+function khoMoney(n){ return (Number(n)||0).toLocaleString('vi-VN')+"đ"; }
+function khoDate(x){ if(!x) return ""; var p=String(x).split("-"); return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):String(x); }
+function khoToday(){ return new Date().toISOString().slice(0,10); }
+function khoTon(spId){ var n=0; (state.kho_tx||[]).forEach(function(t){ if(t.spId===spId){ if(t.type==="nhap") n+=Number(t.qty)||0; else n-=Number(t.qty)||0; } }); return n; }
+function khoLow(sp){ var min=Number(sp.tonMin)||0; return khoTon(sp.id) <= min; }
+async function loadKho(showToast){
+  try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
+    var a=await qldb.collection("ql_sanpham").get(); state.kho_sp=a.docs.map(function(d){return d.data();});
+    var b=await qldb.collection("ql_khohang").get(); state.kho_tx=b.docs.map(function(d){return d.data();});
+    if((state.tab==="kho"||state.tab==="home")&&!state.showSPModal&&!state.showKhoModal) render();
+    if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
+  }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadKho",e); }
+}
+function khoLowCount(){ return (state.kho_sp||[]).filter(khoLow).length; }
+function renderKho(){
+  var v=state.kho_view||"ton";
+  var tb=function(id,label){ return '<button class="btn-sm" style="background:'+(v===id?'#0F3460':'#EEF1F8')+';color:'+(v===id?'#fff':'#334')+';font-weight:700;font-size:12.5px;padding:8px 15px" onclick="khoSetView(\''+id+'\')">'+label+'</button>'; };
+  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">'
+    + tb("ton","📊 Tồn kho") + tb("tx","🔄 Nhập / Xuất")
+    + '<div style="flex:1"></div>'
+    + '<button class="btn-sm btn-gold" style="font-size:11px;padding:7px 10px" onclick="loadKho(true)">🔄</button></div>'
+    + (v==="ton"?renderKhoTon():renderKhoTx());
+}
+function renderKhoTon(){
+  var admin=state.user&&state.user.isAdmin;
+  var sps=(state.kho_sp||[]).slice();
+  var f=state.kho_filter||"all";
+  var list = f==="all"?sps : (f==="low"?sps.filter(khoLow):sps.filter(function(s){return s.cat===f;}));
+  list=list.slice().sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""));});
+  var totalVal=0, totalQty=0; sps.forEach(function(s){ var t=khoTon(s.id); totalQty+=t; totalVal+=t*(Number(s.giaNhap)||0); });
+  var low=khoLowCount();
+  var stat=function(icon,val,label,c){ return '<div style="flex:1;min-width:150px;background:#fff;border:1px solid #EDF0F7;border-radius:14px;padding:15px 17px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(15,52,96,.05)"><div style="width:46px;height:46px;border-radius:12px;background:'+c+'22;display:flex;align-items:center;justify-content:center;font-size:22px">'+icon+'</div><div><div style="font-size:22px;font-weight:800;color:#1A1A2E;line-height:1">'+val+'</div><div style="font-size:12px;color:#8a94a6;margin-top:3px">'+label+'</div></div></div>'; };
+  var chip=function(label,val,active,color){ return '<button class="btn-sm" style="background:'+(active?(color||'#0F3460'):'#EEF1F8')+';color:'+(active?'#fff':'#334')+';font-weight:700;font-size:12px;padding:6px 11px" onclick="khoSetFilter(\''+val+'\')">'+label+'</button>'; };
+  var rows = list.length ? list.map(function(s){
+    var ton=khoTon(s.id); var lowF=khoLow(s);
+    var search=((s.name||"")+" "+(s.sku||"")+" "+(s.cat||"")).toLowerCase();
+    return '<div class="kho-card" data-search="'+ltAttr(search)+'" style="background:#fff;border:1px solid #EDF0F7;'+(lowF?'border-left:4px solid #E67E22;':'')+'border-radius:11px;padding:12px 15px;margin-bottom:9px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(15,52,96,.05)">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:800;color:#1A1A2E;font-size:14.5px">'+ltEsc(s.name||"")+(s.sku?' <span style="font-weight:500;color:#9aa3b2;font-size:12px">#'+ltEsc(s.sku)+'</span>':'')+'</div>'
+      +'<div style="font-size:12px;color:#667;margin-top:2px"><span style="background:#EEF1F8;padding:1px 7px;border-radius:5px">'+ltEsc(s.cat||"")+'</span> · Bán: '+khoMoney(s.giaBan)+'</div></div>'
+      +'<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:'+(lowF?'#E67E22':'#16A085')+'">'+ton+' <span style="font-size:12px;color:#9aa3b2;font-weight:500">'+ltEsc(s.unit||"cái")+'</span></div>'
+      +(lowF?'<div style="font-size:10.5px;color:#E67E22;font-weight:700">⚠️ Sắp hết</div>':'<div style="font-size:10.5px;color:#9aa3b2">Tồn kho</div>')+'</div>'
+      + (admin?'<div style="display:flex;flex-direction:column;gap:5px"><button class="btn-sm" style="background:#EEF1F8;color:#334;font-size:11px;padding:4px 8px" onclick="spOpen(\''+s.id+'\')">✏️</button></div>':'')
+      +'</div>';
+  }).join("") : '<div style="text-align:center;color:#9aa3b2;padding:30px 0">Chưa có sản phẩm. Bấm ➕ Thêm sản phẩm.</div>';
+  return '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'
+      + stat("📦",sps.length,"Loại sản phẩm","#16A085")
+      + stat("🔢",totalQty,"Tổng số lượng tồn","#2980B9")
+      + stat("💰",khoMoney(totalVal),"Giá trị tồn (giá nhập)","#0F3460")
+      + stat("⚠️",low,"Sắp hết hàng","#E67E22")
+    +'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">'
+      +'<button class="btn-success" style="font-size:13px;padding:8px 14px" onclick="spOpen(\'\')">➕ Thêm sản phẩm</button>'
+      +'<div style="flex:1"></div>'
+      +'<input class="form-input" placeholder="🔍 Tìm sản phẩm…" oninput="khoDoSearch(this.value)" style="max-width:200px"/></div>'
+    +'<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">'
+      + chip("Tất cả ("+sps.length+")","all",f==="all")
+      + chip("⚠️ Sắp hết ("+low+")","low",f==="low","#E67E22")
+      + KHO_CATS.map(function(c){return chip(c,c,f===c,"#16A085");}).join("")
+    +'</div>'
+    +'<div>'+rows+'</div>';
+}
+function renderKhoTx(){
+  var admin=state.user&&state.user.isAdmin;
+  var txs=(state.kho_tx||[]).slice().sort(function(a,b){return String(b.date||"").localeCompare(String(a.date||""))||String(b.created||"").localeCompare(String(a.created||""));});
+  var rows = txs.length ? txs.slice(0,200).map(function(t){
+    var isN=t.type==="nhap";
+    return '<div style="background:#fff;border:1px solid #EDF0F7;border-left:4px solid '+(isN?'#27AE60':'#E74C3C')+';border-radius:10px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">'
+      +'<div style="width:42px;height:42px;border-radius:10px;background:'+(isN?'#E8F8F0':'#FDEDEC')+';display:flex;align-items:center;justify-content:center;font-size:18px">'+(isN?'📥':'📤')+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;color:#1A1A2E;font-size:13.5px">'+ltEsc(t.spName||"")+'</div>'
+      +'<div style="font-size:11.5px;color:#8a94a6;margin-top:2px">'+khoDate(t.date)+(t.partner?' · '+ltEsc(t.partner):'')+(t.note?' · '+ltEsc(t.note):'')+'</div></div>'
+      +'<div style="text-align:right"><div style="font-weight:800;font-size:15px;color:'+(isN?'#27AE60':'#E74C3C')+'">'+(isN?'+':'−')+t.qty+'</div>'+(t.price?'<div style="font-size:11px;color:#9aa3b2">'+khoMoney(t.price)+'</div>':'')+'</div>'
+      + (admin?'<button class="btn-sm" style="background:#FDEDEC;color:#E74C3C;font-size:11px;padding:4px 8px" onclick="khoTxDel(\''+t.id+'\')">🗑</button>':'')
+      +'</div>';
+  }).join("") : '<div style="text-align:center;color:#9aa3b2;padding:30px 0">Chưa có phiếu nhập/xuất nào.</div>';
+  return '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button class="btn-sm" style="background:#27AE60;color:#fff;font-size:13px;padding:9px 16px;font-weight:700" onclick="khoTxOpen(\'nhap\')">📥 Nhập kho</button>'
+      +'<button class="btn-sm" style="background:#E74C3C;color:#fff;font-size:13px;padding:9px 16px;font-weight:700" onclick="khoTxOpen(\'xuat\')">📤 Xuất kho</button>'
+    +'</div><div>'+rows+'</div>';
+}
+function renderSPModal(){
+  var E=state.sp_edit||{};
+  var opt=KHO_CATS.map(function(c){return '<option'+(c===E.cat?' selected':'')+'>'+c+'</option>';}).join("");
+  return '<div class="modal-overlay" id="spOverlay" onmousedown="if(event.target.id===\'spOverlay\')spClose()">'
+   +'<div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">'+(E.id?"✏️ Sửa sản phẩm":"➕ Thêm sản phẩm")+'</span><button class="btn-sm" style="background:#eee" onclick="spClose()">✕</button></div>'
+    +'<div class="modal-body">'
+      +'<div class="form-group" style="margin-bottom:8px"><div class="form-label">Tên sản phẩm *</div><input class="form-input" id="sp_name" value="'+ltAttr(E.name)+'"/></div>'
+      +'<div class="form-row"><div class="form-group"><div class="form-label">Loại</div><select class="form-input" id="sp_cat">'+opt+'</select></div>'
+      +'<div class="form-group"><div class="form-label">Mã / SKU</div><input class="form-input" id="sp_sku" value="'+ltAttr(E.sku)+'"/></div></div>'
+      +'<div class="form-row"><div class="form-group"><div class="form-label">Đơn vị</div><input class="form-input" id="sp_unit" value="'+ltAttr(E.unit||"cái")+'"/></div>'
+      +'<div class="form-group"><div class="form-label">Tồn tối thiểu (cảnh báo)</div><input class="form-input" type="number" id="sp_tonMin" value="'+(E.tonMin!=null?E.tonMin:1)+'"/></div></div>'
+      +'<div class="form-row"><div class="form-group"><div class="form-label">Giá nhập (đ)</div><input class="form-input" type="number" id="sp_giaNhap" value="'+(E.giaNhap!=null?E.giaNhap:0)+'"/></div>'
+      +'<div class="form-group"><div class="form-label">Giá bán (đ)</div><input class="form-input" type="number" id="sp_giaBan" value="'+(E.giaBan!=null?E.giaBan:0)+'"/></div></div>'
+      + (E.id?'':'<div class="form-group" style="margin-bottom:10px"><div class="form-label">Tồn đầu kỳ (nhập kho ban đầu)</div><input class="form-input" type="number" id="sp_tonDau" value="0"/></div>')
+      +'<button class="btn-primary" style="width:100%" onclick="spSave()">💾 Lưu</button>'
+      + (admin_del()&&E.id?'<button class="btn-sm" style="width:100%;background:#FDEDEC;color:#E74C3C;margin-top:8px" onclick="spDel(\''+E.id+'\')">🗑 Xóa sản phẩm</button>':'')
+    +'</div></div></div>';
+}
+function admin_del(){ return state.user&&state.user.isAdmin; }
+function renderKhoTxModal(){
+  var type=state.kho_txType||"nhap"; var isN=type==="nhap";
+  var sps=(state.kho_sp||[]).slice().sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""));});
+  var opt=sps.map(function(s){return '<option value="'+ltAttr(s.id)+'"'+(s.id===state.kho_txSp?' selected':'')+'>'+ltEsc(s.name||"")+' (tồn '+khoTon(s.id)+')</option>';}).join("");
+  return '<div class="modal-overlay" id="ktOverlay" onmousedown="if(event.target.id===\'ktOverlay\')khoTxClose()">'
+   +'<div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">'+(isN?'📥 Nhập kho':'📤 Xuất kho')+'</span><button class="btn-sm" style="background:#eee" onclick="khoTxClose()">✕</button></div>'
+    +'<div class="modal-body">'
+      + (sps.length? (
+        '<div class="form-group" style="margin-bottom:8px"><div class="form-label">Sản phẩm *</div><select class="form-input" id="kt_sp">'+opt+'</select></div>'
+        +'<div class="form-row"><div class="form-group"><div class="form-label">Số lượng *</div><input class="form-input" type="number" id="kt_qty" value="1"/></div>'
+        +'<div class="form-group"><div class="form-label">'+(isN?'Giá nhập/đơn vị':'Giá bán/đơn vị')+' (đ)</div><input class="form-input" type="number" id="kt_price" value="0"/></div></div>'
+        +'<div class="form-row"><div class="form-group"><div class="form-label">Ngày</div><input class="form-input" type="date" id="kt_date" value="'+khoToday()+'"/></div>'
+        +'<div class="form-group"><div class="form-label">'+(isN?'Nhà cung cấp':'Khách hàng')+'</div><input class="form-input" id="kt_partner"/></div></div>'
+        +'<div class="form-group" style="margin-bottom:12px"><div class="form-label">Ghi chú</div><input class="form-input" id="kt_note"/></div>'
+        +'<button class="btn-primary" style="width:100%;background:'+(isN?'#27AE60':'#E74C3C')+'" onclick="khoTxSave()">💾 Lưu phiếu '+(isN?'nhập':'xuất')+'</button>'
+      ) : '<div style="text-align:center;color:#9aa3b2;padding:20px">Chưa có sản phẩm nào. Vào tab <b>📊 Tồn kho</b> → ➕ Thêm sản phẩm trước.</div>')
+    +'</div></div></div>';
+}
+window.khoSetView=function(v){ setState({kho_view:v}); };
+window.khoSetFilter=function(f){ setState({kho_filter:f}); };
+window.khoDoSearch=function(q){ q=(q||"").toLowerCase().trim(); document.querySelectorAll(".kho-card").forEach(function(c){ c.style.display=(!q||(c.dataset.search||"").indexOf(q)>=0)?"":"none"; }); };
+window.spOpen=function(id){ var r=(state.kho_sp||[]).find(function(x){return x.id===id;}); state.sp_edit=r?JSON.parse(JSON.stringify(r)):{}; setState({showSPModal:true}); };
+window.spClose=function(){ setState({showSPModal:false,sp_edit:null}); };
+window.spSave=async function(){
+  var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
+  var name=g("sp_name").trim(); if(!name){ alert("Nhập tên sản phẩm"); return; }
+  var E=state.sp_edit||{};
+  var rec={ id:E.id||("SP"+Date.now()), name:name, cat:g("sp_cat"), sku:g("sp_sku").trim(), unit:g("sp_unit").trim()||"cái", tonMin:Number(g("sp_tonMin"))||0, giaNhap:Number(g("sp_giaNhap"))||0, giaBan:Number(g("sp_giaBan"))||0, created:E.created||new Date().toISOString() };
+  try{
+    await qldb.collection("ql_sanpham").doc(rec.id).set(rec);
+    var arr=(state.kho_sp||[]).filter(function(x){return x.id!==rec.id;}); arr.push(rec); state.kho_sp=arr;
+    if(!E.id){ var td=Number(g("sp_tonDau"))||0; if(td>0){ var tx={ id:"KX"+Date.now(), type:"nhap", spId:rec.id, spName:rec.name, qty:td, price:rec.giaNhap, date:khoToday(), partner:"Tồn đầu kỳ", note:"", by:(state.user&&state.user.name)||"", created:new Date().toISOString() }; await qldb.collection("ql_khohang").doc(tx.id).set(tx); state.kho_tx=(state.kho_tx||[]).concat([tx]); } }
+    setState({showSPModal:false,sp_edit:null});
+  }catch(e){ alert("Lỗi lưu: "+(e&&e.message?e.message:e)); }
+};
+window.spDel=async function(id){ if(!confirm("Xóa sản phẩm này? (Lịch sử nhập/xuất vẫn giữ)")) return; try{ await qldb.collection("ql_sanpham").doc(id).delete(); state.kho_sp=(state.kho_sp||[]).filter(function(x){return x.id!==id;}); setState({showSPModal:false,sp_edit:null}); }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); } };
+window.khoTxOpen=function(type){ state.kho_txType=type; state.kho_txSp=""; setState({showKhoModal:true}); };
+window.khoTxClose=function(){ setState({showKhoModal:false}); };
+window.khoTxSave=async function(){
+  var g=function(id){var el=document.getElementById(id);return el?el.value:"";};
+  var spId=g("kt_sp"); var sp=(state.kho_sp||[]).find(function(x){return x.id===spId;}); if(!sp){ alert("Chọn sản phẩm"); return; }
+  var qty=Number(g("kt_qty"))||0; if(qty<=0){ alert("Số lượng phải > 0"); return; }
+  var type=state.kho_txType||"nhap";
+  if(type==="xuat" && qty>khoTon(spId)){ if(!confirm("Số lượng xuất ("+qty+") lớn hơn tồn kho ("+khoTon(spId)+"). Vẫn xuất?")) return; }
+  var rec={ id:"KX"+Date.now()+Math.floor(Math.random()*90+10), type:type, spId:spId, spName:sp.name, qty:qty, price:Number(g("kt_price"))||0, date:g("kt_date")||khoToday(), partner:g("kt_partner").trim(), note:g("kt_note").trim(), by:(state.user&&state.user.name)||"", created:new Date().toISOString() };
+  try{ await qldb.collection("ql_khohang").doc(rec.id).set(rec); state.kho_tx=(state.kho_tx||[]).concat([rec]); setState({showKhoModal:false}); }catch(e){ alert("Lỗi lưu: "+(e&&e.message?e.message:e)); }
+};
+window.khoTxDel=async function(id){ if(!confirm("Xóa phiếu này? (tồn kho sẽ tính lại)")) return; try{ await qldb.collection("ql_khohang").doc(id).delete(); state.kho_tx=(state.kho_tx||[]).filter(function(x){return x.id!==id;}); render(); }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); } };
+
 // ===== 📚 PHƯƠNG PHÁP ĐÀO TẠO (Firestore: ql_phuongphap) =====
 const PP_MON=["Piano","Guitar","Organ","Thanh nhạc","Violin","Trống"];
 const PP_PIANO_DEFAULT=[
@@ -3156,6 +3313,7 @@ function attachEvents(){
     if(b.dataset.tab==="lotrinh"){ loadLoTrinhFromSheets(); }
     if(b.dataset.tab==="baohanh"){ loadBaoHanh(); }
     if(b.dataset.tab==="crm"){ loadCRM(); }
+    if(b.dataset.tab==="kho"){ loadKho(); }
     if(b.dataset.tab==="phuongphap"){ loadPhuongPhap(); }
     if(b.dataset.tab==="chamcong"){ loadChamCong(); }
   }));
