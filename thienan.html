@@ -265,8 +265,7 @@ nav button.chon .ic{color:var(--gold-2)}
 .navDrop{position:relative;display:inline-flex}
 .navDropMenu{position:absolute;top:100%;left:0;min-width:230px;background:#fff;border:1px solid var(--vien);border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
 .navDrop:hover .navDropMenu{display:block}
-.navDrop::after{content:"";position:absolute;top:100%;left:0;right:0;height:12px}
-.navDrop:hover .navDropMenu{display:block}
+.navDrop.mo .navDropMenu{display:block}
 .navDropMenu a{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:8px;color:#374151;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
 .navDropMenu a .ic{font-size:19px;color:#64748b}
 .navDropMenu a:hover{background:linear-gradient(180deg,#1b3c6b,#12294d);color:#fff}
@@ -373,7 +372,7 @@ main section{animation:hienLen .25s ease}
   <nav>
     <button id="tab-trangchu" class="chon" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
     <div class="navDrop">
-      <button id="tab-hocvien" onclick="doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
+      <button id="tab-hocvien" onclick="navToggle(this,event)||doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="doiTab('hocvien')"><span class="ic">groups</span> Tất cả học viên</a>
         <a onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_bottom</span> Học sinh sắp hết khóa</a>
@@ -381,12 +380,13 @@ main section{animation:hienLen .25s ease}
         <a onclick="moLocTT('Bảo lưu')"><span class="ic">bookmark</span> Học sinh bảo lưu</a>
         <a onclick="moLocTT('Đã nghỉ')"><span class="ic">person_off</span> Học sinh đã nghỉ</a>
         <a onclick="moBaoCaoThue()"><span class="ic">receipt_long</span> Học sinh báo cáo thuế</a>
+        <a onclick="moNhacHangLoat()"><span class="ic">campaign</span> 📣 Nhắc học phí hàng loạt</a>
       </div>
     </div>
     <button id="tab-lop" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
     <button id="tab-khoahoc" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
     <div class="navDrop">
-      <button id="tab-diemdanh" onclick="doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
+      <button id="tab-diemdanh" onclick="navToggle(this,event)||doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="ddReport('diemdanh')"><span class="ic">how_to_reg</span> Điểm danh hôm nay</a>
         <a onclick="ddReport('ngay')"><span class="ic">today</span> Báo cáo theo ngày</a>
@@ -399,7 +399,7 @@ main section{animation:hienLen .25s ease}
     </div>
     <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
     <div class="navDrop">
-      <button id="tab-baocao" onclick="doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
+      <button id="tab-baocao" onclick="navToggle(this,event)||doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="bcSub('doanhthu')"><span class="ic">payments</span> Doanh thu & tăng trưởng HS</a>
         <a onclick="bcSub('doanhthu')"><span class="ic">calendar_month</span> Doanh thu theo tháng</a>
@@ -410,7 +410,7 @@ main section{animation:hienLen .25s ease}
       </div>
     </div>
     <div class="navDrop">
-      <button id="tab-crm" onclick="doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
+      <button id="tab-crm" onclick="navToggle(this,event)||doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="moCrmSub('tuvan')"><span class="ic">person_search</span> Khách tiềm năng</a>
         <a onclick="moCrmSub('chamsoc')"><span class="ic">phone_in_talk</span> Lịch hẹn chăm sóc</a>
@@ -672,6 +672,39 @@ main section{animation:hienLen .25s ease}
         <button class="nutPhu" onclick="xemWebBaoCaoThue()" style="border-color:#0f7a4d;color:#0f7a4d">🖨️ Xem/In dạng web</button>
       </div>
       <div class="the"><div id="bctKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
+
+    <!-- TRANG NHẮC HỌC PHÍ HÀNG LOẠT -->
+    <section id="vung-nhachangloat" class="an">
+      <div class="the" style="padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;color:#12294d;margin-bottom:10px">📣 Nhắc học phí / sắp hết khóa hàng loạt</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+          <span style="font-size:13px;color:#6b7280">Gửi cho:</span>
+          <select id="nhLoc" onchange="veNhacHangLoat()" style="min-width:220px">
+            <option value="hetkhoa">Em sắp hết khóa (còn ít buổi)</option>
+            <option value="no">Em còn nợ học phí</option>
+            <option value="ca2">Sắp hết khóa HOẶC còn nợ</option>
+            <option value="tatca">TẤT CẢ phụ huynh (thông báo / sự kiện)</option>
+          </select>
+          <span style="font-size:13px;color:#6b7280" id="nhNguongWrap">Còn ≤ <input type="number" id="nhConLai" value="3" min="0" style="width:60px" onchange="veNhacHangLoat()"> buổi</span>
+          <select id="nhCoSo" onchange="veNhacHangLoat()" style="min-width:130px"><option value="">Tất cả CS</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span style="font-size:12.5px;color:#6b7280;align-self:center">Mẫu nhanh:</span>
+          <button class="nutNho vien" onclick="chonMauTin('hocphi')">Nhắc học phí</button>
+          <button class="nutNho vien" onclick="chonMauTin('hetkhoa')">Sắp hết khóa</button>
+          <button class="nutNho vien" onclick="chonMauTin('nghi')">Lịch nghỉ</button>
+          <button class="nutNho vien" onclick="chonMauTin('sukien')">Sự kiện</button>
+          <button class="nutNho vien" onclick="chonMauTin('chucmung')">Chúc mừng</button>
+        </div>
+        <label style="font-size:13px;color:#48566b;font-weight:600">Mẫu tin nhắn (dùng: {ten} {tenhs} {conlai} {khoa} {no} — sẽ tự thay)</label>
+        <textarea id="nhMau" rows="4" style="width:100%;margin-top:6px" oninput="veNhacHangLoat()">Học viện Âm nhạc Thiên Ân xin thông báo: bé {tenhs} còn {conlai} buổi là hết khóa {khoa}. Kính mời quý phụ huynh sắp xếp gia hạn khóa mới để bé học liên tục ạ. Xin cảm ơn!</textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="nutChinh" onclick="copyTatCaSDTNhac()">📋 Copy tất cả SĐT</button>
+          <span id="nhTong" style="font-size:13px;color:#6b7280;align-self:center"></span>
+        </div>
+      </div>
+      <div class="the"><div id="nhKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
 
     <!-- TRANG LỊCH NHẮC HỌC SINH -->
@@ -977,6 +1010,7 @@ async function goi(hanhDong, dl){
     case 'chuyenHV':         return await fbChuyenHV(dl);
     case 'layChamSoc':       return await docsCol('chamsoc');
     case 'luuChamSoc':       return await fbLuuChamSoc(dl);
+    case 'danhDauLienHe':    return await fbDanhDauLienHe(dl);
     case 'xongViec':         return await fbXongViec(dl);
     case 'giuChan':          return await fbGiuChan(dl);
     case 'baoCaoDiemDanh':   return await fbBaoCaoDiemDanh(dl);
@@ -1052,7 +1086,7 @@ async function fbLuuHocVien(dl){
   var laMoi = !String(hv.MaHV||'').trim();
   var maHV=String(hv.MaHV||'').trim() || sinhMaMoi('HV', TatCaHV, 'MaHV');
   var obj={};
-  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa','LichSuKhoa','CacKhoa'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
+  ['HoTen','NgaySinh','GioiTinh','TenPhuHuynh','SDT_PhuHuynh','DiaChi','CoSo','NgayNhapHoc','TrangThai','GhiChu','MaKhoa','TenKhoa','SoBuoiKhoa','DaHocKhoa','NgayHoc','NgayBatDauKhoa','LichSuKhoa','CacKhoa','LienHe'].forEach(function(k){ if(hv[k]!==undefined) obj[k]=hv[k]; });
   obj.MaHV=maHV; if(!obj.TrangThai) obj.TrangThai='Đang học';
   if(laMoi){ var _n=new Date(); obj.NgayTao=_n.toLocaleDateString('vi-VN'); obj.ThangTao=_n.getFullYear()+'-'+('0'+(_n.getMonth()+1)).slice(-2); }
   obj.NgayCapNhat=new Date().toLocaleString('vi-VN'); obj.NguoiCapNhat=dl.nguoiDung||'';
@@ -1388,7 +1422,7 @@ async function fbSapHetKhoa(dl){
       var soBuoi=soTienJS(h.SoBuoiKhoa); var dh=soTienJS(h.DaHocKhoa); var conLai=soBuoi-dh;
       var kh=khMap[h.MaKhoa]||{}; var hp=hpMap[h.MaHV];
       var ttHP = hp ? ((hp.phaiThu-hp.daThu)<=0 && hp.phaiThu>0 ? 'Đã đóng' : (hp.daThu>0?'Còn nợ':'Chưa đóng')) : '—';
-      return {MaHV:h.MaHV,HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),Lop:lopMap[h.MaHV]||'',TenKhoa:h.TenKhoa||'',NgayHoc:h.NgayHoc||'',SoBuoi:soBuoi,DaHoc:dh,ConLai:conLai,HocPhi:kh.GiaTien||0,NgayDong:payDate[h.MaHV]||'',TTHocPhi:ttHP,TrangThai:conLai>0?'Chưa hoàn thành':'Hoàn thành'};
+      return {MaHV:h.MaHV,HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),Lop:lopMap[h.MaHV]||'',TenKhoa:h.TenKhoa||'',NgayHoc:h.NgayHoc||'',SoBuoi:soBuoi,DaHoc:dh,ConLai:conLai,HocPhi:kh.GiaTien||0,NgayDong:payDate[h.MaHV]||'',TTHocPhi:ttHP,TrangThai:conLai>0?'Chưa hoàn thành':'Hoàn thành',LienHe:h.LienHe||null};
     })
     .filter(function(r){return r.ConLai<=nguong;})
     .sort(function(a,b){return a.ConLai-b.ConLai;});
@@ -1644,8 +1678,13 @@ async function fbChuyenHV(dl){
   await FB.setDoc(FB.doc(FB.db,'khachhang',maKH), {TrangThai:'Đăng ký', MaHV_DaChuyen:maHV, NgayCapNhat:n.toLocaleString('vi-VN')}, {merge:true});
   return {MaHV:maHV};
 }
-async function fbLuuChamSoc(dl){
-  var c=dl.chamSoc;
+async function fbDanhDauLienHe(dl){
+  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
+  var nay=new Date(); var iso=nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
+  await FB.setDoc(FB.doc(FB.db,'hocvien',maHV), {LienHe:{ngay:iso, nguoi:String(dl.nguoi||''), ghiChu:String(dl.ghiChu||'')}}, {merge:true});
+  return {ok:true};
+}
+async function fbLuuChamSoc(dl){  var c=dl.chamSoc;
   if(!String(c.NoiDung||'').trim()) throw new Error('Chưa nhập nội dung.');
   var ma='CS'+Date.now().toString(36).toUpperCase();
   var n=new Date();
@@ -2297,12 +2336,33 @@ window.onFbReady = function(){
 };
 
 /* ---------- Tab ---------- */
+// Menu con trên điện thoại: chạm nút cha để mở/đóng; chạm ngoài hoặc chọn mục thì đóng
+var _navCham = ('ontouchstart' in window) || (navigator.maxTouchPoints>0) || (window.innerWidth<=820);
+function navToggle(btn, ev){
+  if(!_navCham) return false; // máy tính: dùng rê chuột như cũ
+  var drop = btn.closest ? btn.closest('.navDrop') : btn.parentNode;
+  if(!drop) return false;
+  var dangMo = drop.classList.contains('mo');
+  document.querySelectorAll('.navDrop.mo').forEach(function(d){ d.classList.remove('mo'); });
+  if(!dangMo){ drop.classList.add('mo'); }
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  return true; // đã xử lý → không chạy hành động doiTab của nút cha
+}
+function dongNavMenu(){ document.querySelectorAll('.navDrop.mo').forEach(function(d){ d.classList.remove('mo'); }); }
+document.addEventListener('click', function(e){
+  if(!e.target.closest || !e.target.closest('.navDrop')) dongNavMenu();
+});
+// Chọn 1 mục trong menu con → đóng menu
+document.addEventListener('click', function(e){
+  var a=e.target.closest ? e.target.closest('.navDropMenu a') : null;
+  if(a) setTimeout(dongNavMenu, 10);
+});
 function doiTab(ten){
   ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
-  ['tamnghi','lichhoc','loctt','baocaothue'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
+  ['tamnghi','lichhoc','loctt','baocaothue','nhachangloat'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
   if(ten==='trangchu') napTrangChu();
   if(ten==='nguoidung') napNguoiDung();
   if(ten==='hocvien') lamMoiDsHocVien();
@@ -2797,7 +2857,7 @@ function xacNhanGanKhoa(inHD){
     if(String(h.MaKhoa||'').trim() && sbCu>0){ var soKhoaCu=Math.max(1,Math.ceil(coMatHienCo/sbCu)); for(var i=0;i<soKhoaCu;i++){ cacKhoa.push({TenKhoa:h.TenKhoa,SoBuoi:sbCu,MaKhoa:h.MaKhoa}); } }
   }
   cacKhoa.push({TenKhoa:k.TenKhoa, SoBuoi:soBuoi, MaKhoa:k.MaKhoa});
-  var hv = { _dong:h._dong, MaHV:h.MaHV, HoTen:h.HoTen, NgaySinh:h.NgaySinh, GioiTinh:h.GioiTinh, TenPhuHuynh:h.TenPhuHuynh, SDT_PhuHuynh:h.SDT_PhuHuynh, DiaChi:h.DiaChi, CoSo:h.CoSo, NgayNhapHoc:h.NgayNhapHoc, TrangThai:h.TrangThai, GhiChu:h.GhiChu, NgayHoc:h.NgayHoc, Lop:tenLop||h.Lop, MaKhoa:k.MaKhoa, TenKhoa:k.TenKhoa, SoBuoiKhoa:soBuoi, CacKhoa:cacKhoa };
+  var hv = { _dong:h._dong, MaHV:h.MaHV, HoTen:h.HoTen, NgaySinh:h.NgaySinh, GioiTinh:h.GioiTinh, TenPhuHuynh:h.TenPhuHuynh, SDT_PhuHuynh:h.SDT_PhuHuynh, DiaChi:h.DiaChi, CoSo:h.CoSo, NgayNhapHoc:h.NgayNhapHoc, TrangThai:h.TrangThai, GhiChu:h.GhiChu, NgayHoc:h.NgayHoc, Lop:tenLop||h.Lop, MaKhoa:k.MaKhoa, TenKhoa:k.TenKhoa, SoBuoiKhoa:soBuoi, CacKhoa:cacKhoa, LienHe:null };
   var nay=new Date(); var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear();
   var maHDLuu='';
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen})
@@ -3262,7 +3322,7 @@ function napDsDiemDanh(){
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
 function _anMoiVung(tabChon){
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung','tamnghi','lichhoc','loctt','baocaothue'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung','tamnghi','lichhoc','loctt','baocaothue','nhachangloat'].forEach(function(t){
     var b=document.getElementById('tab-'+t); if(b) b.classList.remove('chon');
     var v=document.getElementById('vung-'+t); if(v) v.classList.add('an');
   });
@@ -3270,6 +3330,94 @@ function _anMoiVung(tabChon){
 }
 function _ngayTuChuoi(s){ var m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m?new Date(+m[3],+m[2]-1,+m[1]):null; }
 var _bctDs=[];
+var _nhDs=[];
+function chonMauTin(loai){
+  var mau={
+    hocphi:'Học viện Âm nhạc Thiên Ân thông báo: học phí của bé {tenhs} hiện đang {no}. Kính mời quý phụ huynh sắp xếp đóng học phí giúp bé ạ. Xin cảm ơn! ĐT: 0977106286',
+    hetkhoa:'Học viện Âm nhạc Thiên Ân xin thông báo: bé {tenhs} còn {conlai} buổi là hết khóa {khoa}. Kính mời quý phụ huynh gia hạn khóa mới để bé học liên tục ạ. Xin cảm ơn!',
+    nghi:'Học viện Âm nhạc Thiên Ân xin thông báo lịch NGHỈ: [ghi ngày nghỉ]. Các bé sẽ học bù vào [ghi ngày học bù]. Kính mong quý phụ huynh lưu ý. Xin cảm ơn!',
+    sukien:'Học viện Âm nhạc Thiên Ân trân trọng kính mời phụ huynh và bé {tenhs} tham gia chương trình [tên sự kiện] vào lúc [thời gian] tại [địa điểm]. Rất mong được đón tiếp gia đình mình!',
+    chucmung:'Học viện Âm nhạc Thiên Ân xin chúc mừng bé {tenhs} và gia đình! Chúc bé luôn chăm ngoan, học giỏi và yêu âm nhạc. Trân trọng!'
+  };
+  var el=document.getElementById('nhMau'); if(el){ el.value=mau[loai]||el.value; veNhacHangLoat(); }
+}
+function moNhacHangLoat(){
+  _anMoiVung('hocvien');
+  var v=document.getElementById('vung-nhachangloat'); if(v) v.classList.remove('an');
+  veNhacHangLoat();
+}
+function veNhacHangLoat(){
+  var box=document.getElementById('nhKetQua'); if(!box) return;
+  var loc=(document.getElementById('nhLoc')||{}).value||'hetkhoa';
+  var nguong=parseInt((document.getElementById('nhConLai')||{}).value||'3',10); if(isNaN(nguong))nguong=3;
+  var coSo=(document.getElementById('nhCoSo')||{}).value||'';
+  var mau=(document.getElementById('nhMau')||{}).value||'';
+  var nw=document.getElementById('nhNguongWrap'); if(nw) nw.style.display=(loc==='hetkhoa'||loc==='ca2')?'inline':'none';
+  var ds=[];
+  TatCaHV.forEach(function(h){
+    if(String(h.TrangThai||'')==='Đã nghỉ') return;
+    if(coSo && h.CoSo!==coSo) return;
+    var bs=(typeof MapBoSung!=='undefined'?MapBoSung[h.MaHV]:null)||{};
+    var conLai=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):null;
+    var ttHP=bs.TTHocPhi||'';
+    var noHP=(ttHP==='Còn nợ'||ttHP==='Chưa đóng');
+    var sapHet=(conLai!==null && conLai<=nguong);
+    var nhan=false;
+    if(loc==='hetkhoa') nhan=sapHet;
+    else if(loc==='no') nhan=noHP;
+    else if(loc==='ca2') nhan=sapHet||noHP;
+    else nhan=true; // tatca
+    if(!nhan) return;
+    if(!h.SDT_PhuHuynh) return;
+    ds.push({h:h, conLai:conLai===null?'':conLai, khoa:bs.TenKhoaHT||h.TenKhoa||'', ttHP:ttHP});
+  });
+  ds.sort(function(a,b){ return (a.conLai===''?99:a.conLai)-(b.conLai===''?99:b.conLai); });
+  _nhDs=ds;
+  var tong=document.getElementById('nhTong'); if(tong) tong.textContent=ds.length+' phụ huynh';
+  if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có phụ huynh nào khớp điều kiện.</div>'; return; }
+  box.innerHTML = '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Cơ sở</th><th>Còn lại</th><th>SĐT</th><th>Liên hệ</th><th>Tin nhắn</th><th>Gửi</th></tr></thead><tbody>'
+    + ds.map(function(x,i){
+        var h=x.h; var tin=soanTin(mau, x);
+        var sdt=String(h.SDT_PhuHuynh||'').replace(/[^0-9]/g,'');
+        var lh=h.LienHe;
+        var lhHtml = (lh&&lh.ngay) ? '<span class="nhan hoc" style="font-size:11px">✓ '+esc(lh.ngay.split('-').reverse().join('/'))+'</span>' : '<button class="nutNho" style="background:#0f7a4d;font-size:11px" onclick="danhDauLienHe(\''+esc(h.MaHV)+'\',\''+esc(h.HoTen)+'\')">Đã LH</button>';
+        return '<tr><td>'+(i+1)+'</td>'
+          + '<td><strong>'+esc(h.HoTen)+'</strong></td>'
+          + '<td>'+esc(h.CoSo||'')+'</td>'
+          + '<td style="text-align:center">'+(x.conLai===''?'—':'<span class="nhan '+(x.conLai<=0?'nghi':(x.conLai<=3?'no':'hoc'))+'">'+x.conLai+'</span>')+'</td>'
+          + '<td>'+esc(h.SDT_PhuHuynh||'')+'</td>'
+          + '<td>'+lhHtml+'</td>'
+          + '<td style="max-width:260px;font-size:12.5px;color:#48566b">'+esc(tin)+'</td>'
+          + '<td style="white-space:nowrap">'
+            + '<a class="nutNho" style="background:#0068ff;text-decoration:none" href="https://zalo.me/'+esc(sdt)+'" target="_blank">Zalo</a> '
+            + '<a class="nutNho vien" style="text-decoration:none" href="sms:'+esc(sdt)+'?body='+encodeURIComponent(tin)+'">SMS</a> '
+            + '<button class="nutNho" onclick="copyTin('+i+')">Copy</button>'
+          + '</td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+}
+function soanTin(mau, x){
+  var h=x.h;
+  return String(mau||'')
+    .replace(/\{tenhs\}/g, h.HoTen||'')
+    .replace(/\{ten\}/g, h.TenPhuHuynh||h.HoTen||'')
+    .replace(/\{conlai\}/g, x.conLai===''?'':x.conLai)
+    .replace(/\{khoa\}/g, x.khoa||'')
+    .replace(/\{no\}/g, x.ttHP||'');
+}
+function copyTin(i){
+  var x=_nhDs[i]; if(!x) return;
+  var mau=(document.getElementById('nhMau')||{}).value||'';
+  var tin=soanTin(mau, x);
+  if(navigator.clipboard){ navigator.clipboard.writeText(tin).then(function(){ bao('✓ Đã copy tin nhắn của '+x.h.HoTen); }); }
+  else prompt('Copy tin:', tin);
+}
+function copyTatCaSDTNhac(){
+  if(!_nhDs.length){ bao('Không có phụ huynh nào.', true); return; }
+  var sdt=_nhDs.map(function(x){return x.h.SDT_PhuHuynh;}).filter(function(s){return s;}).join(', ');
+  if(navigator.clipboard){ navigator.clipboard.writeText(sdt).then(function(){ bao('✓ Đã copy '+_nhDs.length+' SĐT'); }); }
+  else prompt('Copy SĐT:', sdt);
+}
 function moBaoCaoThue(){
   _anMoiVung('hocvien');
   var v=document.getElementById('vung-baocaothue'); if(v) v.classList.remove('an');
@@ -4210,6 +4358,15 @@ function baoCaoDiemDanh(){
 
 
 /* ---------- HV sắp hết khóa ---------- */
+function danhDauLienHe(maHV, ten){
+  var ghiChu=prompt('Ghi chú liên hệ với phụ huynh '+ten+' (VD: đã gọi, hẹn đóng T7, chưa nghe máy...):', '');
+  if(ghiChu===null) return; // hủy
+  goi('danhDauLienHe', {maHV:maHV, ghiChu:ghiChu, nguoi:(NguoiDung&&NguoiDung.hoTen)||''}).then(function(){
+    bao('✓ Đã đánh dấu liên hệ '+ten);
+    if(!document.getElementById('vung-saphetkhoa').classList.contains('an')) napSapHetKhoa();
+    if(document.getElementById('vung-nhachangloat') && !document.getElementById('vung-nhachangloat').classList.contains('an')) veNhacHangLoat();
+  }).catch(function(e){ bao(e.message, true); });
+}
 function napSapHetKhoa(){
   var sel=document.getElementById('shkKhoa');
   if(sel && sel.options.length<=1){
@@ -4223,27 +4380,31 @@ function napSapHetKhoa(){
   goi('sapHetKhoa',{nguong:nguong, maKhoa:maKhoa}).then(function(d){
     if(!d.danhSach.length){ box.innerHTML='<div class="trong" style="padding:24px">Không có học sinh nào phù hợp bộ lọc.</div>'; return; }
     box.innerHTML='<table class="nho"><thead><tr>'
-      + '<th>#</th><th>Học viên</th><th>Trạng thái</th><th>SĐT</th><th>Lớp</th><th>Khóa học</th><th>Ngày học</th>'
-      + '<th>Số buổi</th><th>Đã học</th><th>Còn lại</th><th class="tien">Học phí</th><th>Ngày đóng</th><th>TT học phí</th>'
+      + '<th>#</th><th>Học viên</th><th>SĐT</th><th>Lớp</th><th>Khóa học</th>'
+      + '<th>Còn lại</th><th class="tien">Học phí</th><th>TT học phí</th><th>Liên hệ phụ huynh</th>'
       + '</tr></thead><tbody>'
       + d.danhSach.map(function(r,i){
           var mauCL=r.ConLai<=0?'nghi':(r.ConLai<=3?'no':'hoc');
-          var ngay=String(r.NgayHoc||'').split(/[,\/\-\u2013]+/).map(function(x){x=x.trim();return x?'<span class="nhan hoc" style="margin:1px 2px">'+esc(x)+'</span>':'';}).join('');
           var mauTT=r.TTHocPhi==='Đã đóng'?'du':(r.TTHocPhi==='Còn nợ'||r.TTHocPhi==='Chưa đóng'?'no':'');
+          var lh=r.LienHe;
+          var lhHtml;
+          if(lh && lh.ngay){
+            lhHtml='<span class="nhan hoc">✓ Đã LH '+esc(lh.ngay.split('-').reverse().join('/'))+'</span>'
+              +(lh.nguoi?'<div style="font-size:11px;color:#6b7280">'+esc(lh.nguoi)+(lh.ghiChu?': '+esc(lh.ghiChu):'')+'</div>':'')
+              +' <button class="nutNho vien" style="font-size:11px" onclick="danhDauLienHe(\''+esc(r.MaHV)+'\',\''+esc(r.HoTen)+'\')">Cập nhật</button>';
+          } else {
+            lhHtml='<button class="nutNho" style="background:#0f7a4d" onclick="danhDauLienHe(\''+esc(r.MaHV)+'\',\''+esc(r.HoTen)+'\')">✓ Đánh dấu đã liên hệ</button>';
+          }
           return '<tr>'
             + '<td>'+(i+1)+'</td>'
             + '<td><strong>'+esc(r.HoTen)+'</strong></td>'
-            + '<td><span class="nhan bao">'+esc(r.TrangThai)+'</span></td>'
-            + '<td class="ma">'+esc(r.SDT)+'</td>'
+            + '<td>'+(r.SDT?'<a href="tel:'+esc(r.SDT)+'">'+esc(r.SDT)+'</a>':'—')+'</td>'
             + '<td>'+esc(r.Lop||'—')+'</td>'
             + '<td>'+esc(r.TenKhoa)+'</td>'
-            + '<td>'+(ngay||'—')+'</td>'
-            + '<td>'+r.SoBuoi+'</td>'
-            + '<td>'+r.DaHoc+'</td>'
             + '<td><span class="nhan '+mauCL+'">'+r.ConLai+'</span></td>'
             + '<td class="tien">'+(r.HocPhi?tien(r.HocPhi):'—')+'</td>'
-            + '<td>'+esc(r.NgayDong||'—')+'</td>'
             + '<td>'+(r.TTHocPhi==='—'?'—':'<span class="nhan '+mauTT+'">'+esc(r.TTHocPhi)+'</span>')+'</td>'
+            + '<td>'+lhHtml+'</td>'
             + '</tr>';
         }).join('')
       + '</tbody></table>';
