@@ -4,6 +4,7 @@
 <!-- Firebase (kho dữ liệu thay cho Google Sheets) -->
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js"></script>
 <script>
   firebase.initializeApp({
     apiKey:"AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
@@ -14,6 +15,9 @@
     appId:"1:1065254649793:web:83d2fba4d40c11a2363940"
   });
   window.qldb = firebase.firestore();
+  // 🔔 THÔNG BÁO ĐẨY: dán "Web Push certificate" (VAPID key) từ Firebase Console vào dòng dưới
+  window.VAPID_KEY = "PASTE_VAPID_KEY_HERE";
+  try{ window.qlmsg = firebase.messaging(); }catch(e){ window.qlmsg = null; console.log("Messaging chưa hỗ trợ trên máy này:", e && e.message); }
 </script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
@@ -390,6 +394,9 @@ let state={
   okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:"",
   showImport:false,importType:"nhansu",importResult:null,importing:false,um_success:"",
   showMyAccount:false,
+  notifs:[], showNotifPanel:false,
+  crm:[], crm_filter:"all", showCRMModal:false, crm_edit:null, showCRMLog:false, crm_logFor:null,
+  pp:{}, pp_mon:"Piano", showPPModal:false, pp_edit:null,
   // Plan
   plans:ls_get("ta_plans")||[],
   showPlanForm:false,
@@ -1213,7 +1220,12 @@ function enterApp(u){
   render();
   loadActuals();
   loadBaoHanh();
+  loadCRM();
+  loadPhuongPhap();
   loadChamCong();
+  startNotifListener();
+  initForegroundPush();
+  setTimeout(function(){ maybePostDailyReminder(); }, 4500);
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1311,6 +1323,9 @@ function savePlan(){
     month:item.month, target:item.target||"", actual:item.actual||"",
     owner:item.owner||"", status:item.status||"",
     okrObj:item.okrObj||"", okrKr:item.okrKr||""});
+  if(!(state.editPlan!==null && state.editPlan!==undefined)){
+    try{ postNotif("Giao việc mới", (item.title||"Công việc")+(item.owner?(" → "+item.owner):"")+(item.month?(" • "+item.month):""), "giaoviec"); }catch(e){}
+  }
   setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
 }
 function deletePlan(id){
@@ -1462,7 +1477,9 @@ function renderApp(){
     {id:"home",label:"🏠 Trang chủ",show:true},
     {id:"okr",label:"📊 OKR",show:true},
     {id:"lotrinh",label:"🎹 Lộ trình",show:true},
+    {id:"phuongphap",label:"📚 Phương pháp",show:true},
     {id:"baohanh",label:"🛠 Bảo hành",show:true},
+    {id:"crm",label:"🤝 CRM",show:true},
     {id:"plan",label:"🗓 Kế hoạch",show:true},
     {id:"luong",label:"💵 Lương",show:true},
     {id:"chamcong",label:"🕒 Chấm công",show:u.isAdmin},
@@ -1477,6 +1494,7 @@ function renderApp(){
       <div class="htitle"><h1>THIÊN ÂN</h1><p>Hệ thống quản lý</p></div>
       <div class="hright">
         <span style="font-size:12px;color:#dbe2ee;font-weight:600">${ri.icon} ${ri.label} · ${u.name}</span>
+        <button class="btn-sm" onclick="notifToggle()" title="Thông báo" style="position:relative;background:rgba(255,255,255,.14);color:#fff;font-size:15px;padding:6px 11px">🔔${notifBadge()}</button>
         ${u.isAdmin?`<button class="btn-sm" style="background:rgba(255,255,255,.14);color:#fff" onclick="maOpen()" title="Tài khoản của tôi">⚙️</button>`:""}
         ${u.isAdmin?`<button class="btn-sm btn-gold" id="btnImport">📥 Import</button>`:""}
         <button class="btn-sm btn-ghost" id="btnLogout">Đăng xuất</button>
@@ -1490,7 +1508,9 @@ function renderApp(){
     ${state.tab==="home"?renderHome():""}
     ${state.tab==="okr"?renderOKR():""}
     ${state.tab==="lotrinh"?renderLoTrinh():""}
+    ${state.tab==="phuongphap"?renderPhuongPhap():""}
     ${state.tab==="baohanh"?renderBaoHanh():""}
+    ${state.tab==="crm"?renderCRM():""}
     ${state.tab==="plan"?renderPlan():""}
     ${state.tab==="luong"?renderLuong():""}
     ${state.tab==="chamcong"?renderChamCong():""}
@@ -1505,8 +1525,12 @@ function renderApp(){
   ${state.showBHModal?renderBHModal():""}
   ${state.showBHServiceModal?renderBHServiceModal():""}
   ${state.showCCEmp?renderCCEmpModal():""}
+  ${state.showCRMModal?renderCRMModal():""}
+  ${state.showCRMLog?renderCRMLogModal():""}
+  ${state.showPPModal?renderPPModal():""}
   ${state.showUserModal?renderUserModal():""}
   ${state.showMyAccount?renderMyAccountModal():""}
+  ${state.showNotifPanel?renderNotifPanel():""}
   ${state.showImport?renderImportModal():""}
   <div class="footer">424 Bà Triệu (Đông Thọ) & C14 KĐT Lam Kinh (Đông Hương), Thanh Hóa</div>`;
 }
@@ -1520,6 +1544,7 @@ function renderHome(){
   const bh=state.baohanh||[];
   const bhSoon=bh.filter(r=>{try{return bhInfo(r).status.indexOf("Sắp hết")===0}catch(e){return false}}).length;
   let ccNV=0; try{ ccNV=(ccDoc().rows||[]).length; }catch(e){}
+  let crmDueN=0; try{ crmDueN=crmDueCount(); }catch(e){}
   const now=new Date(), ngay=now.getDate()+"/"+(now.getMonth()+1)+"/"+now.getFullYear();
   const dow=["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][now.getDay()];
   const gio=now.getHours(), chao=gio<11?"Chào buổi sáng":gio<14?"Chào buổi trưa":gio<18?"Chào buổi chiều":"Chào buổi tối";
@@ -1542,8 +1567,10 @@ function renderHome(){
     {id:"chamcong",icon:"🕒",label:"Chấm công & Lương",desc:"Chấm công, tính lương Mẫu 02",c:"#16A085",admin:true},
     {id:"luong",icon:"💵",label:"Lương",desc:"Bảng lương nhân viên",c:"#E67E22"},
     {id:"baohanh",icon:"🛠",label:"Bảo hành",desc:"Bảo hành & sửa chữa đàn",c:"#8E44AD"},
+    {id:"crm",icon:"🤝",label:"CRM",desc:"Khách hàng, lead & chăm sóc",c:"#2980B9"},
     {id:"plan",icon:"🗓",label:"Kế hoạch",desc:"Kế hoạch công việc",c:"#2980B9"},
     {id:"lotrinh",icon:"🎹",label:"Lộ trình",desc:"Lộ trình đào tạo",c:"#C0392B"},
+    {id:"phuongphap",icon:"📚",label:"Phương pháp",desc:"Phương pháp đào tạo từng môn",c:"#0F3460"},
     {id:"thuchi",icon:"💰",label:"Thu chi",desc:"Thu chi tài chính",c:"#27AE60",admin:true},
     {id:"baocao",icon:"📈",label:"Báo cáo",desc:"Báo cáo doanh thu",c:"#B7950B",admin:true},
     {id:"users",icon:"👥",label:"Nhân sự",desc:"Quản lý tài khoản",c:"#34495E",admin:true},
@@ -1579,6 +1606,7 @@ function renderHome(){
     ${stat("👥",nv,"Tài khoản nhân sự","#0F3460")}
     ${stat("🕒",ccNV,"Đang chấm công tháng","#16A085")}
     ${stat("🛠",bh.length,"Đàn đang bảo hành","#8E44AD")}
+    ${stat("🤝",crmDueN,"Khách cần chăm sóc","#2980B9")}
     ${stat("⚠️",bhSoon,"Sắp hết bảo hành","#E67E22")}
   </div>
   <div class="hm-sec"><i></i><b>Tổng quan tháng ${mon}</b></div>
@@ -1621,9 +1649,144 @@ window.goTab=function(id){
     if(id==="plan"){loadPlansFromSheets();}
     if(id==="lotrinh"){loadLoTrinhFromSheets();}
     if(id==="baohanh"){loadBaoHanh();}
+    if(id==="crm"){loadCRM();}
+    if(id==="phuongphap"){loadPhuongPhap();}
     if(id==="chamcong"){loadChamCong();}
   }catch(e){console.error("goTab",e);}
 };
+
+// ===== THÔNG BÁO CHUNG (ql_thongbao) — bảng tin realtime, mọi người thấy chung =====
+let _notifUnsub=null;
+function startNotifListener(){
+  if(_notifUnsub) return;
+  try{
+    _notifUnsub = qldb.collection("ql_thongbao").onSnapshot(function(snap){
+      var arr = snap.docs.map(function(d){ return d.data(); });
+      arr.sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+      state.notifs = arr.slice(0,100);
+      if(state.screen==="app" && !anyModalOpen() && !isTypingNow()) render();
+    }, function(err){ console.log("notif listener:", err); });
+  }catch(e){ console.log("startNotifListener:", e); }
+}
+// Nhắc việc HÀNG NGÀY: mỗi ngày (lần mở app đầu tiên) tự đẩy 1 thông báo liệt kê việc chưa xong.
+// Dùng doc ql_config/dailyReminder để chỉ đăng 1 lần/ngày dù nhiều máy cùng mở.
+async function maybePostDailyReminder(){
+  try{
+    if(!qldb) return;
+    var t=new Date();
+    var ymd=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    var ref=qldb.collection("ql_config").doc("dailyReminder");
+    var d=await ref.get();
+    var last=d.exists?(d.data().date||""):"";
+    if(last===ymd) return; // hôm nay đã nhắc rồi
+    await ref.set({date:ymd}); // "xí chỗ" trước để tránh trùng
+    var mon=(typeof currentMonth==="function")?currentMonth():"";
+    var pend=(state.plans||[]).filter(function(p){
+      return p && String(p.status||"").indexOf("Hoàn thành")<0 && (!p.month || p.month===mon);
+    });
+    if(!pend.length) return;
+    var lines=pend.slice(0,12).map(function(p){ return "• "+(p.title||"Việc")+(p.owner?(" → "+p.owner):"")+(p.status?(" ["+p.status+"]"):""); });
+    if(pend.length>12) lines.push("…và "+(pend.length-12)+" việc khác");
+    await postNotif("📋 Việc cần làm hôm nay ("+t.getDate()+"/"+(t.getMonth()+1)+")", lines.join("\n"), "nhacviec");
+  }catch(e){ console.log("dailyReminder:", e); }
+}
+async function postNotif(title, body, type){
+  var rec={ id:"TB"+Date.now()+Math.floor(Math.random()*900+100), title:String(title||""), body:String(body||""), from:(state.user&&state.user.name)||"", type:type||"thongbao", date:new Date().toISOString() };
+  try{ await qldb.collection("ql_thongbao").doc(rec.id).set(rec); }catch(e){ console.error("postNotif:", e); }
+}
+// ---- THÔNG BÁO ĐẨY (Web Push / FCM) ----
+function pushReady(){ return !!(window.qlmsg && ("Notification" in window) && window.VAPID_KEY && String(window.VAPID_KEY).indexOf("PASTE")!==0); }
+function pushStatus(){ if(!("Notification" in window)) return "unsupported"; return Notification.permission; } // default | granted | denied
+async function enablePush(silent){
+  try{
+    if(!pushReady()){ if(!silent) alert("Chưa cấu hình khóa VAPID trên Firebase (xem hướng dẫn). Thông báo đẩy chưa bật được."); return; }
+    var perm = Notification.permission;
+    if(perm!=="granted"){ perm = await Notification.requestPermission(); }
+    if(perm!=="granted"){ if(!silent) alert("Bạn chưa cho phép thông báo. Vào Cài đặt trình duyệt để bật lại."); return; }
+    var reg=null;
+    try{ reg = await navigator.serviceWorker.register("firebase-messaging-sw.js"); }catch(e){ console.log("SW messaging:", e&&e.message); }
+    var token = await qlmsg.getToken({ vapidKey: window.VAPID_KEY, serviceWorkerRegistration: reg||undefined });
+    if(token){
+      await qldb.collection("ql_pushtokens").doc(token).set({ token:token, user:(state.user&&state.user.username)||"", name:(state.user&&state.user.name)||"", date:new Date().toISOString() });
+      if(!silent) alert("✅ Đã bật thông báo đẩy trên máy này.");
+      if(state.showNotifPanel) render();
+    }
+  }catch(e){ console.log("enablePush:", e&&e.message); if(!silent) alert("Lỗi bật thông báo: "+(e&&e.message||"")); }
+}
+function initForegroundPush(){
+  try{
+    if(!window.qlmsg) return;
+    qlmsg.onMessage(function(payload){
+      var n=(payload&&payload.notification)||{};
+      if(("Notification" in window) && Notification.permission==="granted"){
+        try{ new Notification(n.title||"Thông báo Thiên Ân", {body:n.body||"", icon:"icon-192.png"}); }catch(e){}
+      }
+    });
+  }catch(e){}
+  // Nếu đã cho phép trước đó → làm mới token ngầm
+  try{ if(pushStatus()==="granted") enablePush(true); }catch(e){}
+}
+window.enablePushBtn=function(){ enablePush(false); };
+function notifUnreadCount(){
+  var seen = Number(ls_get("ta_notif_seen")||0);
+  return (state.notifs||[]).filter(function(n){ return new Date(n.date||0).getTime() > seen; }).length;
+}
+function notifBadge(){
+  var c=notifUnreadCount();
+  return c?('<span style="position:absolute;top:-5px;right:-4px;background:#E53935;color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;line-height:16px;border-radius:9px;padding:0 3px;box-shadow:0 1px 4px rgba(0,0,0,.35)">'+(c>99?'99+':c)+'</span>'):"";
+}
+function notifTimeAgo(iso){
+  var t=new Date(iso||0).getTime(); if(!t) return "";
+  var s=Math.floor((Date.now()-t)/1000);
+  if(s<60) return "vừa xong";
+  if(s<3600) return Math.floor(s/60)+" phút trước";
+  if(s<86400) return Math.floor(s/3600)+" giờ trước";
+  var d=new Date(t); return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
+}
+window.notifToggle=function(){
+  if(!state.showNotifPanel){ ls_set("ta_notif_seen", Date.now()); }
+  setState({showNotifPanel:!state.showNotifPanel});
+};
+window.notifClose=function(){ setState({showNotifPanel:false}); };
+window.notifSend=async function(btn){
+  var te=document.getElementById("nf-title"), be=document.getElementById("nf-body");
+  var t=(te&&te.value||"").trim(), b=(be&&be.value||"").trim();
+  if(!t && !b){ if(te) te.focus(); return; }
+  if(btn){ btn.disabled=true; btn.textContent="Đang gửi…"; }
+  await postNotif(t||"📢 Thông báo", b, "thongbao");
+  ls_set("ta_notif_seen", Date.now());
+  setState({});
+};
+function renderNotifPanel(){
+  var list = state.notifs||[];
+  var isAdmin = state.user && state.user.isAdmin;
+  var icon = function(tp){ return tp==="giaoviec"?"🗓":(tp==="nhacviec"?"📋":"📢"); };
+  var tint = function(tp){ return tp==="giaoviec"?"#E8F5FF":(tp==="nhacviec"?"#EAF7EE":"#FFF7E6"); };
+  var items = list.length ? list.map(function(n){
+    return '<div style="display:flex;gap:11px;padding:11px 4px;border-bottom:1px solid #EDF1F7">'
+      +'<div style="width:34px;height:34px;border-radius:9px;background:'+tint(n.type)+';display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">'+icon(n.type)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;color:#1A1A2E;font-size:13.5px">'+ltEsc(n.title||"")+'</div>'
+        +(n.body?'<div style="font-size:12.5px;color:#555;margin-top:2px;word-break:break-word">'+ltEsc(n.body).replace(/\n/g,'<br>')+'</div>':'')
+        +'<div style="font-size:11px;color:#9aa3b2;margin-top:4px">'+(n.from?ltEsc(n.from)+' · ':'')+notifTimeAgo(n.date)+'</div>'
+      +'</div></div>';
+  }).join("") : '<div style="text-align:center;color:#9aa3b2;padding:34px 0">Chưa có thông báo nào.</div>';
+  var compose = isAdmin ? '<div style="background:#F7FAFF;border:1px solid #E5EDF8;border-radius:10px;padding:11px;margin-bottom:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:#0F3460;margin-bottom:7px">📢 Đăng thông báo cho mọi người</div>'
+      +'<input id="nf-title" class="form-input" placeholder="Tiêu đề (VD: Họp 8h sáng mai)" style="margin-bottom:6px"/>'
+      +'<input id="nf-body" class="form-input" placeholder="Nội dung / nhắc việc…" style="margin-bottom:8px"/>'
+      +'<button class="btn-primary" style="width:100%" onclick="notifSend(this)">Gửi thông báo</button>'
+    +'</div>' : '';
+  var pushBtn = '';
+  var ps = (typeof pushStatus==="function")?pushStatus():"unsupported";
+  if(ps==="granted"){ pushBtn = '<div style="display:flex;align-items:center;gap:8px;background:#E8F7EC;border:1px solid #BFE6C9;border-radius:9px;padding:9px 11px;margin-bottom:12px;font-size:12.5px;color:#1B7A3A;font-weight:600">✅ Máy này đã bật thông báo đẩy</div>'; }
+  else if(ps!=="unsupported"){ pushBtn = '<button class="btn-primary" style="width:100%;margin-bottom:12px" onclick="enablePushBtn()">📲 Bật thông báo đẩy trên máy này</button>'; }
+  return '<div class="modal-overlay" id="nfOverlay" onmousedown="if(event.target.id===\'nfOverlay\')notifClose()">'
+    +'<div class="modal" style="max-width:460px;max-height:82vh;display:flex;flex-direction:column">'
+      +'<div class="modal-head"><span style="font-size:15px;font-weight:800">🔔 Thông báo chung</span><button class="btn-sm" style="background:#eee" onclick="notifClose()">✕</button></div>'
+      +'<div class="modal-body" style="overflow:auto">'+ pushBtn + compose + items +'</div>'
+    +'</div></div>';
+}
 
 // ===== TÀI KHOẢN CỦA TÔI (admin tự đổi tên đăng nhập + mật khẩu) =====
 function renderMyAccountModal(){
@@ -2330,6 +2493,242 @@ function renderLoTrinh(){
   </div>`;
 }
 
+// ===== 📚 PHƯƠNG PHÁP ĐÀO TẠO (Firestore: ql_phuongphap) =====
+const PP_MON=["Piano","Guitar","Organ","Thanh nhạc","Violin","Trống"];
+const PP_PIANO_DEFAULT=[
+  {icon:"🎓", title:"Tiêu chí cho bài học Piano", desc:"Giáo viên đào tạo bài đúng kỹ thuật, đúng sắc thái."},
+  {icon:"🎵", title:"Chọn bài", desc:"Lựa chọn Sonatine, Sonatina, Sonata phù hợp với trình độ."},
+  {icon:"✋", title:"Thế tay", desc:"Cong tròn, tiếng đàn đều âm lượng, đều nhịp."},
+  {icon:"🎼", title:"Kỹ thuật", desc:"Staccato, Legato, Crescendo, Diminuendo."},
+  {icon:"📖", title:"Lộ trình buổi học", desc:"Luyện ngón → Bài cũ → Bài mới → Giao bài về nhà."},
+  {icon:"🪑", title:"Tư thế ngồi", desc:"Lưng thẳng, vai thả lỏng, cổ tay và cánh tay đúng tư thế."},
+  {icon:"🔊", title:"Cảm âm bản nhạc", desc:"Thể hiện rõ chuyển động mạnh – nhẹ, nhanh – chậm trong motif và tiết nhạc."},
+  {icon:"👁", title:"Biểu cảm câu nhạc", desc:"Đầu câu nhẹ, phát triển cao trào, cuối câu dịu dần theo ý đồ tác phẩm."},
+  {icon:"🔍", title:"Tầm nhìn buổi học", desc:"Luyện ngón, trả bài cũ, xác định mục tiêu buổi học và đánh dấu phần cần học trong buổi học."},
+  {icon:"✅", title:"Hoàn thành bài", desc:"Đánh thuộc, đúng nốt, đúng tiết tấu, đúng tốc độ, đúng sắc thái."}
+];
+function ppRows(mon){
+  const doc=(state.pp||{})[mon];
+  if(doc&&Array.isArray(doc.rows)) return doc.rows;
+  return mon==="Piano"?PP_PIANO_DEFAULT.slice():[];
+}
+async function loadPhuongPhap(showToast){
+  try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
+    const s=await qldb.collection("ql_phuongphap").get();
+    const map={}; s.docs.forEach(d=>{ map[d.id]=d.data(); });
+    state.pp=map;
+    if((state.tab==="phuongphap")&&!state.showPPModal) render();
+    if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
+  }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadPhuongPhap",e); }
+}
+function renderPhuongPhap(){
+  const admin=state.user&&state.user.isAdmin;
+  const mon=state.pp_mon||"Piano";
+  const rows=ppRows(mon);
+  const monBtn=PP_MON.map(m=>`<button class="btn-sm" style="background:${m===mon?'#0F3460':'#EEF1F8'};color:${m===mon?'#fff':'#334'};font-weight:700;font-size:12px;padding:7px 13px" onclick="ppSetMon('${ltAttr(m)}')">${m}</button>`).join("");
+  const rowsHtml = rows.length ? rows.map((r,i)=>`
+    <div style="display:flex;align-items:stretch;border:1px solid #E7ECF5;border-top:none;background:${i%2?'#F8FAFD':'#fff'}">
+      <div style="width:54px;flex-shrink:0;background:linear-gradient(#16213E,#0F3460);color:#D4AF37;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center">${i+1}</div>
+      <div style="width:210px;flex-shrink:0;padding:13px 14px;display:flex;align-items:center;gap:10px;border-right:1px solid #E7ECF5">
+        <span style="font-size:20px">${r.icon||"🎵"}</span>
+        <span style="font-weight:800;color:#0F3460;font-size:14px">${ltEsc(r.title||"")}</span>
+      </div>
+      <div style="flex:1;padding:13px 16px;color:#333;font-size:13.5px;line-height:1.55;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <span>${ltEsc(r.desc||"")}</span>
+        ${admin?`<span style="flex-shrink:0;display:flex;gap:5px">
+          <button class="btn-sm" style="background:#EEF1F8;color:#334;font-size:11px;padding:4px 8px" onclick="ppOpen(${i})">✏️</button>
+          <button class="btn-sm" style="background:#FDEDEC;color:#E74C3C;font-size:11px;padding:4px 8px" onclick="ppDel(${i})">🗑</button>
+        </span>`:""}
+      </div>
+    </div>`).join("") : `<div style="border:1px solid #E7ECF5;border-top:none;padding:30px;text-align:center;color:#9aa3b2">Chưa có tiêu chí cho môn ${ltEsc(mon)}.${admin?" Bấm ➕ Thêm tiêu chí.":""}</div>`;
+  return `
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">${monBtn}</div>
+  <div style="background:linear-gradient(120deg,#1A1A2E,#16213E 55%,#0F3460);border:2px solid #D4AF37;border-radius:14px 14px 0 0;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="color:#fff;font-size:18px;font-weight:800;letter-spacing:.5px">🎹 CHIẾN LƯỢC ĐÀO TẠO — ${ltEsc(mon).toUpperCase()}</div>
+    ${admin?`<button class="btn-gold btn-sm" style="font-size:12px;padding:7px 13px" onclick="ppOpen(-1)">➕ Thêm tiêu chí</button>`:""}
+  </div>
+  <div style="display:flex;background:#0F3460;color:#D4AF37;font-weight:800;font-size:12px;border:1px solid #0F3460">
+    <div style="width:54px;flex-shrink:0;text-align:center;padding:9px 0">STT</div>
+    <div style="width:210px;flex-shrink:0;padding:9px 14px;border-left:1px solid rgba(255,255,255,.15)">NỘI DUNG</div>
+    <div style="flex:1;padding:9px 16px;border-left:1px solid rgba(255,255,255,.15)">TIÊU CHÍ</div>
+  </div>
+  ${rowsHtml}
+  <div style="height:14px"></div>
+  <div style="font-size:11.5px;color:#9aa3b2">${admin?"Bấm ✏️ để sửa từng tiêu chí, 🗑 để xóa, ➕ để thêm. Lưu tự động lên Firebase.":"Tài liệu phương pháp đào tạo của Học viện Thiên Ân."}</div>`;
+}
+function renderPPModal(){
+  const mon=state.pp_mon||"Piano";
+  const idx=state.pp_edit; const rows=ppRows(mon);
+  const E=(idx!=null&&idx>=0&&rows[idx])?rows[idx]:{icon:"🎵",title:"",desc:""};
+  return `<div class="modal-overlay" id="ppOverlay" onmousedown="if(event.target.id==='ppOverlay')ppClose()">
+   <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">${(idx!=null&&idx>=0)?"✏️ Sửa tiêu chí":"➕ Thêm tiêu chí"} — ${ltEsc(mon)}</span><button class="btn-sm" style="background:#eee" onclick="ppClose()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group" style="max-width:90px"><div class="form-label">Icon</div><input class="form-input" id="pp_icon" value="${ltAttr(E.icon||"🎵")}" style="text-align:center;font-size:18px"/></div>
+        <div class="form-group"><div class="form-label">Nội dung (tiêu đề) *</div><input class="form-input" id="pp_title" value="${ltAttr(E.title)}"/></div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px"><div class="form-label">Tiêu chí (mô tả) *</div><textarea class="form-input" id="pp_desc" rows="3" style="resize:vertical">${ltEsc(E.desc)}</textarea></div>
+      <button class="btn-primary" style="width:100%" onclick="ppSave()">💾 Lưu</button>
+    </div></div></div>`;
+}
+window.ppSetMon=function(m){ setState({pp_mon:m}); };
+window.ppOpen=function(idx){ state.pp_edit=idx; setState({showPPModal:true}); };
+window.ppClose=function(){ setState({showPPModal:false,pp_edit:null}); };
+window.ppDel=async function(idx){
+  const mon=state.pp_mon||"Piano"; const rows=ppRows(mon).slice();
+  if(!rows[idx]) return; if(!confirm("Xóa tiêu chí này?")) return;
+  rows.splice(idx,1);
+  await ppPersist(mon,rows);
+};
+window.ppSave=async function(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  const title=g("pp_title").trim(), desc=g("pp_desc").trim();
+  if(!title||!desc){ alert("Nhập đủ Nội dung và Tiêu chí"); return; }
+  const mon=state.pp_mon||"Piano"; const rows=ppRows(mon).slice();
+  const rec={icon:(g("pp_icon").trim()||"🎵"), title, desc};
+  const idx=state.pp_edit;
+  if(idx!=null&&idx>=0&&rows[idx]) rows[idx]=rec; else rows.push(rec);
+  setState({showPPModal:false,pp_edit:null});
+  await ppPersist(mon,rows);
+};
+async function ppPersist(mon,rows){
+  try{
+    await qldb.collection("ql_phuongphap").doc(mon).set({ mon:mon, rows:rows });
+    state.pp=state.pp||{}; state.pp[mon]={mon:mon,rows:rows}; render();
+  }catch(e){ alert("Lỗi lưu: "+(e&&e.message?e.message:e)); }
+}
+
+// ===== 🤝 CRM (Firestore: ql_crm) — khách hàng, lead, chăm sóc =====
+const CRM_TYPES=["Học viên","Mua đàn","Lead"];
+const CRM_STAGES=["Mới","Đang tư vấn","Học thử/Hẹn","Đã chốt","Chăm sóc","Ngừng"];
+const CRM_SOURCES=["Facebook","Zalo","Giới thiệu","Vãng lai","Hotline","Khác"];
+function crmStageColor(s){ return ({"Mới":"#2980B9","Đang tư vấn":"#8E44AD","Học thử/Hẹn":"#E67E22","Đã chốt":"#27AE60","Chăm sóc":"#16A085","Ngừng":"#95A5A6"})[s]||"#666"; }
+function crmToday(){ return new Date().toISOString().slice(0,10); }
+function crmFmtDate(x){ if(!x) return ""; var p=String(x).split("-"); return p.length===3?(p[2]+"/"+p[1]+"/"+p[0]):String(x); }
+function crmDue(c){ if(!c||!c.nextFollow) return false; if(c.stage==="Ngừng") return false; return String(c.nextFollow) <= crmToday(); }
+function crmDueCount(){ return (state.crm||[]).filter(crmDue).length; }
+async function loadCRM(showToast){
+  try{ if(showToast&&window.showLoading) showLoading("Đang tải…");
+    const s=await qldb.collection("ql_crm").get();
+    state.crm=s.docs.map(d=>d.data());
+    if((state.tab==="crm"||state.tab==="home")&&!state.showCRMModal&&!state.showCRMLog) render();
+    if(showToast&&window.doneLoading) doneLoading("Đã cập nhật ✓");
+  }catch(e){ if(window.hideLoading)hideLoading(); console.error("loadCRM",e); }
+}
+function renderCRM(){
+  const admin=state.user&&state.user.isAdmin;
+  const all=(state.crm||[]).slice();
+  const cnt={}; CRM_STAGES.forEach(s=>cnt[s]=0); all.forEach(c=>{ if(cnt[c.stage]!=null) cnt[c.stage]++; });
+  const due=crmDueCount();
+  const f=state.crm_filter||"all";
+  let list=all;
+  if(f==="due") list=all.filter(crmDue);
+  else if(CRM_TYPES.indexOf(f)>=0) list=all.filter(c=>c.type===f);
+  list=list.slice().sort((a,b)=>{ const da=crmDue(a)?0:1, db=crmDue(b)?0:1; if(da!==db) return da-db; return String(a.nextFollow||"9999").localeCompare(String(b.nextFollow||"9999")); });
+  const chip=(label,val,active,color)=>`<button class="btn-sm" style="background:${active?(color||'#0F3460'):'#EEF1F8'};color:${active?'#fff':'#334'};font-weight:700;font-size:12px;padding:7px 12px" onclick="crmSetFilter('${val}')">${label}</button>`;
+  const pipeline = CRM_STAGES.map(s=>`<div style="flex:1;min-width:92px;background:#fff;border:1px solid #EDF0F7;border-top:3px solid ${crmStageColor(s)};border-radius:10px;padding:9px 8px;text-align:center"><div style="font-size:20px;font-weight:800;color:${crmStageColor(s)}">${cnt[s]}</div><div style="font-size:10.5px;color:#8a94a6;margin-top:2px">${s}</div></div>`).join("");
+  const card=(c)=>{
+    const dueF=crmDue(c);
+    const search=((c.name||"")+" "+(c.phone||"")+" "+(c.type||"")+" "+(c.assignee||"")).toLowerCase();
+    const last=(c.history&&c.history.length)?c.history[c.history.length-1]:null;
+    return `<div class="crm-card" data-search="${ltAttr(search)}" style="background:#fff;border:1px solid #EDF0F7;${dueF?'border-left:4px solid #E74C3C;':''}border-radius:12px;padding:13px 15px;margin-bottom:10px;box-shadow:0 2px 8px rgba(15,52,96,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0"><div style="font-weight:800;color:#1A1A2E;font-size:15px">${ltEsc(c.name||"(chưa có tên)")}</div>
+        <div style="font-size:12.5px;color:#666;margin-top:2px">${c.phone?('📞 '+ltEsc(c.phone)):''}${c.assignee?(' · 👤 '+ltEsc(c.assignee)):''}</div></div>
+        <span style="background:${crmStageColor(c.stage)};color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap">${ltEsc(c.stage||"")}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">
+        <span style="background:#EEF1F8;color:#334;font-size:11px;padding:2px 8px;border-radius:5px">${ltEsc(c.type||"")}</span>
+        ${c.source?`<span style="background:#F4F7FC;color:#667;font-size:11px;padding:2px 8px;border-radius:5px">${ltEsc(c.source)}</span>`:''}
+        ${c.nextFollow?`<span style="background:${dueF?'#FDEDEC':'#FEF9E7'};color:${dueF?'#C0392B':'#8a6d00'};font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px">${dueF?'🔴 Đến hạn: ':'📅 Hẹn: '}${crmFmtDate(c.nextFollow)}</span>`:''}
+      </div>
+      ${c.note?`<div style="font-size:12.5px;color:#555;margin-top:8px">${ltEsc(c.note)}</div>`:''}
+      ${last?`<div style="font-size:11.5px;color:#888;margin-top:6px">🕘 ${ltEsc(last.noiDung||"")} (${crmFmtDate(last.date)})</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn-sm" style="background:#16A085;color:#fff;font-size:12px;padding:6px 11px" onclick="crmOpenLog('${c.id}')">📞 Chăm sóc</button>
+        <button class="btn-sm" style="background:#EEF1F8;color:#334;font-size:12px;padding:6px 11px" onclick="crmOpen('${c.id}')">✏️ Sửa</button>
+        ${admin?`<button class="btn-sm" style="background:#FDEDEC;color:#E74C3C;font-size:12px;padding:6px 11px" onclick="crmDel('${c.id}')">🗑</button>`:''}
+      </div></div>`;
+  };
+  return `
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn-success" style="font-size:13px;padding:8px 14px" onclick="crmOpen('')">➕ Thêm khách hàng</button>
+    <div style="flex:1"></div>
+    <input class="form-input" placeholder="🔍 Tìm tên / SĐT…" oninput="crmDoSearch(this.value)" style="max-width:220px"/>
+    <button class="btn-sm btn-gold" style="font-size:11px;padding:7px 10px" onclick="loadCRM(true)">🔄</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${pipeline}</div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px">
+    ${chip("Tất cả ("+all.length+")","all",f==="all")}
+    ${chip("🔴 Đến hạn ("+due+")","due",f==="due","#E74C3C")}
+    ${CRM_TYPES.map(t=>chip(t,t,f===t,"#2980B9")).join("")}
+  </div>
+  <div>${list.length?list.map(card).join(""):'<div style="text-align:center;color:#9aa3b2;padding:34px 0">Chưa có khách hàng nào. Bấm ➕ Thêm khách hàng.</div>'}</div>`;
+}
+function renderCRMModal(){
+  const E=state.crm_edit||{};
+  const sel=(arr,cur)=>arr.map(o=>`<option${o===cur?" selected":""}>${o}</option>`).join("");
+  return `<div class="modal-overlay" id="crmOverlay" onmousedown="if(event.target.id==='crmOverlay')crmClose()">
+   <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">${E.id?"✏️ Sửa khách hàng":"➕ Thêm khách hàng"}</span><button class="btn-sm" style="background:#eee" onclick="crmClose()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Tên khách hàng *</div><input class="form-input" id="cf_name" value="${ltAttr(E.name)}"/></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Số điện thoại</div><input class="form-input" id="cf_phone" value="${ltAttr(E.phone)}"/></div>
+        <div class="form-group"><div class="form-label">Loại</div><select class="form-input" id="cf_type">${sel(CRM_TYPES,E.type||"Lead")}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Giai đoạn</div><select class="form-input" id="cf_stage">${sel(CRM_STAGES,E.stage||"Mới")}</select></div>
+        <div class="form-group"><div class="form-label">Nguồn</div><select class="form-input" id="cf_source">${sel(CRM_SOURCES,E.source||"Facebook")}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Người phụ trách</div><input class="form-input" id="cf_assignee" value="${ltAttr(E.assignee)}"/></div>
+        <div class="form-group"><div class="form-label">Hẹn chăm sóc</div><input class="form-input" type="date" id="cf_nextFollow" value="${ltAttr(E.nextFollow)}"/></div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px"><div class="form-label">Ghi chú</div><input class="form-input" id="cf_note" value="${ltAttr(E.note)}"/></div>
+      <button class="btn-primary" style="width:100%" onclick="crmSave()">💾 Lưu</button>
+    </div></div></div>`;
+}
+function renderCRMLogModal(){
+  const c=(state.crm||[]).find(x=>x.id===state.crm_logFor)||{};
+  const sel=(arr,cur)=>arr.map(o=>`<option${o===cur?" selected":""}>${o}</option>`).join("");
+  return `<div class="modal-overlay" id="crmLogOverlay" onmousedown="if(event.target.id==='crmLogOverlay')crmCloseLog()">
+   <div class="modal"><div class="modal-head"><span style="font-size:15px;font-weight:800">📞 Chăm sóc: ${ltEsc(c.name||"")}</span><button class="btn-sm" style="background:#eee" onclick="crmCloseLog()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:8px"><div class="form-label">Nội dung đã làm (gọi/nhắn gì) *</div><input class="form-input" id="cl_noiDung"/></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Cập nhật giai đoạn</div><select class="form-input" id="cl_stage">${sel(CRM_STAGES,c.stage||"Mới")}</select></div>
+        <div class="form-group"><div class="form-label">Hẹn lần tới</div><input class="form-input" type="date" id="cl_next" value="${ltAttr(c.nextFollow)}"/></div>
+      </div>
+      ${(c.history&&c.history.length)?`<div style="background:#F7FAFF;border:1px solid #E5EDF8;border-radius:8px;padding:8px 10px;margin-bottom:12px;max-height:130px;overflow:auto"><div style="font-size:11px;font-weight:700;color:#0F3460;margin-bottom:5px">Lịch sử chăm sóc</div>${c.history.slice().reverse().map(h=>`<div style="font-size:12px;color:#555;padding:3px 0;border-bottom:1px solid #EDF1F7">• ${ltEsc(h.noiDung||"")} <span style="color:#9aa3b2">(${crmFmtDate(h.date)})</span></div>`).join("")}</div>`:''}
+      <button class="btn-primary" style="width:100%" onclick="crmSaveLog()">💾 Lưu chăm sóc</button>
+    </div></div></div>`;
+}
+window.crmSetFilter=function(f){ setState({crm_filter:f}); };
+window.crmDoSearch=function(q){ q=(q||"").toLowerCase().trim(); document.querySelectorAll(".crm-card").forEach(c=>{ c.style.display=(!q||(c.dataset.search||"").indexOf(q)>=0)?"":"none"; }); };
+window.crmOpen=function(id){ const r=(state.crm||[]).find(x=>x.id===id); state.crm_edit=r?JSON.parse(JSON.stringify(r)):{}; setState({showCRMModal:true}); };
+window.crmClose=function(){ setState({showCRMModal:false,crm_edit:null}); };
+window.crmSave=async function(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  const name=g("cf_name").trim(); if(!name){ alert("Vui lòng nhập tên khách hàng"); return; }
+  const E=state.crm_edit||{};
+  const rec={ id:E.id||("KH"+Date.now()), name, phone:g("cf_phone").trim(), type:g("cf_type"), stage:g("cf_stage"), source:g("cf_source"), assignee:g("cf_assignee").trim(), nextFollow:g("cf_nextFollow"), note:g("cf_note").trim(), history:E.history||[], created:E.created||new Date().toISOString() };
+  try{ await qldb.collection("ql_crm").doc(rec.id).set(rec); const arr=(state.crm||[]).filter(x=>x.id!==rec.id); arr.push(rec); state.crm=arr; setState({showCRMModal:false,crm_edit:null}); }catch(e){ alert("Lỗi lưu: "+(e&&e.message?e.message:e)); }
+};
+window.crmDel=async function(id){ if(!confirm("Xóa khách hàng này?")) return; try{ await qldb.collection("ql_crm").doc(id).delete(); state.crm=(state.crm||[]).filter(x=>x.id!==id); render(); }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); } };
+window.crmOpenLog=function(id){ state.crm_logFor=id; setState({showCRMLog:true}); };
+window.crmCloseLog=function(){ setState({showCRMLog:false,crm_logFor:null}); };
+window.crmSaveLog=async function(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:"";};
+  const noiDung=g("cl_noiDung").trim(); if(!noiDung){ alert("Vui lòng nhập nội dung"); return; }
+  const c=(state.crm||[]).find(x=>x.id===state.crm_logFor); if(!c){ setState({showCRMLog:false}); return; }
+  c.history=c.history||[]; c.history.push({ date:crmToday(), noiDung, by:(state.user&&state.user.name)||"" });
+  c.stage=g("cl_stage")||c.stage; c.nextFollow=g("cl_next")||"";
+  try{ await qldb.collection("ql_crm").doc(c.id).set(c);
+    try{ if(typeof postNotif==="function") postNotif("Đã chăm sóc: "+(c.name||""), noiDung+(c.nextFollow?(" • hẹn lại "+crmFmtDate(c.nextFollow)):""), "thongbao"); }catch(e){}
+    setState({showCRMLog:false,crm_logFor:null});
+  }catch(e){ alert("Lỗi: "+(e&&e.message?e.message:e)); }
+};
+
 // ===== 🛠 BẢO HÀNH / SỬA CHỮA (Firestore: ql_baohanh) =====
 function bhDate(x){ if(!x) return "—"; const d=(x instanceof Date)?x:new Date(x); if(isNaN(d)) return String(x); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
 function bhMoney(n){ return (Number(n)||0).toLocaleString('vi-VN')+"đ"; }
@@ -2756,6 +3155,8 @@ function attachEvents(){
     if(b.dataset.tab==="plan"){ loadPlansFromSheets(); }
     if(b.dataset.tab==="lotrinh"){ loadLoTrinhFromSheets(); }
     if(b.dataset.tab==="baohanh"){ loadBaoHanh(); }
+    if(b.dataset.tab==="crm"){ loadCRM(); }
+    if(b.dataset.tab==="phuongphap"){ loadPhuongPhap(); }
     if(b.dataset.tab==="chamcong"){ loadChamCong(); }
   }));
 
