@@ -4409,11 +4409,66 @@ function napSapHetKhoa(){
     sel.innerHTML='<option value="">Tất cả khóa học</option>'
       + DsKhoa.map(function(k){return '<option value="'+esc(k.MaKhoa)+'">'+esc(k.TenKhoa)+'</option>';}).join('');
   }
-  var nguong=document.getElementById('shkNguong').value;
+  var nguongV=document.getElementById('shkNguong').value;
+  var nguong=(nguongV!=='' ? soTienJS(nguongV) : 999999);
   var maKhoa=document.getElementById('shkKhoa').value;
   var box=document.getElementById('shkBox');
   box.innerHTML='<div class="dangTai" style="padding:20px">Đang tải...</div>';
-  goi('sapHetKhoa',{nguong:nguong, maKhoa:maKhoa}).then(function(d){
+  function veBang(){
+    var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
+    var ds=TatCaHV.filter(function(h){
+      if(!dungCoSo(h.CoSo)) return false;
+      if(String(h.TrangThai||'')==='Đã nghỉ') return false;
+      if(!(String(h.MaKhoa||'').trim() && soTienJS(h.SoBuoiKhoa)>0)) return false;
+      if(maKhoa && h.MaKhoa!==maKhoa) return false;
+      var bs=MapBoSung[h.MaHV]||{};
+      var conLai=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):Math.max(0,soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa));
+      return conLai<=nguong;
+    }).map(function(h){
+      var bs=MapBoSung[h.MaHV]||{};
+      var soBuoiHT=(bs.SoBuoiHT!==''&&bs.SoBuoiHT!==undefined)?soTienJS(bs.SoBuoiHT):soTienJS(h.SoBuoiKhoa);
+      var daHoc=(bs.DaHoc!==''&&bs.DaHoc!==undefined)?soTienJS(bs.DaHoc):soTienJS(h.DaHocKhoa);
+      var conLai=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):Math.max(0,soBuoiHT-daHoc);
+      return {MaHV:h.MaHV, HoTen:h.HoTen, SDT:String(h.SDT_PhuHuynh||''), Lop:h.Lop||'', TenKhoa:bs.TenKhoaHT||h.TenKhoa||'',
+              SoBuoi:soBuoiHT, DaHoc:daHoc, ConLai:conLai, HocPhi:(khMap[h.MaKhoa]||{}).GiaTien||0,
+              TTHocPhi:bs.TTHocPhi||'', LienHe:h.LienHe||null};
+    }).sort(function(a,b){return a.ConLai-b.ConLai;});
+    if(!ds.length){ box.innerHTML='<div class="trong" style="padding:24px">Không có học sinh nào phù hợp bộ lọc.</div>'; return; }
+    box.innerHTML='<table class="nho"><thead><tr>'
+      + '<th>#</th><th>Học viên</th><th>SĐT</th><th>Lớp</th><th>Khóa học</th>'
+      + '<th>Đã học</th><th>Còn lại</th><th class="tien">Học phí</th><th>TT học phí</th><th>Liên hệ phụ huynh</th>'
+      + '</tr></thead><tbody>'
+      + ds.map(function(r,i){
+          var mauCL=r.ConLai<=0?'nghi':(r.ConLai<=3?'no':'hoc');
+          var mauTT=r.TTHocPhi==='Đã đóng'?'du':(r.TTHocPhi==='Còn nợ'||r.TTHocPhi==='Chưa đóng'?'no':'');
+          var lh=r.LienHe; var lhHtml;
+          if(lh && lh.ngay){
+            lhHtml='<span class="nhan hoc">✓ Đã LH '+esc(lh.ngay.split('-').reverse().join('/'))+'</span>'
+              +(lh.nguoi?'<div style="font-size:11px;color:#6b7280">'+esc(lh.nguoi)+(lh.ghiChu?': '+esc(lh.ghiChu):'')+'</div>':'')
+              +' <button class="nutNho vien" style="font-size:11px" onclick="danhDauLienHe(\''+esc(r.MaHV)+'\',\''+esc(r.HoTen)+'\')">Cập nhật</button>';
+          } else {
+            lhHtml='<button class="nutNho" style="background:#0f7a4d" onclick="danhDauLienHe(\''+esc(r.MaHV)+'\',\''+esc(r.HoTen)+'\')">✓ Đánh dấu đã liên hệ</button>';
+          }
+          return '<tr><td>'+(i+1)+'</td>'
+            + '<td><strong>'+esc(r.HoTen)+'</strong></td>'
+            + '<td>'+(r.SDT?'<a href="tel:'+esc(r.SDT)+'">'+esc(r.SDT)+'</a>':'—')+'</td>'
+            + '<td>'+esc(r.Lop||'—')+'</td>'
+            + '<td>'+esc(r.TenKhoa)+'</td>'
+            + '<td style="text-align:center">'+r.DaHoc+'/'+r.SoBuoi+'</td>'
+            + '<td style="text-align:center"><span class="nhan '+mauCL+'">'+r.ConLai+'</span></td>'
+            + '<td class="tien">'+(r.HocPhi?tien(r.HocPhi):'—')+'</td>'
+            + '<td>'+(r.TTHocPhi?'<span class="nhan '+mauTT+'">'+esc(r.TTHocPhi)+'</span>':'—')+'</td>'
+            + '<td>'+lhHtml+'</td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table>';
+  }
+  if(!MapBoSung || !Object.keys(MapBoSung).length){ goi('boSungHocVien').then(function(m){ MapBoSung=m; veBang(); }).catch(function(e){ box.innerHTML='<div class="trong" style="padding:20px">'+esc(e.message)+'</div>'; }); }
+  else veBang();
+}
+function _napSapHetKhoaCu_bo(){
+  var box={};
+  goi('sapHetKhoa',{}).then(function(d){
     if(!d.danhSach.length){ box.innerHTML='<div class="trong" style="padding:24px">Không có học sinh nào phù hợp bộ lọc.</div>'; return; }
     box.innerHTML='<table class="nho"><thead><tr>'
       + '<th>#</th><th>Học viên</th><th>SĐT</th><th>Lớp</th><th>Khóa học</th>'
