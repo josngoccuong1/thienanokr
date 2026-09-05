@@ -76,6 +76,9 @@ nav button.chon{color:var(--navy);border-bottom-color:var(--gold)}
 .theSo.mau .phu b{color:#fff}
 .theSo.mau .icon{background:rgba(255,255,255,.22)!important;color:#fff!important}
 .theSo.mau::after{content:"";position:absolute;right:-20px;bottom:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12)}
+.theSo.bam{cursor:pointer;transition:transform .15s,box-shadow .15s}
+.theSo.bam:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(18,41,77,.22)}
+.theSo.bam:active{transform:translateY(0)}
 .theSo .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
 .theSo .nhan{font-size:13px;color:var(--chu-mo);font-weight:600}
 .theSo .so{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
@@ -3367,6 +3370,11 @@ function chonMauTin(loai){
   };
   var el=document.getElementById('nhMau'); if(el){ el.value=mau[loai]||el.value; veNhacHangLoat(); }
 }
+function moConNoHP(){
+  moNhacHangLoat();
+  var sel=document.getElementById('nhLoc'); if(sel){ sel.value='no'; }
+  veNhacHangLoat();
+}
 function moNhacHangLoat(){
   _anMoiVung('hocvien');
   var v=document.getElementById('vung-nhachangloat'); if(v) v.classList.remove('an');
@@ -4177,12 +4185,12 @@ function napTrangChu(){
   // Thẻ số (doanh thu điền sau khi query)
   var the=document.getElementById('theTongQuan');
   the.innerHTML =
-      theSo('linear-gradient(135deg,#10b981,#059669)','','<span class="ic">school</span>','Học viên đang học', dangHoc, 'Mới tháng này: <b>+'+hsMoiThang+'</b>')
-    + theSo('linear-gradient(135deg,#fb923c,#ea580c)','','<span class="ic">payments</span>','Doanh thu tháng này', '<span id="dashDTThang">…</span>', 'Cả năm: <b id="dashDTNam">…</b>')
-    + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)','','<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Cần gia hạn')
-    + theSo('linear-gradient(135deg,#f87171,#dc2626)','','<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#60a5fa,#2563eb)','','<span class="ic">person_add</span>','HV mới tháng này', hsMoiThang, 'Tổng đang học: <b>'+dangHoc+'</b>')
-    + theSo('linear-gradient(135deg,#c084fc,#7c3aed)','','<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
+      theSo('linear-gradient(135deg,#10b981,#059669)',"doiTab('hocvien')",'<span class="ic">school</span>','Học viên đang học', dangHoc, 'Mới tháng này: <b>+'+hsMoiThang+'</b>')
+    + theSo('linear-gradient(135deg,#fb923c,#ea580c)',"doiTab('baocao')",'<span class="ic">payments</span>','Doanh thu tháng này', '<span id="dashDTThang">…</span>', 'Cả năm: <b id="dashDTNam">…</b>')
+    + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
+    + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
+    + theSo('linear-gradient(135deg,#60a5fa,#2563eb)',"doiTab('hocvien')",'<span class="ic">person_add</span>','HV mới tháng này', hsMoiThang, 'Tổng đang học: <b>'+dangHoc+'</b>')
+    + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
   goi('tongQuan').then(function(d){
@@ -4250,8 +4258,8 @@ function veBieuDoDoanhThu(thang6){
   html+='</div>';
   box.innerHTML=html;
 }
-function theSo(grad, mauIcon, icon, nhan, so, phu){  return '<div class="theSo mau" style="background:'+grad+'"><div class="icon">'+icon+'</div>'
-    + '<div class="nhan">'+nhan+'</div><div class="so">'+so+'</div><div class="phu">'+phu+'</div></div>';
+function theSo(grad, onclick, icon, nhan, so, phu){  return '<div class="theSo mau'+(onclick?' bam':'')+'" style="background:'+grad+'"'+(onclick?' onclick="'+onclick+'"':'')+'><div class="icon">'+icon+'</div>'
+    + '<div class="nhan">'+nhan+'</div><div class="so">'+so+'</div><div class="phu">'+phu+'</div>'+(onclick?'<div style="position:absolute;top:12px;right:14px;opacity:.65"><span class="ic" style="color:#fff;font-size:18px">chevron_right</span></div>':'')+'</div>';
 }
 
 function napThangBaoCao(){
