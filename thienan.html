@@ -522,9 +522,9 @@ main section{animation:hienLen .25s ease}
         <span style="color:#6b7280;font-size:13px;align-self:center">← ngày điểm danh</span>
       </div>
 
-      <div class="the" style="padding:14px;margin-bottom:16px">
-        <div style="font-weight:600;color:#12294d;margin-bottom:8px">🔍 Tìm nhanh theo tên học sinh</div>
-        <input type="search" id="ddTimTen" placeholder="Gõ tên học sinh để điểm danh ngay..." oninput="ddTimTheoTen()">
+      <div class="the" style="padding:14px;margin-bottom:16px;border:2px solid #a7f3d0;background:#f0fdf4">
+        <div style="font-weight:700;color:#0f7a4d;margin-bottom:8px">✅ ĐIỂM DANH NHANH — gõ tên rồi bấm Có mặt/Vắng</div>
+        <input type="search" id="ddTimTen" placeholder="Gõ tên học sinh để ĐIỂM DANH ngay..." oninput="ddTimTheoTen()">
         <div id="ddKetQuaTen" style="margin-top:10px"></div>
       </div>
 
@@ -552,6 +552,11 @@ main section{animation:hienLen .25s ease}
             <span style="font-size:13px;color:#6b7280">Tháng</span>
             <input type="month" id="ddThang" onchange="napDsDiemDanh()" style="width:auto">
           </div>
+        </div>
+        <div style="padding:10px 14px;background:#eff6ff;border-bottom:1px solid var(--vien);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:13px;color:#1d4ed8;font-weight:700">🔎 TRA CỨU trong danh sách:</span>
+          <input type="search" id="ddTimTrongDS" placeholder="Gõ tên xem em đó đã điểm danh chưa..." oninput="locBangText(this,'dsDiemDanhBox')" style="min-width:230px;padding:7px 10px">
+          <span class="locBaoSo" style="font-size:12px;color:#6b7280"></span>
         </div>
         <div id="ddTomTat" style="padding:10px 14px;font-size:13px;color:#48566b;border-bottom:1px solid var(--vien);display:none"></div>
         <div class="cuonBang" id="dsDiemDanhBox">
@@ -3756,6 +3761,11 @@ function veDsDiemDanh(){
   if(!list.length){ box.innerHTML='<div class="trong" style="padding:24px">'+(ngayLoc?'Ngày này chưa có lượt điểm danh nào.':'Tháng này chưa có lượt điểm danh nào.')+'</div>'; return; }
   renderDsDiemDanh(list);
 }
+function _gioDD(o){
+  // Lấy giờ điểm danh từ TS (chính xác) hoặc chuỗi ThoiGian
+  if(o.TS){ try{ var d=new Date(o.TS); if(!isNaN(d)) return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }catch(e){} }
+  var tg=String(o.ThoiGian||''); var m=tg.match(/(\d{1,2}):(\d{2})/); return m?(('0'+m[1]).slice(-2)+':'+m[2]):'—';
+}
 function renderDsDiemDanh(list){
   var box = document.getElementById('dsDiemDanhBox'); if(!box) return;
   var hvMap={}; TatCaHV.forEach(function(h){ hvMap[h.MaHV]={TenKhoa:h.TenKhoa||'',MaKhoa:h.MaKhoa||'',SoBuoiKhoa:soTienJS(h.SoBuoiKhoa),DaHocKhoa:soTienJS(h.DaHocKhoa),Lop:h.Lop||'',SDT:String(h.SDT_PhuHuynh||'')}; });
@@ -3769,7 +3779,7 @@ function renderDsDiemDanh(list){
     + '<table class="nho"><thead><tr>'
     + (laQuanLy()?'<th style="width:34px"></th>':'')
     + '<th>#</th><th>Lớp</th><th>Khóa học</th><th>Học viên</th>'
-    + '<th>Buổi còn lại</th><th>Ngày</th><th>Người ĐD</th><th>SĐT phụ huynh</th><th class="tien">Thu</th>'
+    + '<th>Buổi còn lại</th><th>Ngày</th><th>Giờ ĐD</th><th>Người ĐD</th><th>SĐT phụ huynh</th><th class="tien">Thu</th>'
     + (laQuanLy()?'<th></th>':'')
     + '</tr></thead><tbody>'
     + list.map(function(o,i){
@@ -3788,6 +3798,7 @@ function renderDsDiemDanh(list){
           + '<td><strong>'+esc(o.HoTen)+'</strong> <span class="nhan '+mauTT+'">'+esc(o.TrangThai)+'</span>'+(soTienJS(o.Ca)>=2?' <span class="nhan bao">ca '+soTienJS(o.Ca)+'</span>':'')+'</td>'
           + '<td>'+conLaiHtml+'</td>'
           + '<td>'+esc(o.Ngay||'')+'</td>'
+          + '<td style="white-space:nowrap;color:#1d4ed8;font-weight:600">'+esc(_gioDD(o))+'</td>'
           + '<td>'+esc(o.NguoiDiemDanh||'—')+'</td>'
           + '<td>'+(sdt?'<a href="tel:'+esc(sdt)+'">'+esc(sdt)+'</a>':'—')+'</td>'
           + '<td class="tien">'+(thu===''?'—':tien(thu))+'</td>'
@@ -3795,8 +3806,8 @@ function renderDsDiemDanh(list){
           + '</tr>';
       }).join('')
     + '</tbody></table>';
+  var _inp=document.getElementById('ddTimTrongDS'); if(_inp && _inp.value) locBangText(_inp,'dsDiemDanhBox');
 }
-function ddTickTatCa(cb){ document.querySelectorAll('.ddTick').forEach(function(x){ x.checked=cb.checked; }); ddDemChon(); }
 function ddDemChon(){ var n=document.querySelectorAll('.ddTick:checked').length; var s=document.getElementById('ddSoChon'); if(s) s.textContent=n?('Đã chọn '+n+' dòng'):''; }
 function xoaMotDiemDanh(id, btn){
   if(!laQuanLy()){ bao('Bạn không có quyền.', true); return; }
