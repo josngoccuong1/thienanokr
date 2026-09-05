@@ -641,6 +641,7 @@ main section{animation:hienLen .25s ease}
         <input type="number" id="shkNguong" value="3" min="0" style="width:70px">
         <span style="font-size:13px;color:#6b7280">buổi</span>
         <select id="shkKhoa" style="min-width:180px"><option value="">Tất cả khóa học</option></select>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'shkBox')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
         <button class="nutChinh" onclick="napSapHetKhoa()">Lọc</button>
         <button class="nutPhu" onclick="document.getElementById('shkNguong').value='';document.getElementById('shkKhoa').value='';napSapHetKhoa()">Xem tất cả</button>
       </div>
@@ -655,6 +656,7 @@ main section{animation:hienLen .25s ease}
         <input type="number" id="tnNgay" value="30" min="7" style="width:80px">
         <span style="font-size:13px;color:#6b7280">ngày trở lên</span>
         <button class="nutChinh" onclick="locTamNghi()">Lọc</button>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'tnKetQua')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
       </div>
       <div class="the"><div id="tnKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
@@ -664,6 +666,7 @@ main section{animation:hienLen .25s ease}
       <div class="the" style="padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <span style="font-weight:600;color:#12294d" id="lttTieuDe">Học sinh</span>
         <select id="lttCoSo" onchange="veLocTT()" style="min-width:150px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'lttKetQua')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
       </div>
       <div class="the"><div id="lttKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
     </section>
@@ -679,6 +682,7 @@ main section{animation:hienLen .25s ease}
         <span style="font-size:13px;color:#6b7280">tuần gần đây</span>
         <select id="bctCoSo" style="min-width:140px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
         <button class="nutChinh" onclick="locBaoCaoThue()">Lọc</button>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'bctKetQua')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
         <button class="nutPhu" onclick="taiExcelBaoCaoThue()">⬇ Tải Excel</button>
         <button class="nutPhu" onclick="xemWebBaoCaoThue()" style="border-color:#0f7a4d;color:#0f7a4d">🖨️ Xem/In dạng web</button>
       </div>
@@ -699,6 +703,7 @@ main section{animation:hienLen .25s ease}
           </select>
           <span style="font-size:13px;color:#6b7280" id="nhNguongWrap">Còn ≤ <input type="number" id="nhConLai" value="3" min="0" style="width:60px" onchange="veNhacHangLoat()"> buổi</span>
           <select id="nhCoSo" onchange="veNhacHangLoat()" style="min-width:130px"><option value="">Tất cả CS</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+          <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'nhKetQua')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
           <span style="font-size:12.5px;color:#6b7280;align-self:center">Mẫu nhanh:</span>
@@ -726,6 +731,7 @@ main section{animation:hienLen .25s ease}
         <input type="date" id="lhNgay" onchange="locLichHoc()" style="width:auto">
         <button class="nutNho" onclick="lhTuanTruoc()" style="background:#0f7a4d">📅 Tuần trước (cùng thứ)</button>
         <select id="lhCoSo" onchange="locLichHoc()" style="min-width:140px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên..." oninput="locBangText(this,'lhKetQua')" style="min-width:160px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
         <button class="nutPhu" onclick="copySDTLichHoc()">📋 Copy SĐT để nhắn</button>
       </div>
       <div class="the"><div id="lhKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
@@ -4402,6 +4408,13 @@ function danhDauLienHe(maHV, ten){
     if(!document.getElementById('vung-saphetkhoa').classList.contains('an')) napSapHetKhoa();
     if(document.getElementById('vung-nhachangloat') && !document.getElementById('vung-nhachangloat').classList.contains('an')) veNhacHangLoat();
   }).catch(function(e){ bao(e.message, true); });
+}
+function locBangText(inp, boxId){
+  var box=document.getElementById(boxId); if(!box) return;
+  var tk=boDauJS(String(inp.value||'').trim());
+  var rows=box.querySelectorAll('tbody tr'); var hien=0;
+  rows.forEach(function(tr){ var ok = !tk || boDauJS(tr.textContent).indexOf(tk)>-1; tr.style.display=ok?'':'none'; if(ok)hien++; });
+  var bao=inp.parentNode.querySelector('.locBaoSo'); if(bao) bao.textContent = tk?('Thấy '+hien+' kết quả'):'';
 }
 function napSapHetKhoa(){
   var sel=document.getElementById('shkKhoa');
