@@ -234,8 +234,9 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
     transform:translateX(-100%);transition:transform .22s ease;box-shadow:8px 0 26px rgba(0,0,0,.25)}
   nav.mo{transform:translateX(0)}
   .mangCheDiDong.mo{display:block;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:190}
-  .navDropMenu{position:static;left:auto;top:auto;margin-left:0;box-shadow:none;border:none;
+  .navDropMenu{position:static;left:auto;top:auto;margin-left:0;box-shadow:none;border:none;border-top:none;
     background:#f7f9fc;border-radius:8px;margin:2px 0 6px}
+  .navDropMenu::before,.navDropMenu::after{display:none}
 }
 /* ============================================================
    NÂNG CẤP GIAO DIỆN CHUYÊN NGHIỆP (ghi đè, giữ nguyên bố cục)
@@ -282,26 +283,31 @@ nav button .ic{font-size:19px;vertical-align:middle}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
 /* Thanh điều hướng dọc bên trái */
-nav{box-shadow:2px 0 10px rgba(16,32,64,.05);padding:12px 8px;gap:3px;overflow-x:hidden;flex-wrap:nowrap}
-nav button{transition:all .15s;border-radius:10px;border:1px solid transparent;
-  background:none;padding:11px 13px;color:#48566b;font-weight:600;border-bottom:none;
+nav{box-shadow:2px 0 10px rgba(16,32,64,.05);padding:12px 8px;gap:4px;overflow-x:hidden;flex-wrap:nowrap}
+nav button{transition:all .15s;border-radius:10px;border:1px solid transparent;border-left:3px solid var(--mc,transparent);
+  background:var(--mcbg,transparent);padding:11px 12px;color:#3b4759;font-weight:600;
   display:flex;align-items:center;gap:9px}
-nav button:hover{color:#fff;background:linear-gradient(120deg,#254a80,#16305a);border-color:#16305a;transform:none;box-shadow:0 4px 10px rgba(18,41,77,.18)}
-nav button:hover .ic{color:#fff}
-nav button.chon{color:#fff;background:linear-gradient(120deg,#1b3c6b,#12294d);border-color:var(--gold);box-shadow:0 3px 9px rgba(18,41,77,.22)}
-nav button.chon .ic{color:var(--gold-2)}
+nav button .ic:first-child{color:var(--mc,#5b6b82)}
+nav button:hover{color:#fff;background:var(--mc,#254a80);border-color:transparent;border-left-color:var(--mc,#16305a);transform:none;box-shadow:0 4px 10px rgba(18,41,77,.18)}
+nav button:hover .ic:first-child{color:#fff}
+nav button.chon{color:#fff;background:var(--mc,#1b3c6b);border-left-color:var(--gold);box-shadow:0 3px 9px rgba(18,41,77,.22)}
+nav button.chon .ic:first-child{color:#fff}
 nav .navDrop{width:100%}
 nav .navDrop>button{width:100%}
-nav .navDrop>button .ic:last-child{margin-left:auto;transform:rotate(-90deg)}
-/* Menu xổ (bay ra bên phải sidebar) */
+nav .navDrop>button .ic:last-child{margin-left:auto;transform:rotate(-90deg);color:#9aa5b5}
+nav .navDrop:hover>button .ic:last-child,nav .navDrop.mo>button .ic:last-child{color:#fff}
+/* Menu xổ (bay ra bên phải sidebar) — giữ hover liền mạch qua khoảng hở bằng cầu nối vô hình */
 .navDrop{position:relative;display:inline-flex}
-.navDropMenu{position:absolute;top:0;left:100%;margin-left:8px;min-width:250px;background:#fff;border:1px solid var(--vien);border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
+.navDropMenu{position:absolute;top:0;left:100%;margin-left:10px;min-width:250px;background:#fff;border:1px solid var(--vien);border-top:3px solid var(--mc,var(--gold));border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
+.navDropMenu::before{content:"";position:absolute;top:0;left:-10px;width:10px;height:100%}
+.navDropMenu::after{content:"";position:absolute;top:14px;left:-6px;width:11px;height:11px;background:#fff;border-left:1px solid var(--vien);border-bottom:1px solid var(--vien);transform:rotate(45deg)}
 .navDrop:hover .navDropMenu{display:block}
 .navDrop.mo .navDropMenu{display:block}
+.navDrop:hover>button,.navDrop.mo>button{color:#fff;background:var(--mc,#254a80);border-left-color:var(--mc,#16305a)}
 .navDropMenu a{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:8px;color:#374151;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
-.navDropMenu a .ic{font-size:19px;color:#64748b}
-.navDropMenu a:hover{background:linear-gradient(180deg,#1b3c6b,#12294d);color:#fff}
-.navDropMenu a:hover .ic{color:var(--gold-2)}
+.navDropMenu a .ic{font-size:19px;color:var(--mc,#64748b)}
+.navDropMenu a:hover{background:var(--mc,#1b3c6b);color:#fff}
+.navDropMenu a:hover .ic{color:#fff}
 
 /* Thẻ/khung */
 .the{border-radius:14px;box-shadow:var(--sh-sm);transition:box-shadow .2s}
@@ -406,7 +412,7 @@ main section{animation:hienLen .25s ease}
   <div class="mangCheDiDong" id="mangCheDiDong" onclick="toggleMenuDiDong(false)"></div>
   <nav id="navChinh">
     <button id="tab-trangchu" class="chon" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
-    <div class="navDrop">
+    <div class="navDrop" style="--mc:#2563eb;--mcbg:#eff6ff">
       <button id="tab-hocvien" onclick="navToggle(this,event)||doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="doiTab('hocvien')"><span class="ic">groups</span> Tất cả học viên</a>
@@ -418,9 +424,9 @@ main section{animation:hienLen .25s ease}
         <a onclick="moNhacHangLoat()"><span class="ic">campaign</span> 📣 Nhắc học phí hàng loạt</a>
       </div>
     </div>
-    <button id="tab-lop" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
-    <button id="tab-khoahoc" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
-    <div class="navDrop">
+    <button id="tab-lop" style="--mc:#0d9488;--mcbg:#ecfdf9" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
+    <button id="tab-khoahoc" style="--mc:#7c3aed;--mcbg:#f5f3ff" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
+    <div class="navDrop" style="--mc:#ea580c;--mcbg:#fff7ed">
       <button id="tab-diemdanh" onclick="navToggle(this,event)||doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="ddReport('diemdanh')"><span class="ic">how_to_reg</span> Điểm danh hôm nay</a>
@@ -432,8 +438,8 @@ main section{animation:hienLen .25s ease}
         <a onclick="moLichHoc()"><span class="ic">notifications_active</span> Lịch nhắc học sinh (theo ngày)</a>
       </div>
     </div>
-    <button id="tab-saphetkhoa" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
-    <div class="navDrop">
+    <button id="tab-saphetkhoa" style="--mc:#d97706;--mcbg:#fffbeb" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
+    <div class="navDrop" style="--mc:#16a34a;--mcbg:#f0fdf4">
       <button id="tab-baocao" onclick="navToggle(this,event)||doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="bcSub('doanhthu')"><span class="ic">payments</span> Doanh thu & tăng trưởng HS</a>
@@ -444,7 +450,7 @@ main section{animation:hienLen .25s ease}
         <a onclick="bcSub('luonggv')"><span class="ic">payments</span> Bảng lương giáo viên</a>
       </div>
     </div>
-    <div class="navDrop">
+    <div class="navDrop" style="--mc:#db2777;--mcbg:#fdf2f8">
       <button id="tab-crm" onclick="navToggle(this,event)||doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
         <a onclick="moCrmSub('tuvan')"><span class="ic">person_search</span> Khách tiềm năng</a>
@@ -456,7 +462,7 @@ main section{animation:hienLen .25s ease}
         <a onclick="moCrmSub('thongke')"><span class="ic">donut_small</span> Thống kê nguồn</a>
       </div>
     </div>
-    <button id="tab-nguoidung" onclick="doiTab('nguoidung')" style="display:none"><span class="ic">manage_accounts</span> Người dùng</button>
+    <button id="tab-nguoidung" style="display:none;--mc:#64748b;--mcbg:#f8fafc" onclick="doiTab('nguoidung')"><span class="ic">manage_accounts</span> Người dùng</button>
   </nav>
 
   <main>
