@@ -228,19 +228,6 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   th,td{padding:9px 10px}
   .an-mobile{display:none}
 }
-/* Sidebar → ngăn kéo trên di động */
-@media(max-width:900px){
-  #nutMenuDiDong{display:inline-flex;align-items:center;gap:6px;background:transparent;color:#cbd5e1;
-    border:1px solid #3d5680;border-radius:8px;padding:6px 10px;order:-1}
-  #nutMenuDiDong:hover{background:#1d3f70;color:#fff}
-  nav{position:fixed;top:0;left:0;height:100vh;max-height:100vh;overflow-y:auto;z-index:200;
-    transform:translateX(-100%);transition:transform .22s ease;box-shadow:8px 0 26px rgba(0,0,0,.25)}
-  nav.mo{transform:translateX(0)}
-  .mangCheDiDong.mo{display:block;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:190}
-  .navDropMenu{position:static;left:auto;top:auto;margin-left:0;box-shadow:none;border:none;border-top:none;
-    background:#f7f9fc;border-radius:8px;margin:2px 0 6px}
-  .navDropMenu::before,.navDropMenu::after{display:none}
-}
 /* ============================================================
    NÂNG CẤP GIAO DIỆN CHUYÊN NGHIỆP (ghi đè, giữ nguyên bố cục)
    ============================================================ */
@@ -300,7 +287,7 @@ nav .navDrop>button{width:100%}
 nav .navDrop>button .ic:last-child{margin-left:auto;transform:rotate(-90deg);color:#9aa5b5}
 nav .navDrop:hover>button .ic:last-child,nav .navDrop.mo>button .ic:last-child{color:#fff}
 /* Menu xổ (bay ra bên phải sidebar) — giữ hover liền mạch qua khoảng hở bằng cầu nối vô hình */
-.navDrop{position:relative;display:inline-flex}
+.navDrop{position:relative;display:flex;flex-direction:column;width:100%}
 .navDropMenu{position:absolute;top:0;left:100%;margin-left:10px;min-width:250px;background:#fff;border:1px solid var(--vien);border-top:3px solid var(--mc,var(--gold));border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);padding:6px;display:none;z-index:60}
 .navDropMenu::before{content:"";position:absolute;top:0;left:-10px;width:10px;height:100%}
 .navDropMenu::after{content:"";position:absolute;top:14px;left:-6px;width:11px;height:11px;background:#fff;border-left:1px solid var(--vien);border-bottom:1px solid var(--vien);transform:rotate(45deg)}
@@ -373,6 +360,21 @@ tbody tr:hover{background:#f7fafd}
 main section{animation:hienLen .25s ease}
 @keyframes hienLen{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){main section{animation:none}.theSo:hover,.nutChinh:hover{transform:none}}
+/* Sidebar → ngăn kéo trên di động (đặt cuối cùng để luôn thắng các rule phía trên) */
+@media(max-width:900px){
+  #nutMenuDiDong{display:inline-flex;align-items:center;gap:6px;background:transparent;color:#cbd5e1;
+    border:1px solid #3d5680;border-radius:8px;padding:6px 10px;order:-1}
+  #nutMenuDiDong:hover{background:#1d3f70;color:#fff}
+  nav{position:fixed;top:0;left:0;height:100vh;max-height:100vh;overflow-y:auto;z-index:200;
+    transform:translateX(-100%);transition:transform .22s ease;box-shadow:8px 0 26px rgba(0,0,0,.25)}
+  nav.mo{transform:translateX(0)}
+  .navDrop{display:flex;flex-direction:column;width:100%}
+  .mangCheDiDong.mo{display:block;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:190}
+  .navDropMenu{position:static;left:auto;top:auto;margin-left:0;box-shadow:none;border:none;border-top:none;
+    background:#f7f9fc;border-radius:8px;margin:2px 0 6px;width:100%;min-width:0;box-sizing:border-box}
+  .navDropMenu::before,.navDropMenu::after{display:none}
+  .navDropMenu a{white-space:normal}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -2404,10 +2406,8 @@ window.onFbReady = function(){
 };
 
 /* ---------- Tab ---------- */
-// Menu con trên điện thoại: chạm nút cha để mở/đóng; chạm ngoài hoặc chọn mục thì đóng
-var _navCham = ('ontouchstart' in window) || (navigator.maxTouchPoints>0) || (window.innerWidth<=820);
+// Menu con: bấm vào thư mục mẹ để mở/đóng (mọi thiết bị) — rê chuột vẫn mở thêm cho tiện trên máy tính
 function navToggle(btn, ev){
-  if(!_navCham) return false; // máy tính: dùng rê chuột như cũ
   var drop = btn.closest ? btn.closest('.navDrop') : btn.parentNode;
   if(!drop) return false;
   var dangMo = drop.classList.contains('mo');
