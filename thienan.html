@@ -68,13 +68,13 @@ nav button{background:none;border-radius:0;padding:13px 16px;color:var(--chu-mo)
 nav button.chon{color:var(--navy);border-bottom-color:transparent;border-left-color:var(--gold);background:#f4f6fb}
 #nutMenuDiDong{display:none}
 .mangCheDiDong{display:none}
-.chaoMung{background:linear-gradient(120deg,#12294d,#1c3a63);color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 6px 20px rgba(18,41,77,.18)}
-.chaoMung .cmChao{font-size:22px;font-weight:700}
+.chaoMung{background:linear-gradient(120deg,#12294d,#1c3a63);color:#fff;border-radius:12px;padding:15px 20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 6px 20px rgba(18,41,77,.18)}
+.chaoMung .cmChao{font-size:18px;font-weight:700}
 .chaoMung .cmChao span{color:var(--gold)}
-.chaoMung .cmPhu{opacity:.85;margin-top:4px;font-size:14px}
-.chaoMung .cmNgay{font-size:14px;opacity:.9;text-align:right}
-.luoiThe{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.theSo{background:#fff;border:1px solid var(--vien);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden;box-shadow:0 4px 12px rgba(18,41,77,.08)}
+.chaoMung .cmPhu{opacity:.85;margin-top:2px;font-size:12.5px}
+.chaoMung .cmNgay{font-size:12.5px;opacity:.9;text-align:right}
+.luoiThe{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;margin-bottom:14px}
+.theSo{background:#fff;border:1px solid var(--vien);border-radius:10px;padding:10px 11px;position:relative;overflow:hidden;box-shadow:0 3px 10px rgba(18,41,77,.07)}
 .theSo.mau{border:none;color:#fff}
 .theSo.mau .nhan{color:rgba(255,255,255,.92)}
 .theSo.mau .so{color:#fff}
@@ -91,7 +91,10 @@ nav button.chon{color:var(--navy);border-bottom-color:transparent;border-left-co
 .theSo .phu{font-size:11px;color:#9ca3af;margin-top:4px}
 .theSo .phu b{color:#0f7a4d}
 .luoiDoi{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.tieuMuc{font-weight:700;color:#12294d;margin-bottom:10px;font-size:15px}
+.dashGrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;align-items:start}
+.dashChinh,.dashPhu{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media(max-width:1150px){.dashGrid{grid-template-columns:1fr}}
+.tieuMuc{font-weight:700;color:#12294d;margin-bottom:8px;font-size:13.5px}
 @media(max-width:900px){.luoiThe{grid-template-columns:repeat(2,1fr)}.luoiDoi{grid-template-columns:1fr}}
 @media(max-width:520px){.luoiThe{grid-template-columns:1fr}}
 
@@ -283,7 +286,7 @@ nav button .ic{font-size:19px;vertical-align:middle}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
 /* Thanh điều hướng dọc bên trái */
-nav{box-shadow:2px 0 10px rgba(16,32,64,.05);padding:12px 8px;gap:4px;overflow-x:hidden;flex-wrap:nowrap}
+nav{box-shadow:2px 0 10px rgba(16,32,64,.05);padding:12px 8px;gap:4px;flex-wrap:nowrap}
 nav button{transition:all .15s;border-radius:10px;border:1px solid transparent;border-left:3px solid var(--mc,transparent);
   background:var(--mcbg,transparent);padding:11px 12px;color:#3b4759;font-weight:600;
   display:flex;align-items:center;gap:9px}
@@ -342,7 +345,7 @@ tbody tr:hover{background:#f7fafd}
 .nhan{border-radius:8px;padding:4px 10px;font-weight:600;font-size:11.5px;letter-spacing:.2px}
 
 /* Thẻ số dashboard */
-.theSo{border-radius:16px;box-shadow:var(--sh-sm);transition:transform .18s,box-shadow .18s}
+.theSo{border-radius:10px;box-shadow:var(--sh-sm);transition:transform .18s,box-shadow .18s}
 .theSo:hover{transform:translateY(-3px);box-shadow:var(--sh-md)}
 .theSo::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-2));opacity:0;transition:opacity .2s}
 .theSo:hover::after{opacity:1}
@@ -353,7 +356,7 @@ tbody tr:hover{background:#f7fafd}
 .lop-phu{background:rgba(16,28,54,.42);backdrop-filter:blur(3px)}
 
 /* Banner chào mừng + hiệu ứng ánh vàng */
-.chaoMung{border-radius:16px;box-shadow:0 10px 30px rgba(18,41,77,.22);position:relative;overflow:hidden}
+.chaoMung{border-radius:12px;box-shadow:0 10px 30px rgba(18,41,77,.22);position:relative;overflow:hidden}
 .chaoMung::after{content:"";position:absolute;right:-30px;bottom:-40px;width:200px;height:200px;
   background:radial-gradient(circle,rgba(224,190,74,.28),transparent 70%);pointer-events:none}
 
@@ -476,22 +479,26 @@ main section{animation:hienLen .25s ease}
         <div class="cmNgay" id="cmNgay"></div>
       </div>
       <div id="theTongQuan" class="luoiThe"></div>
-      <div class="the" style="padding:18px;margin-bottom:16px;border-top:4px solid #ea580c">
-        <div class="tieuMuc" style="color:#c2410c"><span class="ic" style="color:#ea580c">bar_chart</span> Doanh thu 6 tháng gần nhất</div>
-        <div id="dashBieuDo" style="margin-top:10px"><div class="dangTai">Đang tải...</div></div>
-      </div>
-      <div class="the" style="padding:18px;margin-bottom:16px;border-top:4px solid #7c3aed">
-        <div class="tieuMuc" style="color:#6d28d9"><span class="ic" style="color:#7c3aed">pie_chart</span> Cơ cấu học viên</div>
-        <div id="dashCoCau"></div>
-      </div>
-      <div class="luoiDoi">
-        <div class="the" style="padding:16px;border-top:4px solid #f59e0b">
-          <div class="tieuMuc" style="color:#b45309"><span class="ic" style="color:#f59e0b">warning</span> Cần chú ý</div>
-          <div id="dashCanChuY"><div class="dangTai">Đang tải...</div></div>
+      <div class="dashGrid">
+        <div class="dashChinh">
+          <div class="the" style="padding:14px;border-top:4px solid #ea580c">
+            <div class="tieuMuc" style="color:#c2410c"><span class="ic" style="color:#ea580c">bar_chart</span> Doanh thu 6 tháng gần nhất</div>
+            <div id="dashBieuDo" style="margin-top:8px"><div class="dangTai">Đang tải...</div></div>
+          </div>
+          <div class="the" style="padding:14px;border-top:4px solid #7c3aed">
+            <div class="tieuMuc" style="color:#6d28d9"><span class="ic" style="color:#7c3aed">pie_chart</span> Cơ cấu học viên</div>
+            <div id="dashCoCau"></div>
+          </div>
         </div>
-        <div class="the" style="padding:16px;border-top:4px solid #2563eb">
-          <div class="tieuMuc" style="color:#1d4ed8"><span class="ic" style="color:#2563eb">alarm</span> Việc cần làm hôm nay</div>
-          <div id="dashViec"><div class="dangTai">Đang tải...</div></div>
+        <div class="dashPhu">
+          <div class="the" style="padding:14px;border-top:4px solid #f59e0b">
+            <div class="tieuMuc" style="color:#b45309"><span class="ic" style="color:#f59e0b">warning</span> Cần chú ý</div>
+            <div id="dashCanChuY"><div class="dangTai">Đang tải...</div></div>
+          </div>
+          <div class="the" style="padding:14px;border-top:4px solid #2563eb">
+            <div class="tieuMuc" style="color:#1d4ed8"><span class="ic" style="color:#2563eb">alarm</span> Việc cần làm hôm nay</div>
+            <div id="dashViec"><div class="dangTai">Đang tải...</div></div>
+          </div>
         </div>
       </div>
     </section>
