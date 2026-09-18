@@ -60,8 +60,8 @@ header .nguoi{color:#cbd5e1;font-size:13px}
 
 #khungChinh{display:flex;flex:1;min-height:0;align-items:flex-start}
 nav{background:#fff;border-right:1px solid var(--vien);display:flex;flex-direction:column;
-  flex-shrink:0;width:240px;overflow-x:hidden;overflow-y:auto;
-  position:sticky;top:0;align-self:flex-start;max-height:100vh}
+  flex-shrink:0;width:240px;z-index:50;
+  position:sticky;top:0;align-self:flex-start}
 nav button{background:none;border-radius:0;padding:13px 16px;color:var(--chu-mo);
   font-weight:600;white-space:nowrap;border-bottom:none;border-left:3px solid transparent;
   width:100%;text-align:left;justify-content:flex-start}
@@ -73,22 +73,22 @@ nav button.chon{color:var(--navy);border-bottom-color:transparent;border-left-co
 .chaoMung .cmChao span{color:var(--gold)}
 .chaoMung .cmPhu{opacity:.85;margin-top:4px;font-size:14px}
 .chaoMung .cmNgay{font-size:14px;opacity:.9;text-align:right}
-.luoiThe{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
-.theSo{background:#fff;border:1px solid var(--vien);border-radius:16px;padding:18px;position:relative;overflow:hidden;box-shadow:0 6px 18px rgba(18,41,77,.10)}
+.luoiThe{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.theSo{background:#fff;border:1px solid var(--vien);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden;box-shadow:0 4px 12px rgba(18,41,77,.08)}
 .theSo.mau{border:none;color:#fff}
 .theSo.mau .nhan{color:rgba(255,255,255,.92)}
 .theSo.mau .so{color:#fff}
 .theSo.mau .phu{color:rgba(255,255,255,.85)}
 .theSo.mau .phu b{color:#fff}
 .theSo.mau .icon{background:rgba(255,255,255,.22)!important;color:#fff!important}
-.theSo.mau::after{content:"";position:absolute;right:-20px;bottom:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12)}
+.theSo.mau::after{content:"";position:absolute;right:-16px;bottom:-16px;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12)}
 .theSo.bam{cursor:pointer;transition:transform .15s,box-shadow .15s}
 .theSo.bam:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(18,41,77,.22)}
 .theSo.bam:active{transform:translateY(0)}
-.theSo .icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
-.theSo .nhan{font-size:13px;color:var(--chu-mo);font-weight:600}
-.theSo .so{font-size:28px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:2px}
-.theSo .phu{font-size:12px;color:#9ca3af;margin-top:6px}
+.theSo .icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:7px}
+.theSo .nhan{font-size:12px;color:var(--chu-mo);font-weight:600}
+.theSo .so{font-size:21px;font-weight:800;color:var(--navy);line-height:1.1;margin-top:1px}
+.theSo .phu{font-size:11px;color:#9ca3af;margin-top:4px}
 .theSo .phu b{color:#0f7a4d}
 .luoiDoi{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .tieuMuc{font-weight:700;color:#12294d;margin-bottom:10px;font-size:15px}
@@ -230,7 +230,7 @@ table.nho tbody tr:hover{background:transparent;cursor:default}
   #nutMenuDiDong{display:inline-flex;align-items:center;gap:6px;background:transparent;color:#cbd5e1;
     border:1px solid #3d5680;border-radius:8px;padding:6px 10px;order:-1}
   #nutMenuDiDong:hover{background:#1d3f70;color:#fff}
-  nav{position:fixed;top:0;left:0;height:100vh;max-height:100vh;z-index:200;
+  nav{position:fixed;top:0;left:0;height:100vh;max-height:100vh;overflow-y:auto;z-index:200;
     transform:translateX(-100%);transition:transform .22s ease;box-shadow:8px 0 26px rgba(0,0,0,.25)}
   nav.mo{transform:translateX(0)}
   .mangCheDiDong.mo{display:block;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:190}
@@ -279,7 +279,7 @@ header .phai{position:relative}
 nav button{display:inline-flex;align-items:center;gap:7px}
 nav button .ic{font-size:19px;vertical-align:middle}
 .crmSub button{display:inline-flex;align-items:center;gap:7px}
-.theSo .icon .ic{font-size:24px}
+.theSo .icon .ic{font-size:18px}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
 /* Thanh điều hướng dọc bên trái */
