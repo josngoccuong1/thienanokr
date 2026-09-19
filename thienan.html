@@ -59,13 +59,13 @@ header .nguoi{color:#cbd5e1;font-size:13px}
 .nutThoat:hover{background:#1d3f70;color:#fff}
 
 #khungChinh{display:flex;flex:1;min-height:0;align-items:flex-start}
-nav{background:#fff;border-right:1px solid var(--vien);display:flex;flex-direction:column;
+nav{background:linear-gradient(180deg,#122a4e,#0e2140);border-right:1px solid #0a1830;display:flex;flex-direction:column;
   flex-shrink:0;width:240px;z-index:50;
   position:sticky;top:0;align-self:flex-start}
-nav button{background:none;border-radius:0;padding:13px 16px;color:var(--chu-mo);
+nav button{background:none;border-radius:0;padding:13px 16px;color:rgba(255,255,255,.85);
   font-weight:600;white-space:nowrap;border-bottom:none;border-left:3px solid transparent;
   width:100%;text-align:left;justify-content:flex-start}
-nav button.chon{color:var(--navy);border-bottom-color:transparent;border-left-color:var(--gold);background:#f4f6fb}
+nav button.chon{color:#fff;border-bottom-color:transparent;border-left-color:var(--gold);background:rgba(255,255,255,.08)}
 #nutMenuDiDong{display:none}
 .mangCheDiDong{display:none}
 .chaoMung{background:linear-gradient(120deg,#12294d,#1c3a63);color:#fff;border-radius:12px;padding:15px 20px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 6px 20px rgba(18,41,77,.18)}
@@ -273,13 +273,13 @@ nav button .ic{font-size:19px;vertical-align:middle}
 .tieuMuc .ic,.chaoMung .ic{vertical-align:-4px}
 
 /* Thanh điều hướng dọc bên trái */
-nav{box-shadow:2px 0 10px rgba(16,32,64,.05);padding:12px 8px;gap:6px;flex-wrap:nowrap}
-nav button{transition:all .15s;border-radius:10px;border:1px solid transparent;
-  background:var(--mc,#1b3c6b);color:#fff;font-weight:600;padding:12px 13px;
-  display:flex;align-items:center;gap:9px;box-shadow:0 2px 6px rgba(18,41,77,.08)}
-nav button .ic:first-child{color:#fff}
-nav button:hover{filter:brightness(1.1);box-shadow:0 5px 14px rgba(18,41,77,.22);transform:translateX(2px)}
-nav button.chon{box-shadow:0 4px 12px rgba(18,41,77,.28);outline:2px solid var(--gold);outline-offset:-2px}
+nav{box-shadow:2px 0 14px rgba(0,0,0,.18);padding:14px 8px;gap:3px;flex-wrap:nowrap}
+nav button{transition:all .15s;border-radius:9px;border:1px solid transparent;
+  background:transparent;color:rgba(255,255,255,.82);font-weight:600;padding:12px 13px;
+  display:flex;align-items:center;gap:10px}
+nav button .ic:first-child{color:var(--mc,rgba(255,255,255,.6))}
+nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+nav button.chon{background:rgba(255,255,255,.1);color:#fff;border-left:3px solid var(--gold)}
 nav .navDrop{width:100%}
 nav .navDrop>button{width:100%}
 nav .navDrop>button .ic:last-child{margin-left:auto;transform:rotate(-90deg);color:rgba(255,255,255,.75)}
@@ -291,7 +291,7 @@ nav .navDrop:hover>button .ic:last-child,nav .navDrop.mo>button .ic:last-child{c
 .navDropMenu::after{content:"";position:absolute;top:14px;left:-6px;width:11px;height:11px;background:#fff;border-left:1px solid var(--vien);border-bottom:1px solid var(--vien);transform:rotate(45deg)}
 .navDrop:hover .navDropMenu{display:block}
 .navDrop.mo .navDropMenu{display:block}
-.navDrop:hover>button,.navDrop.mo>button{filter:brightness(1.1);box-shadow:0 5px 14px rgba(18,41,77,.22)}
+.navDrop:hover>button,.navDrop.mo>button{background:rgba(255,255,255,.08);color:#fff}
 .navDropMenu a{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:8px;color:#374151;font-weight:600;cursor:pointer;white-space:nowrap;font-size:14px}
 .navDropMenu a .ic{font-size:19px;color:var(--mc,#64748b)}
 .navDropMenu a:hover{background:var(--mc,#1b3c6b);color:#fff}
@@ -414,7 +414,7 @@ main section{animation:hienLen .25s ease}
   <div id="khungChinh">
   <div class="mangCheDiDong" id="mangCheDiDong" onclick="toggleMenuDiDong(false)"></div>
   <nav id="navChinh">
-    <button id="tab-trangchu" class="chon" style="--mc:#1b3c6b" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
+    <button id="tab-trangchu" class="chon" style="--mc:#e0be4a" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
     <div class="navDrop" style="--mc:#2563eb;--mcbg:#eff6ff">
       <button id="tab-hocvien" onclick="navToggle(this,event)||doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
       <div class="navDropMenu">
