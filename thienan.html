@@ -2400,24 +2400,44 @@ var MENU_DINH_NGHIA = [
   ]},
   {id:'nguoidung', icon:'manage_accounts', ten:'Người dùng', mau:'#64748b', onclick:"doiTab('nguoidung')", anMacDinhKhongDoiQuyen:true}
 ];
-var MenuTuyChinh = {}; // {id: {ten:'...', an:true/false}} — nạp từ Firebase lúc khởi động
+var MenuTuyChinh = {}; // {id: {ten:'...', an:true/false}, _themMoi:[{id,chaId,ten,icon,hanhDongId}]} — nạp từ Firebase lúc khởi động
+// Danh mục các trang/chức năng có sẵn để admin chọn khi "Thêm mục" (gộp từ mọi mục + mục con đang có, bỏ trùng theo onclick)
+var HANH_DONG_CO_SAN = (function(){
+  var ra=[], daCo={};
+  function xet(m){ if(!daCo[m.onclick]){ daCo[m.onclick]=1; ra.push({id:m.id, icon:m.icon, ten:m.ten, onclick:m.onclick}); } }
+  MENU_DINH_NGHIA.forEach(function(m){ if(!m.con) xet(m); (m.con||[]).forEach(xet); });
+  return ra;
+})();
 function renderMenu(){
   var ov = MenuTuyChinh || {};
+  var themMoi = Array.isArray(ov._themMoi) ? ov._themMoi : [];
   function tenHien(muc){ return (ov[muc.id] && ov[muc.id].ten) ? ov[muc.id].ten : muc.ten; }
   function bAn(muc){ return !!(ov[muc.id] && ov[muc.id].an); }
+  function timHanhDong(id){ return HANH_DONG_CO_SAN.filter(function(h){return h.id===id;})[0]; }
   var html = MENU_DINH_NGHIA.map(function(muc){
     if(bAn(muc)) return '';
     var style = muc.mau ? ' style="--mc:'+muc.mau+'"' : '';
-    if(muc.con && muc.con.length){
-      var conRows = muc.con.filter(function(c){return !bAn(c);}).map(function(c){
+    var themCuaMuc = themMoi.filter(function(t){return t.chaId===muc.id;});
+    if((muc.con && muc.con.length) || themCuaMuc.length){
+      var conRows = (muc.con||[]).filter(function(c){return !bAn(c);}).map(function(c){
         return '<a onclick="'+c.onclick+'"><span class="ic">'+c.icon+'</span> '+esc(tenHien(c))+'</a>';
       }).join('');
+      var themRows = themCuaMuc.map(function(t){
+        var hd = timHanhDong(t.hanhDongId); if(!hd) return '';
+        return '<a onclick="'+hd.onclick+'"><span class="ic">'+(t.icon||hd.icon)+'</span> '+esc(t.ten)+'</a>';
+      }).join('');
+      var mucOnclick = muc.onclick || "navToggle(this,event)";
       return '<div class="navDrop"'+style+'>'
-        + '<button id="tab-'+muc.id+'" onclick="'+esc(muc.onclick)+'"><span class="ic">'+muc.icon+'</span> '+esc(tenHien(muc))+' <span class="ic" style="font-size:16px">expand_more</span></button>'
-        + '<div class="navDropMenu">'+conRows+'</div></div>';
+        + '<button id="tab-'+muc.id+'" onclick="'+esc(mucOnclick)+'"><span class="ic">'+muc.icon+'</span> '+esc(tenHien(muc))+' <span class="ic" style="font-size:16px">expand_more</span></button>'
+        + '<div class="navDropMenu">'+conRows+themRows+'</div></div>';
     }
     var ancung = muc.anMacDinhKhongDoiQuyen ? ' style="display:none;--mc:'+muc.mau+'"' : style;
     return '<button id="tab-'+muc.id+'"'+ancung+' onclick="'+esc(muc.onclick)+'"><span class="ic">'+muc.icon+'</span> '+esc(tenHien(muc))+'</button>';
+  }).join('');
+  // Mục lớn mới do admin tự thêm (không thuộc thư mục nào, chaId rỗng)
+  html += themMoi.filter(function(t){return !t.chaId;}).map(function(t){
+    var hd = timHanhDong(t.hanhDongId); if(!hd) return '';
+    return '<button id="tab-them-'+t.id+'" style="--mc:#475569" onclick="'+hd.onclick+'"><span class="ic">'+(t.icon||hd.icon)+'</span> '+esc(t.ten)+'</button>';
   }).join('');
   document.getElementById('navChinh').innerHTML = html;
 }
@@ -4924,29 +4944,71 @@ function khoaLuu(khoa){
 function moQuanLyMenu(){
   if(!laAdmin()){ bao('Chỉ admin mới có quyền chỉnh menu.', true); return; }
   var ov = MenuTuyChinh || {};
+  var themMoi = Array.isArray(ov._themMoi) ? ov._themMoi : [];
   function tenHien(m){ return (ov[m.id] && ov[m.id].ten) ? ov[m.id].ten : m.ten; }
   function bAn(m){ return !!(ov[m.id] && ov[m.id].an); }
-  var than = '<p style="font-size:13px;color:#6b7280;margin-bottom:12px">Đổi tên hoặc bỏ tick để <strong>ẩn</strong> mục/mục con. Không xóa được dữ liệu — chỉ ẩn khỏi menu, có thể bật lại bất cứ lúc nào.</p>'
+  function tuyChonHD(){
+    return '<option value="">— chọn chức năng có sẵn để thêm —</option>'
+      + HANH_DONG_CO_SAN.map(function(h){ return '<option value="'+esc(h.id)+'">'+esc(h.ten)+'</option>'; }).join('');
+  }
+  function dongDaLuu(t){
+    return '<div class="mmDongThem" data-id="'+esc(t.id)+'" data-cha="'+esc(t.chaId||'')+'" data-hd="'+esc(t.hanhDongId)+'" style="display:flex;align-items:center;gap:8px;padding:6px 0">'
+      + '<span style="width:16px"></span><span class="ic" style="font-size:17px;color:#0ea5e9">'+esc(t.icon||'')+'</span>'
+      + '<input type="text" class="mmThemTen" value="'+esc(t.ten)+'" style="flex:1;min-width:120px;font-size:13px">'
+      + '<span style="font-size:11px;color:#94a3b8;white-space:nowrap">(đã thêm)</span>'
+      + '<button type="button" onclick="this.closest(\'.mmDongThem\').remove()" style="border:none;background:none;color:#b42318;cursor:pointer;font-size:16px" title="Bỏ mục này">×</button></div>';
+  }
+  function khungThemMoi(mucId){
+    return '<div id="mmDsThem_'+(mucId||'goc')+'">'+themMoi.filter(function(t){return (t.chaId||'')===mucId;}).map(dongDaLuu).join('')+'</div>'
+      + '<div style="display:flex;align-items:center;gap:6px;padding:8px 0 4px 0">'
+      + '<select id="mmChonHD_'+(mucId||'goc')+'" style="flex:1.3;font-size:12px;padding:6px;border-radius:6px;border:1px solid var(--vien)">'+tuyChonHD()+'</select>'
+      + '<input type="text" id="mmTenMoi_'+(mucId||'goc')+'" placeholder="Tên hiển thị (tuỳ chọn)" style="flex:1;font-size:12px;padding:6px">'
+      + '<button type="button" class="nutNho" onclick="mmThemDong(\''+(mucId||'')+'\')">+ Thêm</button></div>';
+  }
+  var than = '<p style="font-size:13px;color:#6b7280;margin-bottom:12px">Đổi tên hoặc bỏ tick để <strong>ẩn</strong> mục/mục con có sẵn. Dùng khung "+ Thêm" để gắn thêm shortcut tới 1 chức năng đã có, đặt tên tuỳ ý. Không xóa được dữ liệu gốc.</p>'
     + MENU_DINH_NGHIA.map(function(m){
         var hang = '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eef1f6">'
           + '<input type="checkbox" id="mmAn_'+m.id+'" '+(bAn(m)?'':'checked')+' style="width:auto">'
           + '<span class="ic" style="color:'+(m.mau||'#64748b')+'">'+m.icon+'</span>'
           + '<input type="text" id="mmTen_'+m.id+'" value="'+esc(tenHien(m))+'" style="flex:1;min-width:120px">'
           + '</div>';
-        var conHtml = (m.con&&m.con.length) ? '<div style="margin:0 0 10px 30px;padding-left:10px;border-left:2px solid #eef1f6">'
+        var coCon = m.con && m.con.length;
+        var conHtml = coCon ? '<div style="margin:0 0 10px 30px;padding-left:10px;border-left:2px solid #eef1f6">'
           + m.con.map(function(c){
               return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0">'
                 + '<input type="checkbox" id="mmAn_'+c.id+'" '+(bAn(c)?'':'checked')+' style="width:auto">'
                 + '<span class="ic" style="font-size:17px;color:#94a3b8">'+c.icon+'</span>'
                 + '<input type="text" id="mmTen_'+c.id+'" value="'+esc(tenHien(c))+'" style="flex:1;min-width:120px;font-size:13px">'
                 + '</div>';
-            }).join('') + '</div>' : '';
+            }).join('')
+          + khungThemMoi(m.id)
+          + '</div>' : '';
         return hang + conHtml;
-      }).join('');
-  moModal('⚙️ Quản lý menu', than, 'luuQuanLyMenu()', {chan:
+      }).join('')
+    + '<div style="margin-top:14px;padding-top:10px;border-top:2px solid #eef1f6"><div style="font-weight:700;color:#12294d;margin-bottom:6px">➕ Thêm mục lớn (ngoài mọi thư mục)</div>' + khungThemMoi('') + '</div>';
+  moModal('⚙️ Quản lý menu', than, 'luuQuanLyMenu()', {rong:true, chan:
     '<button class="nutPhu" onclick="dongModal()">Hủy</button>'
     + '<button class="nutPhu" style="background:#fef3c7;color:#92400e" onclick="khoiPhucMenuMacDinh()">Khôi phục mặc định</button>'
     + '<button class="nutChinh" id="nutLuu" onclick="luuQuanLyMenu()">Lưu</button>'});
+}
+function mmThemDong(mucId){
+  var key = mucId || 'goc';
+  var sel = document.getElementById('mmChonHD_'+key);
+  var hdId = sel && sel.value; if(!hdId){ bao('Chọn 1 chức năng để thêm.', true); return; }
+  var hd = HANH_DONG_CO_SAN.filter(function(h){return h.id===hdId;})[0]; if(!hd) return;
+  var tenInput = document.getElementById('mmTenMoi_'+key);
+  var ten = ((tenInput&&tenInput.value)||'').trim() || hd.ten;
+  var rowId = 'moi_'+Date.now()+'_'+Math.floor(Math.random()*10000);
+  var cont = document.getElementById('mmDsThem_'+key);
+  var div = document.createElement('div');
+  div.className='mmDongThem'; div.dataset.id=rowId; div.dataset.cha=mucId; div.dataset.hd=hdId;
+  div.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 0';
+  div.innerHTML = '<span style="width:16px"></span><span class="ic" style="font-size:17px;color:#0ea5e9">'+hd.icon+'</span>'
+    + '<input type="text" class="mmThemTen" value="'+esc(ten)+'" style="flex:1;min-width:120px;font-size:13px">'
+    + '<span style="font-size:11px;color:#94a3b8;white-space:nowrap">(mới)</span>'
+    + '<button type="button" onclick="this.closest(\'.mmDongThem\').remove()" style="border:none;background:none;color:#b42318;cursor:pointer;font-size:16px" title="Bỏ mục này">×</button>';
+  if(cont){ cont.appendChild(div); }
+  if(tenInput) tenInput.value=''; if(sel) sel.value='';
 }
 function _thuThapMenuTuyChinh(){
   var items = {};
@@ -4960,6 +5022,14 @@ function _thuThapMenuTuyChinh(){
       if((ten2 && ten2.trim() && ten2.trim()!==c.ten) || an2) items[c.id] = {ten:(ten2||c.ten).trim(), an:an2};
     });
   });
+  var themMoi = [];
+  document.querySelectorAll('.mmDongThem').forEach(function(el){
+    var tenEl = el.querySelector('.mmThemTen');
+    var ten = ((tenEl&&tenEl.value)||'').trim(); if(!ten) return;
+    var hd = HANH_DONG_CO_SAN.filter(function(h){return h.id===el.dataset.hd;})[0];
+    themMoi.push({id:el.dataset.id, chaId:el.dataset.cha||'', ten:ten, icon:hd?hd.icon:'', hanhDongId:el.dataset.hd});
+  });
+  if(themMoi.length) items._themMoi = themMoi;
   return items;
 }
 function luuQuanLyMenu(){
@@ -4970,13 +5040,14 @@ function luuQuanLyMenu(){
   }).catch(function(e){ bao(e.message, true); khoaLuu(false); });
 }
 function khoiPhucMenuMacDinh(){
-  if(!confirm('Khôi phục toàn bộ menu về mặc định (bỏ mọi tên/ẩn đã tùy chỉnh)?')) return;
+  if(!confirm('Khôi phục toàn bộ menu về mặc định (bỏ mọi tên/ẩn/mục đã thêm)?')) return;
   khoaLuu(true);
   goi('luuMenuTuyChinh',{items:{}}).then(function(){
     MenuTuyChinh = {}; renderMenu(); apDungPhanQuyen(); dongModal(); bao('✓ Đã khôi phục menu mặc định');
   }).catch(function(e){ bao(e.message, true); khoaLuu(false); });
 }
 </script>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
