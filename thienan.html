@@ -407,66 +407,14 @@ main section{animation:hienLen .25s ease}
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
+      <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
     </div>
   </header>
 
   <div id="khungChinh">
   <div class="mangCheDiDong" id="mangCheDiDong" onclick="toggleMenuDiDong(false)"></div>
-  <nav id="navChinh">
-    <button id="tab-trangchu" class="chon" style="--mc:#e0be4a" onclick="doiTab('trangchu')"><span class="ic">dashboard</span> Trang chủ</button>
-    <div class="navDrop" style="--mc:#2563eb;--mcbg:#eff6ff">
-      <button id="tab-hocvien" onclick="navToggle(this,event)||doiTab('hocvien')"><span class="ic">group</span> Học viên <span class="ic" style="font-size:16px">expand_more</span></button>
-      <div class="navDropMenu">
-        <a onclick="doiTab('hocvien')"><span class="ic">groups</span> Tất cả học viên</a>
-        <a onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_bottom</span> Học sinh sắp hết khóa</a>
-        <a onclick="moTamNghi()"><span class="ic">pause_circle</span> Học sinh nghỉ lâu chưa đi học</a>
-        <a onclick="moLocTT('Bảo lưu')"><span class="ic">bookmark</span> Học sinh bảo lưu</a>
-        <a onclick="moLocTT('Đã nghỉ')"><span class="ic">person_off</span> Học sinh đã nghỉ</a>
-        <a onclick="moBaoCaoThue()"><span class="ic">receipt_long</span> Học sinh báo cáo thuế</a>
-        <a onclick="moNhacHangLoat()"><span class="ic">campaign</span> 📣 Nhắc học phí hàng loạt</a>
-      </div>
-    </div>
-    <button id="tab-lop" style="--mc:#0d9488;--mcbg:#ecfdf9" onclick="doiTab('lop')"><span class="ic">meeting_room</span> Lớp học</button>
-    <button id="tab-khoahoc" style="--mc:#7c3aed;--mcbg:#f5f3ff" onclick="doiTab('khoahoc')"><span class="ic">menu_book</span> Khóa học</button>
-    <div class="navDrop" style="--mc:#ea580c;--mcbg:#fff7ed">
-      <button id="tab-diemdanh" onclick="navToggle(this,event)||doiTab('diemdanh')"><span class="ic">fact_check</span> Điểm danh <span class="ic" style="font-size:16px">expand_more</span></button>
-      <div class="navDropMenu">
-        <a onclick="ddReport('diemdanh')"><span class="ic">how_to_reg</span> Điểm danh hôm nay</a>
-        <a onclick="ddReport('ngay')"><span class="ic">today</span> Báo cáo theo ngày</a>
-        <a onclick="ddReport('thang')"><span class="ic">calendar_month</span> Báo cáo theo tháng</a>
-        <a onclick="ddReport('quy')"><span class="ic">bar_chart</span> Báo cáo theo quý</a>
-        <a onclick="ddReport('nam')"><span class="ic">insights</span> Báo cáo theo năm</a>
-        <a onclick="ddReport('theogv')"><span class="ic">badge</span> Điểm danh theo giáo viên</a>
-        <a onclick="moLichHoc()"><span class="ic">notifications_active</span> Lịch nhắc học sinh (theo ngày)</a>
-      </div>
-    </div>
-    <button id="tab-saphetkhoa" style="--mc:#d97706;--mcbg:#fffbeb" onclick="doiTab('saphetkhoa')"><span class="ic">hourglass_top</span> Sắp hết khóa</button>
-    <div class="navDrop" style="--mc:#16a34a;--mcbg:#f0fdf4">
-      <button id="tab-baocao" onclick="navToggle(this,event)||doiTab('baocao')"><span class="ic">monitoring</span> Báo cáo <span class="ic" style="font-size:16px">expand_more</span></button>
-      <div class="navDropMenu">
-        <a onclick="bcSub('doanhthu')"><span class="ic">payments</span> Doanh thu & tăng trưởng HS</a>
-        <a onclick="bcSub('doanhthu')"><span class="ic">calendar_month</span> Doanh thu theo tháng</a>
-        <a onclick="bcSub('doanhthu')"><span class="ic">bar_chart</span> Theo quý</a>
-        <a onclick="bcSub('ngay')"><span class="ic">today</span> Doanh thu theo ngày</a>
-        <a onclick="bcSub('diemdanh')"><span class="ic">event_available</span> Báo cáo điểm danh theo tháng</a>
-        <a onclick="bcSub('luonggv')"><span class="ic">payments</span> Bảng lương giáo viên</a>
-      </div>
-    </div>
-    <div class="navDrop" style="--mc:#db2777;--mcbg:#fdf2f8">
-      <button id="tab-crm" onclick="navToggle(this,event)||doiTab('crm')"><span class="ic">support_agent</span> CRM <span class="ic" style="font-size:16px">expand_more</span></button>
-      <div class="navDropMenu">
-        <a onclick="moCrmSub('tuvan')"><span class="ic">person_search</span> Khách tiềm năng</a>
-        <a onclick="moCrmSub('chamsoc')"><span class="ic">phone_in_talk</span> Lịch hẹn chăm sóc</a>
-        <a onclick="moCrmSub('hocthu')"><span class="ic">assignment</span> Đăng ký học thử</a>
-        <a onclick="moCrmSub('hentest')"><span class="ic">event</span> Hẹn test</a>
-        <a onclick="moCrmSub('cholop')"><span class="ic">pending_actions</span> Chờ xếp lớp</a>
-        <a onclick="moCrmSub('giuchan')"><span class="ic">shield</span> Giữ chân</a>
-        <a onclick="moCrmSub('thongke')"><span class="ic">donut_small</span> Thống kê nguồn</a>
-      </div>
-    </div>
-    <button id="tab-nguoidung" style="display:none;--mc:#64748b;--mcbg:#f8fafc" onclick="doiTab('nguoidung')"><span class="ic">manage_accounts</span> Người dùng</button>
-  </nav>
+  <nav id="navChinh"></nav>
 
   <main>
     <!-- TAB TRANG CHỦ (Dashboard) -->
@@ -1068,6 +1016,8 @@ async function goi(hanhDong, dl){
     case 'xoaDiemDanh':      return await fbXoaDiemDanh(dl);
     case 'xoaDiemDanhNgay':  return await fbXoaDiemDanhNgay(dl);
     case 'xoaDiemDanhNhieu': return await fbXoaDiemDanhNhieu(dl);
+    case 'layMenuTuyChinh':  return await fbLayMenuTuyChinh();
+    case 'luuMenuTuyChinh':  return await fbLuuMenuTuyChinh(dl);
     case 'xoaGiaoVien':      return await fbXoaGiaoVien(dl);
     case 'layKhachHang':     return await docsCol('khachhang');
     case 'luuKhachHang':     return await fbLuuKhachHang(dl);
@@ -2309,6 +2259,8 @@ function apDungPhanQuyen(){
   GVDangDay = laGV ? (NguoiDung.maGV||'') : '';
   var sel = document.getElementById('chonCoSoXem');
   var tnd = document.getElementById('tab-nguoidung');
+  var nqlm = document.getElementById('nutMoQuanLyMenu');
+  if(nqlm) nqlm.style.display = laAdmin() ? '' : 'none';
   if(!admin){
     CoSoDangXem = NguoiDung.coSo || '';
     try{ localStorage.setItem('thienan_coso', CoSoDangXem); }catch(e){}
@@ -2335,7 +2287,9 @@ function apDungPhanQuyen(){
 function apDungDuLieu(bd, renderDanhSach){
   if(bd.danhMuc) DanhMuc = bd.danhMuc;
   napChonCoSo();
+  renderMenu();
   apDungPhanQuyen();
+  fbLayMenuTuyChinh().then(function(items){ MenuTuyChinh = items||{}; renderMenu(); apDungPhanQuyen(); });
   TatCaHV = bd.hocVien || [];
   DsLop = bd.lop || [];
   DsKhoa = bd.khoaHoc || [];
@@ -2347,7 +2301,7 @@ function apDungDuLieu(bd, renderDanhSach){
   if(renderDanhSach){
     var laGV = NguoiDung && NguoiDung.vaiTro==='Giáo viên';
     if(laGV){ doiTab('diemdanh'); lamMoiDsHocVien(); }
-    else { taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu(); }
+    else { doiTab('trangchu'); taiHocVien(TrangHV||1); lamMoiDsHocVien(); napTrangChu(); }
   }
 }
 
@@ -2402,6 +2356,81 @@ window.onFbReady = function(){
     }
   });
 };
+
+/* ---------- Menu động (đổi tên / ẩn-hiện mục được, lưu trên Firebase) ---------- */
+var MENU_DINH_NGHIA = [
+  {id:'trangchu', icon:'dashboard', ten:'Trang chủ', mau:'#e0be4a', onclick:"doiTab('trangchu')"},
+  {id:'hocvien', icon:'group', ten:'Học viên', mau:'#2563eb', onclick:"navToggle(this,event)||doiTab('hocvien')", con:[
+    {id:'hocvien_tatca', icon:'groups', ten:'Tất cả học viên', onclick:"doiTab('hocvien')"},
+    {id:'hocvien_saphetkhoa', icon:'hourglass_bottom', ten:'Học sinh sắp hết khóa', onclick:"doiTab('saphetkhoa')"},
+    {id:'hocvien_tamnghi', icon:'pause_circle', ten:'Học sinh nghỉ lâu chưa đi học', onclick:"moTamNghi()"},
+    {id:'hocvien_baoluu', icon:'bookmark', ten:'Học sinh bảo lưu', onclick:"moLocTT('Bảo lưu')"},
+    {id:'hocvien_danghi', icon:'person_off', ten:'Học sinh đã nghỉ', onclick:"moLocTT('Đã nghỉ')"},
+    {id:'hocvien_baocaothue', icon:'receipt_long', ten:'Học sinh báo cáo thuế', onclick:"moBaoCaoThue()"},
+    {id:'hocvien_nhachangloat', icon:'campaign', ten:'📣 Nhắc học phí hàng loạt', onclick:"moNhacHangLoat()"}
+  ]},
+  {id:'lop', icon:'meeting_room', ten:'Lớp học', mau:'#0d9488', onclick:"doiTab('lop')"},
+  {id:'khoahoc', icon:'menu_book', ten:'Khóa học', mau:'#7c3aed', onclick:"doiTab('khoahoc')"},
+  {id:'diemdanh', icon:'fact_check', ten:'Điểm danh', mau:'#ea580c', onclick:"navToggle(this,event)||doiTab('diemdanh')", con:[
+    {id:'diemdanh_homnay', icon:'how_to_reg', ten:'Điểm danh hôm nay', onclick:"ddReport('diemdanh')"},
+    {id:'diemdanh_ngay', icon:'today', ten:'Báo cáo theo ngày', onclick:"ddReport('ngay')"},
+    {id:'diemdanh_thang', icon:'calendar_month', ten:'Báo cáo theo tháng', onclick:"ddReport('thang')"},
+    {id:'diemdanh_quy', icon:'bar_chart', ten:'Báo cáo theo quý', onclick:"ddReport('quy')"},
+    {id:'diemdanh_nam', icon:'insights', ten:'Báo cáo theo năm', onclick:"ddReport('nam')"},
+    {id:'diemdanh_theogv', icon:'badge', ten:'Điểm danh theo giáo viên', onclick:"ddReport('theogv')"},
+    {id:'diemdanh_lichnhac', icon:'notifications_active', ten:'Lịch nhắc học sinh (theo ngày)', onclick:"moLichHoc()"}
+  ]},
+  {id:'saphetkhoa', icon:'hourglass_top', ten:'Sắp hết khóa', mau:'#d97706', onclick:"doiTab('saphetkhoa')"},
+  {id:'baocao', icon:'monitoring', ten:'Báo cáo', mau:'#16a34a', onclick:"navToggle(this,event)||doiTab('baocao')", con:[
+    {id:'baocao_doanhthu', icon:'payments', ten:'Doanh thu & tăng trưởng HS', onclick:"bcSub('doanhthu')"},
+    {id:'baocao_doanhthuthang', icon:'calendar_month', ten:'Doanh thu theo tháng', onclick:"bcSub('doanhthu')"},
+    {id:'baocao_quy', icon:'bar_chart', ten:'Theo quý', onclick:"bcSub('doanhthu')"},
+    {id:'baocao_doanhthungay', icon:'today', ten:'Doanh thu theo ngày', onclick:"bcSub('ngay')"},
+    {id:'baocao_diemdanhthang', icon:'event_available', ten:'Báo cáo điểm danh theo tháng', onclick:"bcSub('diemdanh')"},
+    {id:'baocao_luonggv', icon:'payments', ten:'Bảng lương giáo viên', onclick:"bcSub('luonggv')"}
+  ]},
+  {id:'crm', icon:'support_agent', ten:'CRM', mau:'#db2777', onclick:"navToggle(this,event)||doiTab('crm')", con:[
+    {id:'crm_tuvan', icon:'person_search', ten:'Khách tiềm năng', onclick:"moCrmSub('tuvan')"},
+    {id:'crm_chamsoc', icon:'phone_in_talk', ten:'Lịch hẹn chăm sóc', onclick:"moCrmSub('chamsoc')"},
+    {id:'crm_hocthu', icon:'assignment', ten:'Đăng ký học thử', onclick:"moCrmSub('hocthu')"},
+    {id:'crm_hentest', icon:'event', ten:'Hẹn test', onclick:"moCrmSub('hentest')"},
+    {id:'crm_cholop', icon:'pending_actions', ten:'Chờ xếp lớp', onclick:"moCrmSub('cholop')"},
+    {id:'crm_giuchan', icon:'shield', ten:'Giữ chân', onclick:"moCrmSub('giuchan')"},
+    {id:'crm_thongke', icon:'donut_small', ten:'Thống kê nguồn', onclick:"moCrmSub('thongke')"}
+  ]},
+  {id:'nguoidung', icon:'manage_accounts', ten:'Người dùng', mau:'#64748b', onclick:"doiTab('nguoidung')", anMacDinhKhongDoiQuyen:true}
+];
+var MenuTuyChinh = {}; // {id: {ten:'...', an:true/false}} — nạp từ Firebase lúc khởi động
+function renderMenu(){
+  var ov = MenuTuyChinh || {};
+  function tenHien(muc){ return (ov[muc.id] && ov[muc.id].ten) ? ov[muc.id].ten : muc.ten; }
+  function bAn(muc){ return !!(ov[muc.id] && ov[muc.id].an); }
+  var html = MENU_DINH_NGHIA.map(function(muc){
+    if(bAn(muc)) return '';
+    var style = muc.mau ? ' style="--mc:'+muc.mau+'"' : '';
+    if(muc.con && muc.con.length){
+      var conRows = muc.con.filter(function(c){return !bAn(c);}).map(function(c){
+        return '<a onclick="'+c.onclick+'"><span class="ic">'+c.icon+'</span> '+esc(tenHien(c))+'</a>';
+      }).join('');
+      return '<div class="navDrop"'+style+'>'
+        + '<button id="tab-'+muc.id+'" onclick="'+esc(muc.onclick)+'"><span class="ic">'+muc.icon+'</span> '+esc(tenHien(muc))+' <span class="ic" style="font-size:16px">expand_more</span></button>'
+        + '<div class="navDropMenu">'+conRows+'</div></div>';
+    }
+    var ancung = muc.anMacDinhKhongDoiQuyen ? ' style="display:none;--mc:'+muc.mau+'"' : style;
+    return '<button id="tab-'+muc.id+'"'+ancung+' onclick="'+esc(muc.onclick)+'"><span class="ic">'+muc.icon+'</span> '+esc(tenHien(muc))+'</button>';
+  }).join('');
+  document.getElementById('navChinh').innerHTML = html;
+}
+async function fbLayMenuTuyChinh(){
+  try{
+    var d = await FB.getDoc(FB.doc(FB.db,'caidat','menu'));
+    return d.exists() ? (d.data().items||{}) : {};
+  }catch(e){ return {}; }
+}
+async function fbLuuMenuTuyChinh(dl){
+  await FB.setDoc(FB.doc(FB.db,'caidat','menu'), {items: dl.items||{}, capNhat: new Date().toISOString()});
+  return {ok:true};
+}
 
 /* ---------- Tab ---------- */
 // Menu con: bấm vào thư mục mẹ để mở/đóng (mọi thiết bị) — rê chuột vẫn mở thêm cho tiện trên máy tính
@@ -4890,6 +4919,62 @@ function dongModal(){ document.getElementById('khungModal').innerHTML = ''; }
 function khoaLuu(khoa){
   var n = document.getElementById('nutLuu');
   if(n){ n.disabled = khoa; n.textContent = khoa ? 'Đang lưu...' : 'Lưu'; }
+}
+/* ---------- Giao diện Quản lý menu (chỉ admin): đổi tên mục, ẩn/hiện mục con ---------- */
+function moQuanLyMenu(){
+  if(!laAdmin()){ bao('Chỉ admin mới có quyền chỉnh menu.', true); return; }
+  var ov = MenuTuyChinh || {};
+  function tenHien(m){ return (ov[m.id] && ov[m.id].ten) ? ov[m.id].ten : m.ten; }
+  function bAn(m){ return !!(ov[m.id] && ov[m.id].an); }
+  var than = '<p style="font-size:13px;color:#6b7280;margin-bottom:12px">Đổi tên hoặc bỏ tick để <strong>ẩn</strong> mục/mục con. Không xóa được dữ liệu — chỉ ẩn khỏi menu, có thể bật lại bất cứ lúc nào.</p>'
+    + MENU_DINH_NGHIA.map(function(m){
+        var hang = '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eef1f6">'
+          + '<input type="checkbox" id="mmAn_'+m.id+'" '+(bAn(m)?'':'checked')+' style="width:auto">'
+          + '<span class="ic" style="color:'+(m.mau||'#64748b')+'">'+m.icon+'</span>'
+          + '<input type="text" id="mmTen_'+m.id+'" value="'+esc(tenHien(m))+'" style="flex:1;min-width:120px">'
+          + '</div>';
+        var conHtml = (m.con&&m.con.length) ? '<div style="margin:0 0 10px 30px;padding-left:10px;border-left:2px solid #eef1f6">'
+          + m.con.map(function(c){
+              return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0">'
+                + '<input type="checkbox" id="mmAn_'+c.id+'" '+(bAn(c)?'':'checked')+' style="width:auto">'
+                + '<span class="ic" style="font-size:17px;color:#94a3b8">'+c.icon+'</span>'
+                + '<input type="text" id="mmTen_'+c.id+'" value="'+esc(tenHien(c))+'" style="flex:1;min-width:120px;font-size:13px">'
+                + '</div>';
+            }).join('') + '</div>' : '';
+        return hang + conHtml;
+      }).join('');
+  moModal('⚙️ Quản lý menu', than, 'luuQuanLyMenu()', {chan:
+    '<button class="nutPhu" onclick="dongModal()">Hủy</button>'
+    + '<button class="nutPhu" style="background:#fef3c7;color:#92400e" onclick="khoiPhucMenuMacDinh()">Khôi phục mặc định</button>'
+    + '<button class="nutChinh" id="nutLuu" onclick="luuQuanLyMenu()">Lưu</button>'});
+}
+function _thuThapMenuTuyChinh(){
+  var items = {};
+  MENU_DINH_NGHIA.forEach(function(m){
+    var ten = (document.getElementById('mmTen_'+m.id)||{}).value;
+    var an = !(document.getElementById('mmAn_'+m.id)||{}).checked;
+    if((ten && ten.trim() && ten.trim()!==m.ten) || an) items[m.id] = {ten:(ten||m.ten).trim(), an:an};
+    (m.con||[]).forEach(function(c){
+      var ten2 = (document.getElementById('mmTen_'+c.id)||{}).value;
+      var an2 = !(document.getElementById('mmAn_'+c.id)||{}).checked;
+      if((ten2 && ten2.trim() && ten2.trim()!==c.ten) || an2) items[c.id] = {ten:(ten2||c.ten).trim(), an:an2};
+    });
+  });
+  return items;
+}
+function luuQuanLyMenu(){
+  var items = _thuThapMenuTuyChinh();
+  khoaLuu(true);
+  goi('luuMenuTuyChinh',{items:items}).then(function(){
+    MenuTuyChinh = items; renderMenu(); apDungPhanQuyen(); dongModal(); bao('✓ Đã lưu menu');
+  }).catch(function(e){ bao(e.message, true); khoaLuu(false); });
+}
+function khoiPhucMenuMacDinh(){
+  if(!confirm('Khôi phục toàn bộ menu về mặc định (bỏ mọi tên/ẩn đã tùy chỉnh)?')) return;
+  khoaLuu(true);
+  goi('luuMenuTuyChinh',{items:{}}).then(function(){
+    MenuTuyChinh = {}; renderMenu(); apDungPhanQuyen(); dongModal(); bao('✓ Đã khôi phục menu mặc định');
+  }).catch(function(e){ bao(e.message, true); khoaLuu(false); });
 }
 </script>
 
