@@ -1170,7 +1170,7 @@ async function fbXemHocVien(dl){
     docsWhere('diemdanh','MaHV',maHV)
   ]);
   var lopHocRaw=_kq[0], hocPhiRaw=_kq[1], phieuThuRaw=_kq[2], diemDanhRaw=_kq[3];
-  var diemDanh=diemDanhRaw.map(function(r){ return {NgayISO:r.NgayISO||'',Ngay:r.Ngay||'',TenLop:r.TenLop||'',TrangThai:r.TrangThai||'',GhiChu:r.GhiChu||'',NguoiDiemDanh:r.NguoiDiemDanh||''}; })
+  var diemDanh=diemDanhRaw.map(function(r){ return {NgayISO:r.NgayISO||'',Ngay:r.Ngay||'',TenLop:r.TenLop||'',MaLop:r.MaLop||'',TrangThai:r.TrangThai||'',GhiChu:r.GhiChu||'',NguoiDiemDanh:r.NguoiDiemDanh||''}; })
     .sort(function(a,b){return String(b.NgayISO).localeCompare(String(a.NgayISO));});
   var ddCoMat=0,ddVang=0,ddPhep=0;
   diemDanh.forEach(function(r){ if(r.TrangThai==='Có mặt')ddCoMat++; else if(r.TrangThai==='Vắng')ddVang++; else if(r.TrangThai==='Có phép')ddPhep++; });
@@ -3020,17 +3020,21 @@ function bangDiemDanhHV(ds, tk){
   var bdHT = _bdISO(hvCT.NgayBatDauKhoa);
   var khoiHTML='';
   function bangKhoa(tenKhoa, soThuTu, nhomBuoi, laHienTai){
+    var choXoa = laAdmin();
     var rows = nhomBuoi.map(function(r,idx){
         var lopHien=(r.TenLop && r.TenLop!=='Buổi học')?r.TenLop:(tenKhoa||'');
+        var ngayISO = _iso(r);
         return '<tr><td style="text-align:center;font-weight:700;color:#12294d">'+(idx+1)+'</td><td><strong>'+esc(r.Ngay)+'</strong></td><td>'+esc(lopHien)+'</td>'
-          + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td></tr>';
+          + '<td><span class="nhan '+mau(r.TrangThai)+'">'+esc(r.TrangThai)+'</span></td><td>'+esc(r.GhiChu||'')+'</td>'
+          + (choXoa?('<td style="text-align:center"><button class="nutNho" style="background:#b42318" title="Xóa buổi này (chỉ admin)" onclick="xoaBuoiTrongHoSo(\''+esc(String(r.MaLop||''))+'\',\''+esc(ngayISO)+'\',\''+esc(String(hvCT.MaHV||''))+'\',\''+esc(r.TrangThai||'')+'\',this)">🗑️ Xóa</button></td>'):'')
+          + '</tr>';
       }).reverse().join('');
     var mauNhan = laHienTai ? '#0f7a4d' : '#6b7280';
     var bgNhan = laHienTai ? '#ecfdf5' : '#f1f5f9';
     var vienNhan = laHienTai ? '#a7f3d0' : '#e2e8f0';
     return '<div style="margin-top:'+(soThuTu===1?'0':'14px')+'">'
       + '<div style="font-weight:700;color:'+mauNhan+';background:'+bgNhan+';border:1px solid '+vienNhan+';border-radius:8px;padding:7px 12px;margin-bottom:6px">📚 Khóa '+soThuTu+' '+(laHienTai?'<span style="font-size:12px;color:#0f7a4d">(đang học)</span>':'<span style="font-size:12px;color:#94a3b8">(đã xong)</span>')+' <span style="color:#6b7280;font-weight:500;font-size:13px">'+(tenKhoa?'· '+esc(tenKhoa)+' ':'')+'('+nhomBuoi.length+' buổi)</span></div>'
-      + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead><tbody>'
+      + '<div class="cuonBang"><table class="nho"><thead><tr><th style="width:44px">Buổi</th><th>Ngày học</th><th>Lớp</th><th>Trạng thái</th><th>Ghi chú</th>'+(choXoa?'<th style="width:70px"></th>':'')+'</tr></thead><tbody>'
       + rows + '</tbody></table></div></div>';
   }
   var kq = _chiaKhoa(dsSx, hvCT.CacKhoa, soTienJS(hvCT.SoBuoiKhoa));
@@ -3381,6 +3385,16 @@ function xoaDiemDanhUI(maLop, ngayISO, maHV, trangThai, btn){  if(!laQuanLy()){ 
   goi('xoaDiemDanh',{maLop:maLop, ngayISO:ngayISO, maHV:maHV, trangThai:trangThai}).then(function(){
     bao('✓ Đã xóa lượt điểm danh'); napDsDiemDanh(); lamMoiDsHocVien();
   }).catch(function(e){ bao(e.message, true); if(btn){ btn.textContent='Xóa'; btn.disabled=false; } });
+}
+// Xóa 1 buổi điểm danh ngay trong Hồ sơ học viên (chỉ admin) — tải lại đúng hồ sơ đang xem sau khi xóa
+function xoaBuoiTrongHoSo(maLop, ngayISO, maHV, trangThai, btn){
+  if(!laAdmin()){ bao('Chỉ admin mới có quyền xóa buổi điểm danh.', true); return; }
+  if(!ngayISO){ bao('Không xác định được ngày của buổi này.', true); return; }
+  if(!confirm('Xóa buổi điểm danh ngày '+ngayISO+' của học viên này?\n(Không thể hoàn tác)')) return;
+  if(btn){ btn.textContent='...'; btn.disabled=true; }
+  goi('xoaDiemDanh',{maLop:maLop, ngayISO:ngayISO, maHV:maHV, trangThai:trangThai}).then(function(){
+    bao('✓ Đã xóa buổi điểm danh'); lamMoiDsHocVien(); moChiTiet(maHV);
+  }).catch(function(e){ bao(e.message, true); if(btn){ btn.textContent='🗑️ Xóa'; btn.disabled=false; } });
 }
 var _ddUnsub=null, _ddList=[];
 function napDsDiemDanh(){
