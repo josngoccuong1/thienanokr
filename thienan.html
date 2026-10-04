@@ -430,7 +430,12 @@ main section{animation:hienLen .25s ease}
       <div class="dashGrid">
         <div class="dashChinh">
           <div class="the" style="padding:14px;border-top:4px solid #ea580c">
-            <div class="tieuMuc" style="color:#c2410c"><span class="ic" style="color:#ea580c">bar_chart</span> Doanh thu 6 tháng gần nhất</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div class="tieuMuc" style="color:#c2410c;margin-bottom:0"><span class="ic" style="color:#ea580c">bar_chart</span> Doanh thu theo tháng</div>
+              <select id="dashSoThang" onchange="napTrangChu()" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid var(--vien)">
+                <option value="6">6 tháng</option><option value="12" selected>12 tháng</option><option value="24">24 tháng</option>
+              </select>
+            </div>
             <div id="dashBieuDo" style="margin-top:8px"><div class="dangTai">Đang tải...</div></div>
           </div>
           <div class="the" style="padding:14px;border-top:4px solid #7c3aed">
@@ -1590,23 +1595,24 @@ async function fbTongQuan(dl){  var n=new Date();
   var pt=await docsCol('phieuthu');
   var mapCS={}; TatCaHV.forEach(function(h){ mapCS[h.MaHV]=h.CoSo||''; });
   var dtThang=0, dtNam=0;
-  // 6 tháng gần nhất
-  var m6=[]; for(var i=5;i>=0;i--){ var d=new Date(n.getFullYear(),n.getMonth()-i,1); m6.push(d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)); }
-  var dt6={}; m6.forEach(function(t){dt6[t]=0;});
+  // N tháng gần nhất (mặc định 12, có thể truyền dl.soThang = 6/12/24)
+  var soThang = soTienJS(dl&&dl.soThang) || 12;
+  var mN=[]; for(var i=soThang-1;i>=0;i--){ var d=new Date(n.getFullYear(),n.getMonth()-i,1); mN.push(d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)); }
+  var dtN={}; mN.forEach(function(t){dtN[t]=0;});
   pt.forEach(function(r){
     if(!dungCoSo(mapCS[r.MaHV])) return;
     var t=r.ThangThu || _thangCuaNgay(r.NgayThuISO) || _thangCuaNgay(r.NgayThu); if(!t) return;
     var st=soTienJS(r.SoTien);
     if(t===thangNay) dtThang+=st;
     if(t.slice(0,4)===namNay) dtNam+=st;
-    if(dt6[t]!==undefined) dt6[t]+=st;
+    if(dtN[t]!==undefined) dtN[t]+=st;
   });
   // Còn nợ (gộp học phí)
   var hp=await docsCol('hocphi');
   var no={}; hp.forEach(function(r){ if(!dungCoSo(mapCS[r.MaHV])) return; var m=r.MaHV; if(!no[m]) no[m]={p:0,d:0}; no[m].p+=soTienJS(r.PhaiThu); no[m].d+=soTienJS(r.DaThu); });
   var soConNo=0, tongConNo=0;
   Object.keys(no).forEach(function(m){ var c=no[m].p-no[m].d; if(c>0){soConNo++;tongConNo+=c;} });
-  return { doanhThuThang:dtThang, doanhThuNam:dtNam, soConNo:soConNo, tongConNo:tongConNo, thangNay:thangNay, thang6:m6.map(function(t){return {thang:t, tien:dt6[t]};}) };
+  return { doanhThuThang:dtThang, doanhThuNam:dtNam, soConNo:soConNo, tongConNo:tongConNo, thangNay:thangNay, thang6:mN.map(function(t){return {thang:t, tien:dtN[t]};}) };
 }
 async function fbDoiTrangThaiHV(dl){  var maHV=String(dl.maHV||'').trim(); if(!maHV) throw new Error('Thiếu mã học viên.');
   await FB.setDoc(FB.doc(FB.db,'hocvien',maHV), {TrangThai:dl.trangThai||'Đang học', NgayCapNhat:new Date().toLocaleString('vi-VN')}, {merge:true});
@@ -3641,7 +3647,7 @@ async function locBaoCaoHocPhi(){
       + '<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Ngày gia hạn<br>(buổi đầu tiên)</th><th>Học viên</th><th>Cơ sở</th><th>Khóa thứ</th><th>Tên khóa</th><th>Số buổi</th><th>Đã học</th><th>Học phí</th><th>Đã thu</th><th>Còn nợ</th></tr></thead><tbody>'
       + ds.map(function(x,i){ return '<tr><td>'+(i+1)+'</td>'
           + '<td style="white-space:nowrap">'+esc(x.ngayHienThi||x.ngayISO||'—')+'</td>'
-          + '<td><strong>'+esc(x.HoTen)+'</strong></td>'
+          + '<td><a onclick="moChiTiet(\''+esc(x.MaHV)+'\')" style="cursor:pointer;color:#1d4ed8;font-weight:700;text-decoration:underline" title="Mở hồ sơ — xem lịch sử học phí/phiếu thu đầy đủ">'+esc(x.HoTen)+'</a></td>'
           + '<td>'+esc(x.CoSo||'—')+'</td>'
           + '<td style="text-align:center">'+x.LanThu+'</td>'
           + '<td>'+esc(x.TenKhoa||'—')+'</td>'
@@ -4315,7 +4321,8 @@ function napTrangChu(){
     + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
-  goi('tongQuan').then(function(d){
+  var soThangChon = soTienJS((document.getElementById('dashSoThang')||{}).value) || 12;
+  goi('tongQuan', {soThang:soThangChon}).then(function(d){
     var e;
     if(e=document.getElementById('dashDTThang')) e.textContent=tien(d.doanhThuThang)+' đ';
     if(e=document.getElementById('dashDTNam')) e.textContent=tien(d.doanhThuNam)+' đ';
@@ -4344,9 +4351,15 @@ function napViecDashboard(){
 function veViecDashboard(){
   var box=document.getElementById('dashViec'); if(!box) return;
   var viec=[];
-  DsKH.forEach(function(k){ if(k.NgayHenLai && canhBaoNgay(k.NgayHenLai) && k.TrangThai!=='Đăng ký' && k.TrangThai!=='Từ chối') viec.push({ten:k.HoTenPH||k.TenHocSinh,sdt:k.SDT,loai:'Khách'}); });
-  DsCS.forEach(function(c){ if(c.NgayHen && !c.DaXong && canhBaoNgay(c.NgayHen)) viec.push({ten:c.TenDoiTuong,sdt:c.SDT,loai:c.DoiTuong==='HV'?'HV':'Khách'}); });
-  box.innerHTML = viec.length ? viec.slice(0,8).map(function(v){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f3f5"><div><span class="nhan bao">'+v.loai+'</span> <strong>'+esc(v.ten)+'</strong></div><a href="tel:'+esc(v.sdt)+'" class="ma">'+esc(v.sdt)+'</a></div>'; }).join('')
+  DsKH.forEach(function(k){ if(k.NgayHenLai && canhBaoNgay(k.NgayHenLai) && k.TrangThai!=='Đăng ký' && k.TrangThai!=='Từ chối')
+    viec.push({ten:k.HoTenPH||k.TenHocSinh,sdt:k.SDT,loai:'Khách',ngay:k.NgayHenLai,ma:k.MaKH,kieu:'kh'}); });
+  DsCS.forEach(function(c){ if(c.NgayHen && !c.DaXong && canhBaoNgay(c.NgayHen))
+    viec.push({ten:c.TenDoiTuong,sdt:c.SDT,loai:c.DoiTuong==='HV'?'HV':'Khách',ngay:c.NgayHen,ma:c.MaCS,kieu:'cs'}); });
+  viec.sort(function(a,b){ return String(a.ngay||'').localeCompare(String(b.ngay||'')); });
+  box.innerHTML = viec.length ? viec.slice(0,8).map(function(v){ return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f3f5">'
+      + '<div><span class="nhan bao">'+v.loai+'</span> <strong>'+esc(v.ten)+'</strong> <span class="ma" style="color:#9ca3af">'+esc(_hienNgayVN(v.ngay))+'</span></div>'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><a href="tel:'+esc(v.sdt)+'" class="ma">'+esc(v.sdt)+'</a>'
+      + '<button class="nutNho nutXanh" onclick="xongViec(\''+v.kieu+'\',\''+esc(v.ma)+'\')">Xong</button></div></div>'; }).join('')
       + '<div style="margin-top:10px"><button class="nutPhu" onclick="doiTab(\'crm\');doiCrm(\'chamsoc\')">Mở CRM →</button></div>'
     : '<div class="trong" style="padding:12px">Không có việc nào cần làm hôm nay. 👍</div>';
 }
@@ -4366,12 +4379,13 @@ function veBieuDoDoanhThu(thang6){
   var box=document.getElementById('dashBieuDo'); if(!box) return;
   var max=Math.max(1, Math.max.apply(null, thang6.map(function(x){return x.tien;})));
   var mau=['#60a5fa','#34d399','#fbbf24','#fb923c','#f472b6','#a78bfa'];
-  var html='<div style="display:flex;align-items:flex-end;gap:10px;height:180px;padding:6px 4px 0">';
+  var nhieuThang = thang6.length>8;
+  var html='<div style="display:flex;align-items:flex-end;gap:10px;height:180px;padding:6px 4px 0;'+(nhieuThang?'overflow-x:auto':'')+'">';
   thang6.forEach(function(x,i){
     var pct=Math.round(x.tien/max*100); var cao=Math.max(4, pct*1.5);
     var thangVN=x.thang.slice(5)+'/'+x.thang.slice(2,4);
     var trieu=x.tien>=1000000?(Math.round(x.tien/100000)/10+'tr'):(x.tien>=1000?(Math.round(x.tien/1000)+'k'):x.tien);
-    html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">'
+    html+='<div style="flex:'+(nhieuThang?'0 0 46px':'1')+';display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">'
       +'<div style="font-size:11.5px;font-weight:700;color:#12294d;margin-bottom:4px">'+esc(String(trieu))+'</div>'
       +'<div style="width:100%;max-width:52px;height:'+cao+'px;border-radius:8px 8px 0 0;background:linear-gradient(180deg,'+mau[i%6]+',rgba(0,0,0,.05));box-shadow:0 3px 8px rgba(18,41,77,.15)"></div>'
       +'<div style="font-size:12px;color:#6b7280;margin-top:6px;font-weight:600">'+esc(thangVN)+'</div>'
@@ -4792,7 +4806,7 @@ function veBangKH(){
     + Object.keys(dem).map(function(t){ return '<div class="oTomTat"><div class="nhan-o">'+t+'</div><div class="so">'+dem[t]+'</div></div>'; }).join('')+'</div>';
   if(!ds.length){ tb.innerHTML='<tr><td colspan="9" class="trong">'+(DsKH.length?'Không có khách khớp.':'Chưa có khách nào. Bấm “Thêm khách”.')+'</td></tr>'; return; }
   tb.innerHTML=ds.map(function(k,i){
-    var hen=k.NgayHenLai?'<span class="nhan '+(canhBaoNgay(k.NgayHenLai)?'no':'bao')+'">'+esc(k.NgayHenLai)+'</span>':'—';
+    var hen=k.NgayHenLai?'<span class="nhan '+(canhBaoNgay(k.NgayHenLai)?'no':'bao')+'">'+esc(_hienNgayVN(k.NgayHenLai))+'</span>':'—';
     return '<tr>'
       +'<td>'+(i+1)+'</td>'
       +'<td><strong>'+esc(k.HoTenPH||'—')+'</strong></td>'
@@ -4808,6 +4822,10 @@ function veBangKH(){
         +(k.TrangThai==='Đăng ký'?'':'<button class="nutNho nutXanh" onclick="chuyenThanhHocVien(\''+esc(k.MaKH)+'\')">Chốt → HV</button>')
       +'</td></tr>';
   }).join('');
+}
+function _hienNgayVN(s){ // 'yyyy-mm-dd' -> 'dd/mm/yyyy' để hiển thị; giữ nguyên nếu không phải ISO
+  var iso=_isoTuNgay(s); if(!iso) return s||'';
+  var p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
 }
 function canhBaoNgay(ngay){ // ngày hẹn <= hôm nay
   var iso=_isoTuNgay(ngay); if(!iso) return false;
@@ -4828,7 +4846,7 @@ function moKhachHang(k){
     + o('Môn quan tâm','<select id="kh_MonQuanTam"><option value="">—</option>'+optMon+'</select>')
     + o('Nguồn','<select id="kh_Nguon"><option value="">—</option>'+nguon.map(function(x){return '<option'+(k.Nguon===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>')
     + o('Trạng thái','<select id="kh_TrangThai">'+tt.map(function(x){return '<option'+(k.TrangThai===x?' selected':'')+'>'+x+'</option>';}).join('')+'</select>')
-    + o('Hẹn liên hệ lại (ngày)','<input id="kh_NgayHenLai" placeholder="dd/mm/yyyy" value="'+esc(k.NgayHenLai)+'">')
+    + o('Hẹn liên hệ lại (ngày)','<input type="date" id="kh_NgayHenLai" value="'+esc(_isoTuNgay(k.NgayHenLai)||'')+'">')
     + o('Ngày học thử','<input id="kh_NgayHocThu" placeholder="dd/mm/yyyy" value="'+esc(k.NgayHocThu)+'">')
     + o('Ngày test (kiểm tra trình độ)','<input id="kh_NgayTest" placeholder="dd/mm/yyyy" value="'+esc(k.NgayTest)+'">')
     + o('Người phụ trách','<input id="kh_NguoiPhuTrach" value="'+esc(k.NguoiPhuTrach||(NguoiDung?NguoiDung.hoTen:''))+'">')
@@ -4857,7 +4875,7 @@ function moChamSoc(doiTuong, ma, ten, sdt){
     + o('Hình thức','<select id="cs_Loai">'+loai.map(function(x){return '<option>'+x+'</option>';}).join('')+'</select>')
     + o('Kết quả','<input id="cs_KetQua" placeholder="VD: Đồng ý học thử / Đang cân nhắc...">')
     + o('Nội dung trao đổi','<textarea id="cs_NoiDung" rows="3"></textarea>',true,'rong')
-    + o('Hẹn liên hệ lại (ngày)','<input id="cs_NgayHen" placeholder="dd/mm/yyyy">')
+    + o('Hẹn liên hệ lại (ngày)','<input type="date" id="cs_NgayHen">')
     +'</div>',
     'luuChamSoc(\''+esc(doiTuong)+'\',\''+esc(ma)+'\',\''+esc(ten).replace(/'/g,"\\'")+'\',\''+esc(sdt)+'\')');
 }
@@ -4890,7 +4908,14 @@ function veViecHomNay(){
 }
 function xongViec(kieu, ma){
   var dl = kieu==='cs' ? {maCS:ma} : {maKH:ma};
-  goi('xongViec',dl).then(function(){ bao('Đã đánh dấu xong'); moCRM(); }).catch(function(e){ bao(e.message,true); });
+  goi('xongViec',dl).then(function(){
+    bao('Đã đánh dấu xong');
+    // Cập nhật ngay trong bộ nhớ để danh sách mất đi tức thì, không cần tải lại
+    if(kieu==='cs'){ DsCS.forEach(function(c){ if(c.MaCS===ma) c.DaXong=true; }); }
+    else { DsKH.forEach(function(k){ if(k.MaKH===ma) k.NgayHenLai=''; }); }
+    if(document.getElementById('viecHomNay')) veViecHomNay();
+    if(document.getElementById('dashViec')) veViecDashboard();
+  }).catch(function(e){ bao(e.message,true); });
 }
 function veNhatKyCS(){
   var box=document.getElementById('nhatKyCS'); if(!box) return;
