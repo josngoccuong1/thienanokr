@@ -406,6 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 04/10/2026 · v3</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -690,6 +691,21 @@ main section{animation:hienLen .25s ease}
     </section>
 
     <!-- TRANG NHẮC HỌC PHÍ HÀNG LOẠT -->
+    <section id="vung-lichsuthu" class="an">
+      <div class="the" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600;color:#12294d">🧾 Lịch sử thu tiền học phí (phiếu thu — lưu vĩnh viễn)</span>
+        <span style="font-size:13px;color:#6b7280;margin-left:6px">Từ ngày</span>
+        <input type="date" id="lstTuNgay" style="width:150px">
+        <span style="font-size:13px;color:#6b7280">đến</span>
+        <input type="date" id="lstDenNgay" style="width:150px">
+        <select id="lstCoSo" style="min-width:140px"><option value="">Tất cả cơ sở</option><option value="CS1">CS1</option><option value="CS2">CS2</option></select>
+        <button class="nutChinh" onclick="locLichSuThu()">Lọc</button>
+        <span style="display:inline-flex;align-items:center;gap:6px"><input type="search" placeholder="🔍 Tìm tên / số phiếu..." oninput="locBangText(this,'lstKetQua')" style="min-width:190px;padding:7px 10px"><span class="locBaoSo" style="font-size:12px;color:#6b7280"></span></span>
+        <button class="nutPhu" onclick="taiCsvLichSuThu()">⬇ Tải Excel</button>
+      </div>
+      <div class="the" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#6b7280">Mỗi lần thu học phí hệ thống tạo 1 phiếu thu riêng, <strong>không bao giờ bị ghi đè</strong>. Bấm tên học viên để mở hồ sơ, bấm "In" để in lại hóa đơn.</div>
+      <div class="the"><div id="lstKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
     <section id="vung-nhachangloat" class="an">
       <div class="the" style="padding:14px;margin-bottom:14px">
         <div style="font-weight:700;color:#12294d;margin-bottom:10px">📣 Nhắc học phí / sắp hết khóa hàng loạt</div>
@@ -2374,6 +2390,7 @@ var MENU_DINH_NGHIA = [
     {id:'hocvien_baoluu', icon:'bookmark', ten:'Học sinh bảo lưu', onclick:"moLocTT('Bảo lưu')"},
     {id:'hocvien_danghi', icon:'person_off', ten:'Học sinh đã nghỉ', onclick:"moLocTT('Đã nghỉ')"},
     {id:'hocvien_baocaothue', icon:'receipt_long', ten:'Báo cáo đóng học phí', onclick:"moBaoCaoHocPhi()"},
+    {id:'hocvien_lichsuthu', icon:'receipt', ten:'Lịch sử thu tiền (phiếu thu)', onclick:"moLichSuThu()"},
     {id:'hocvien_nhachangloat', icon:'campaign', ten:'📣 Nhắc học phí hàng loạt', onclick:"moNhacHangLoat()"}
   ]},
   {id:'lop', icon:'meeting_room', ten:'Lớp học', mau:'#0d9488', onclick:"doiTab('lop')"},
@@ -2491,7 +2508,7 @@ function doiTab(ten){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
-  ['tamnghi','lichhoc','loctt','baocaothue','nhachangloat'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
+  ['tamnghi','lichhoc','loctt','baocaothue','lichsuthu','nhachangloat'].forEach(function(t){ var v=document.getElementById('vung-'+t); if(v) v.classList.add('an'); });
   if(ten==='trangchu') napTrangChu();
   if(ten==='nguoidung') napNguoiDung();
   if(ten==='hocvien') lamMoiDsHocVien();
@@ -3658,6 +3675,50 @@ async function locBaoCaoHocPhi(){
           + '<td class="tien" style="'+(x.ConNo>0?'color:#b42318;font-weight:700':'')+'">'+(x.CoHoSoThu?(x.ConNo>0?tien(x.ConNo):'Đã đủ'):'Chưa lập phiếu')+'</td></tr>'; }).join('')
       + '</tbody></table></div>';
   }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">'+esc(e.message)+'</div>'; }
+}
+
+/* ---------- Lịch sử thu tiền: toàn bộ phiếu thu từ trước tới nay ---------- */
+var _lstDs=[];
+function moLichSuThu(){
+  _anMoiVung('hocvien');
+  var v=document.getElementById('vung-lichsuthu'); if(v) v.classList.remove('an');
+  locLichSuThu();
+}
+async function locLichSuThu(){
+  var box=document.getElementById('lstKetQua'); if(!box) return;
+  var tu=(document.getElementById('lstTuNgay')||{}).value||'', den=(document.getElementById('lstDenNgay')||{}).value||'', cs=(document.getElementById('lstCoSo')||{}).value||'';
+  box.innerHTML='<div class="dangTai" style="padding:20px">Đang tải phiếu thu...</div>';
+  try{
+    var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
+    var hpSnap=await FB.getDocs(FB.collection(FB.db,'hocphi')); var hpMap={};
+    hpSnap.docs.forEach(function(d){ var o=d.data(); hpMap[o.MaHD||d.id]=o; });
+    var ptSnap=await FB.getDocs(FB.collection(FB.db,'phieuthu'));
+    var ds=ptSnap.docs.map(function(d){ var o=d.data(); var hp=hpMap[o.MaHD]||{}; var h=hvMap[String(o.MaHV)]||{};
+      var iso=o.NgayThuISO||_dmyToIso(o.NgayThu);
+      return {MaPT:o.MaPT||d.id, ngayISO:iso, NgayThu:o.NgayThu||_hienNgayVN(iso), MaHV:o.MaHV, HoTen:o.HoTen||h.HoTen||'', CoSo:h.CoSo||'',
+        TenLop:hp.TenLop||'', KyThu:hp.KyThu||'', MaHD:o.MaHD||'', SoTien:soTienJS(o.SoTien), HinhThuc:o.HinhThuc||'', NguoiThu:o.NguoiThu||'', GhiChu:o.GhiChu||''}; })
+      .filter(function(x){ if(tu && x.ngayISO && x.ngayISO<tu) return false; if(den && x.ngayISO && x.ngayISO>den) return false; if(cs && x.CoSo!==cs) return false; return true; })
+      .sort(function(a,b){ return String(b.ngayISO||'').localeCompare(String(a.ngayISO||'')) || String(b.MaPT).localeCompare(String(a.MaPT)); });
+    _lstDs=ds;
+    if(!ds.length){ box.innerHTML='<div class="trong" style="padding:20px">Không có phiếu thu nào trong khoảng đã chọn.</div>'; return; }
+    var tong=0; ds.forEach(function(x){ tong+=x.SoTien; });
+    box.innerHTML='<div style="font-size:13px;color:#48566b;margin:6px 14px 10px"><b>'+ds.length+'</b> phiếu thu · Tổng thu: <b style="color:#0f7a4d">'+tien(tong)+' đ</b></div>'
+      +'<div class="cuonBang"><table class="nho"><thead><tr><th>Ngày thu</th><th>Số phiếu</th><th>Học viên</th><th>Cơ sở</th><th>Lớp / Kỳ</th><th class="tien">Số tiền</th><th>Hình thức</th><th>Người thu</th><th></th></tr></thead><tbody>'
+      +ds.map(function(x){ return '<tr><td style="white-space:nowrap"><strong>'+esc(x.NgayThu)+'</strong></td><td class="ma">'+esc(x.MaPT)+'</td>'
+        +'<td><a onclick="moChiTiet(\''+esc(x.MaHV)+'\')" style="cursor:pointer;color:#1d4ed8;font-weight:700;text-decoration:underline">'+esc(x.HoTen)+'</a></td>'
+        +'<td>'+esc(x.CoSo||'—')+'</td><td>'+esc(x.TenLop||'—')+(x.KyThu?' <span class="ma">'+esc(x.KyThu)+'</span>':'')+'</td>'
+        +'<td class="tien"><strong>'+tien(x.SoTien)+'</strong></td><td>'+esc(x.HinhThuc||'—')+'</td><td>'+esc(x.NguoiThu||'—')+'</td>'
+        +'<td><button class="nutNho vien" onclick="inHoaDon(\''+esc(x.MaPT)+'\')">In</button></td></tr>'; }).join('')
+      +'</tbody></table></div>';
+  }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">'+esc(e.message)+'</div>'; }
+}
+function taiCsvLichSuThu(){
+  if(!_lstDs.length){ bao('Chưa có danh sách. Bấm Lọc trước.', true); return; }
+  var rows=[['Ngày thu','Số phiếu','Mã học viên','Họ tên','Cơ sở','Lớp','Kỳ thu','Mã hóa đơn','Số tiền','Hình thức','Người thu','Ghi chú']];
+  _lstDs.forEach(function(x){ rows.push([x.NgayThu,x.MaPT,x.MaHV,x.HoTen,x.CoSo,x.TenLop,x.KyThu,x.MaHD,x.SoTien,x.HinhThuc,x.NguoiThu,x.GhiChu]); });
+  var csv='\ufeff'+rows.map(function(r){return r.map(function(c){var t=String(c==null?'':c); return /[",\n]/.test(t)?('"'+t.replace(/"/g,'""')+'"'):t;}).join(',');}).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})); a.download='LichSu_ThuTien_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  bao('✓ Đã tải lịch sử thu tiền');
 }
 function taiExcelBaoCaoHocPhi(){
   if(!_bhpDs.length){ bao('Chưa có danh sách. Bấm Lọc trước.', true); return; }
