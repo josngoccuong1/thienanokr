@@ -150,6 +150,16 @@ button:active{transform:scale(.97)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
+<script>
+/* CHẾ ĐỘ NHÚNG: chạy bên trong app học sinh (thienan.html) qua iframe ?embed=1 */
+window.EMBED=(function(){try{return new URLSearchParams(location.search).get("embed")==="1"&&window.parent!==window;}catch(e){return false;}})();
+if(window.EMBED){document.body.classList.add("embed");}
+</script>
+<style>
+body.embed{background:transparent}
+body.embed .header,body.embed .footer,body.embed #ta-splash{display:none!important}
+body.embed .main{max-width:none;padding:10px 6px}
+</style>
 <div id="ta-splash" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(150deg,#1A1A2E,#16213E 55%,#0F3460);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .45s ease">
   <img src="icon-192.png" alt="Thiên Ân" style="width:118px;height:118px;border-radius:26px;box-shadow:0 12px 34px rgba(0,0,0,.45);border:1px solid rgba(212,175,55,.4)"/>
   <div style="color:#fff;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:20px;font-weight:800;letter-spacing:.5px">Học viện Thiên Ân</div>
@@ -222,36 +232,44 @@ function currentMonth(){const n=new Date();return `T${n.getMonth()+1}/${n.getFul
 const THU_CATS=["Học phí","Bán nhạc cụ","Sự kiện","Khác"];
 const CHI_CATS=["Lương nhân viên","Thuê mặt bằng","Nhạc cụ/vật tư","Marketing","Điện nước","Khác"];
 
-// OKR DATA - có thể chỉnh sửa trong app
+const PILLARS=[
+  {id:"mkt", icon:"🚀", color:"#2563EB", soft:"#EEF4FF", name:"MARKETING & SALES"},
+  {id:"ops", icon:"⚙️", color:"#0E9F6E", soft:"#E7F8F1", name:"VẬN HÀNH & TÀI CHÍNH"},
+  {id:"team",icon:"🤝", color:"#E8830C", soft:"#FEF3E2", name:"ĐỘI NGŨ & VĂN HÓA"},
+  {id:"ceo", icon:"🎯", color:"#8B5CF6", soft:"#F3EEFE", name:"LÃNH ĐẠO & CHIẾN LƯỢC"},
+];
+function pillarInfo(id){return PILLARS.find(p=>p.id===id)||{id:"",icon:"🎯",color:"#1A1A2E",soft:"#F2F4F8",name:""};}
+// OKR DATA — mỗi "Objective" = 1 TRỤ CỘT, có Mục tiêu (con số) + Deadline, KR = KPI
 const DEFAULT_OBJECTIVES=[
-  {id:"O1",icon:"🎓",title:"Tăng trưởng số lượng học viên",krs:[
-    {id:"O1K1",text:"Tuyển mới học viên Piano",unit:"học viên",target:15,ownerRole:"piano"},
-    {id:"O1K2",text:"Tuyển mới học viên Guitar",unit:"học viên",target:10,ownerRole:"guitar"},
-    {id:"O1K3",text:"Tuyển mới học viên Thanh Nhạc",unit:"học viên",target:8,ownerRole:"vocal"},
-    {id:"O1K4",text:"Tuyển mới học viên Nhảy",unit:"học viên",target:12,ownerRole:"dance"},
-    {id:"O1K5",text:"Tuyển mới học viên Thu Âm",unit:"học viên",target:5,ownerRole:"recording"},
+  {id:"P1",pillar:"mkt",icon:"🚀",color:"#2563EB",title:"MARKETING & SALES",
+   goal:"Tăng doanh số 4 tỷ 097 (H1) → 5 tỷ 500 (H2), +34%; bứt phá tuyển sinh, B2B & bán đàn",
+   deadline:"31/12/2026",krs:[
+    {id:"P1K1",text:"Doanh số thu học phí",unit:"triệu đ",target:2100,ownerRole:"admin"},
+    {id:"P1K2",text:"Học viên mới tuyển",unit:"HV/tháng",target:50,ownerRole:"marketing"},
+    {id:"P1K3",text:"Hợp đồng B2B trường học",unit:"hợp đồng",target:18,ownerRole:"admin"},
+    {id:"P1K4",text:"Bán đàn piano cơ",unit:"cây",target:60,ownerRole:"admin"},
+    {id:"P1K5",text:"Bán đàn piano điện",unit:"cây",target:90,ownerRole:"admin"},
   ]},
-  {id:"O2",icon:"🎵",title:"Nâng cao chất lượng giảng dạy",krs:[
-    {id:"O2K1",text:"Tỷ lệ học viên hoàn thành khóa học",unit:"%",target:85,ownerRole:"admin"},
-    {id:"O2K2",text:"Học viên thi chứng chỉ AMEB/ABRSM",unit:"người",target:5,ownerRole:"piano"},
-    {id:"O2K3",text:"Điểm hài lòng phụ huynh",unit:"/10",target:8.5,ownerRole:"admin"},
-    {id:"O2K4",text:"Hoàn thiện giáo trình Piano 9 năm",unit:"%",target:100,ownerRole:"piano"},
+  {id:"P2",pillar:"ops",icon:"⚙️",color:"#0E9F6E",title:"VẬN HÀNH & TÀI CHÍNH",
+   goal:"Chi phí hoạt động ≤ 65% doanh thu; thu học phí đúng hạn ≥ 90%; dòng tiền dương cuối tháng",
+   deadline:"30/09/2026",krs:[
+    {id:"P2K1",text:"Tỷ lệ thu học phí đúng hạn",unit:"%",target:90,ownerRole:"admin"},
+    {id:"P2K2",text:"Chi phí HĐ / Doanh thu (mục tiêu ≤65%)",unit:"%",target:65,ownerRole:"admin"},
+    {id:"P2K3",text:"Số tháng dòng tiền dương",unit:"tháng",target:6,ownerRole:"admin"},
   ]},
-  {id:"O3",icon:"📱",title:"Xây dựng thương hiệu Thiên Ân online",krs:[
-    {id:"O3K1",text:"Followers fanpage Facebook",unit:"followers",target:2000,ownerRole:"marketing"},
-    {id:"O3K2",text:"Rating Google Maps",unit:"sao",target:4.8,ownerRole:"marketing"},
-    {id:"O3K3",text:"Reviews trên Google Maps",unit:"reviews",target:50,ownerRole:"marketing"},
-    {id:"O3K4",text:"Views kênh YouTube Thiên Ân",unit:"views",target:10000,ownerRole:"piano"},
+  {id:"P3",pillar:"team",icon:"🤝",color:"#E8830C",title:"ĐỘI NGŨ & VĂN HÓA",
+   goal:"Tuyển đủ 4 GV Piano có bằng; 0 GV nghỉ ngoài kế hoạch; điểm gắn kết đội ngũ ≥ 4/5",
+   deadline:"31/07/2026",krs:[
+    {id:"P3K1",text:"Tuyển thêm GV Piano có bằng",unit:"GV",target:4,ownerRole:"admin"},
+    {id:"P3K2",text:"Tỷ lệ giữ chân GV (không nghỉ ngoài KH)",unit:"%",target:100,ownerRole:"admin"},
+    {id:"P3K3",text:"Điểm gắn kết đội ngũ (stay interview)",unit:"/5",target:4,ownerRole:"admin"},
   ]},
-  {id:"O4",icon:"💰",title:"Đạt doanh thu mục tiêu quý",krs:[
-    {id:"O4K1",text:"Doanh thu học phí (2 cơ sở)",unit:"triệu VND",target:180,ownerRole:"admin"},
-    {id:"O4K2",text:"Doanh thu bán piano/guitar",unit:"triệu VND",target:50,ownerRole:"admin"},
-    {id:"O4K3",text:"Doanh thu sự kiện / biểu diễn",unit:"triệu VND",target:30,ownerRole:"admin"},
-  ]},
-  {id:"O5",icon:"👨‍🏫",title:"Phát triển năng lực đội ngũ GV",krs:[
-    {id:"O5K1",text:"Số buổi họp chuyên môn / tháng",unit:"buổi",target:3,ownerRole:"admin"},
-    {id:"O5K2",text:"GV Piano hoàn thành kiểm tra kỹ thuật",unit:"%",target:100,ownerRole:"piano"},
-    {id:"O5K3",text:"Chứng chỉ bồi dưỡng GV đạt được",unit:"chứng chỉ",target:4,ownerRole:"admin"},
+  {id:"P4",pillar:"ceo",icon:"🎯",color:"#8B5CF6",title:"LÃNH ĐẠO & CHIẾN LƯỢC (CEO)",
+   goal:"CEO giảm giờ dạy 30h → ≤ 8h/tuần (từ T10); dành ≥ 10h/tuần cho chiến lược & BNI",
+   deadline:"31/12/2026",krs:[
+    {id:"P4K1",text:"Thời gian chiến lược & BNI / tuần",unit:"h/tuần",target:10,ownerRole:"admin"},
+    {id:"P4K2",text:"Buổi bàn giao lớp cho GV",unit:"lớp",target:12,ownerRole:"admin"},
+    {id:"P4K3",text:"Điểm năng lượng & tự tin",unit:"/5",target:4,ownerRole:"admin"},
   ]},
 ];
 function loadObjectives(){return ls_get("ta_objectives")||DEFAULT_OBJECTIVES;}
@@ -265,6 +283,7 @@ async function pushObjectivesToSheets(o){
     for(let i=0;i<arr.length;i++){ const x=arr[i];
       await qldb.collection("ql_objectives").doc(String(x.id)).set({
         id:x.id, icon:x.icon||"🎯", title:x.title, order:i+1,
+        pillar:x.pillar||"", color:x.color||"", goal:x.goal||"", deadline:x.deadline||"",
         krs:(x.krs||[]).map(k=>({id:k.id,text:k.text,unit:k.unit||"",target:Number(k.target)||0,ownerRole:k.ownerRole||""}))
       });
     }
@@ -390,7 +409,7 @@ let state={
   showOKREditor:false,
   okr_editObj:null, // null=new obj, id=edit obj
   okr_editKR:null,  // null=new kr, {oid,kid}=edit kr
-  okr_obj_icon:"🎯",okr_obj_title:"",
+  okr_obj_icon:"🎯",okr_obj_title:"",okr_obj_goal:"",okr_obj_deadline:"",okr_obj_color:"#2563EB",okr_obj_pillar:"mkt",
   okr_kr_text:"",okr_kr_unit:"học viên",okr_kr_target:0,okr_kr_role:"piano",okr_error:"",
   showImport:false,importType:"nhansu",importResult:null,importing:false,um_success:"",
   showMyAccount:false,
@@ -404,6 +423,8 @@ let state={
   pf_title:"",pf_month:currentMonth(),pf_target:0,pf_actual:0,
   pf_owner:"",pf_status:"Chưa bắt đầu",
   pf_okr_obj:"",pf_okr_kr:"",  // Gắn vào OKR
+  pf_action:"",pf_expected:"",pf_cost:"",
+  plan_pillar:"all",
   editPlan:null,
   // Luong
   luongData:ls_get("ta_luong")||{},
@@ -489,7 +510,7 @@ async function syncGet(params){
   try{
     const a=params.action;
     if(a==="saveActualGet"){ const q=params.quarter; await qldb.collection("ql_actuals").doc(String(q).replace(/\//g,"-")+"__"+params.krId).set({quarter:q,krId:params.krId,actual:Number(params.actual)||0}); return {saved:true}; }
-    if(a==="savePlanGet"){ await qldb.collection("ql_plans").doc(String(params.id)).set({id:params.id,title:params.title||"",month:params.month||"",target:params.target||"",owner:params.owner||"",status:params.status||"",actual:(params.actual===undefined||params.actual===null)?"":params.actual,okrObj:params.okrObj||"",okrKr:params.okrKr||""}); return {saved:true}; }
+    if(a==="savePlanGet"){ let wk={}; try{wk=params.weeks?JSON.parse(params.weeks):{};}catch(e){} await qldb.collection("ql_plans").doc(String(params.id)).set({id:params.id,title:params.title||"",month:params.month||"",target:params.target||"",owner:params.owner||"",status:params.status||"",actual:(params.actual===undefined||params.actual===null)?"":params.actual,okrObj:params.okrObj||"",okrKr:params.okrKr||"",action:params.hanhdong||"",expected:params.ketqua||"",cost:params.chiphi||"",weeks:wk}); return {saved:true}; }
     if(a==="deletePlanGet"){ await qldb.collection("ql_plans").doc(String(params.id)).delete(); return {deleted:true}; }
     if(a==="saveThuChiGet"){ await qldb.collection("ql_thuchi").doc(String(params.id)).set({id:params.id,type:params.type,cat:params.cat,amount:Number(params.amount)||0,note:params.note||"",date:params.date||"",month:params.month||"",nguoi:params.nguoi||"",httt:params.httt||""}); return {saved:true}; }
     if(a==="deleteThuChiGet"){ await qldb.collection("ql_thuchi").doc(String(params.id)).delete(); return {deleted:true}; }
@@ -641,17 +662,19 @@ async function loadPlansFromSheets(){
 // OKR CRUD
 function saveObjective(){
   const title=state.okr_obj_title.trim(),icon=state.okr_obj_icon;
-  if(!title){setState({okr_error:"Vui lòng nhập tên mục tiêu!"});return;}
+  const goal=(state.okr_obj_goal||"").trim(), deadline=(state.okr_obj_deadline||"").trim();
+  const color=state.okr_obj_color||"#2563EB", pillar=state.okr_obj_pillar||"";
+  if(!title){setState({okr_error:"Vui lòng nhập tên trụ cột / mục tiêu!"});return;}
   const objs=[...OBJECTIVES];
   if(state.okr_editObj==="new"){
-    const id="O"+(objs.length+1)+"_"+Date.now();
-    objs.push({id,icon,title,krs:[]});
+    const id="P"+(objs.length+1)+"_"+Date.now();
+    objs.push({id,icon,title,goal,deadline,color,pillar,krs:[]});
   } else {
     const i=objs.findIndex(o=>o.id===state.okr_editObj);
-    if(i>=0){objs[i]={...objs[i],icon,title};}
+    if(i>=0){objs[i]={...objs[i],icon,title,goal,deadline,color,pillar};}
   }
   OBJECTIVES=objs;saveObjectives(objs);
-  setState({showOKREditor:false,okr_editObj:null,okr_obj_title:"",okr_error:""});
+  setState({showOKREditor:false,okr_editObj:null,okr_obj_title:"",okr_obj_goal:"",okr_obj_deadline:"",okr_error:""});
 }
 function deleteObjective(oid){
   if(!confirm("Xóa mục tiêu này và tất cả KR bên trong?"))return;
@@ -1217,7 +1240,7 @@ function enterApp(u){
   state.transactions = Array.isArray(safe("ta_tx",[]))    ? safe("ta_tx",[])    : [];
   state.luongData    = safe("ta_luong",{}) || {};
   state.lotrinh      = ls_get("ta_lotrinh") || null;
-  saveSession(u);
+  if(!window.EMBED) saveSession(u);
   render();
   loadActuals();
   loadBaoHanh();
@@ -1225,9 +1248,11 @@ function enterApp(u){
   loadPhuongPhap();
   loadKho();
   loadChamCong();
-  startNotifListener();
-  initForegroundPush();
-  setTimeout(function(){ maybePostDailyReminder(); }, 4500);
+  if(!window.EMBED){
+    startNotifListener();
+    initForegroundPush();
+    setTimeout(function(){ maybePostDailyReminder(); }, 4500);
+  }
   showLoading("Đang đồng bộ dữ liệu…");
   setTimeout(()=>{
     Promise.resolve()
@@ -1299,9 +1324,8 @@ async function doSaveKR(){
 
 function savePlan(){
   const plans=[...state.plans];
+  const existing=(state.editPlan!==null&&state.editPlan!==undefined)?plans.find(p=>String(p.id)===String(state.editPlan)):null;
   const item={
-    // GIỮ NGUYÊN ID khi sửa. (Trước đây luôn tạo ID mới -> Sheets tưởng là kế hoạch khác
-    // nên thêm dòng mới, gây nhân đôi kế hoạch sau khi tải lại.)
     id: (state.editPlan!==null && state.editPlan!==undefined) ? state.editPlan : Date.now(),
     title:state.pf_title,
     month:state.pf_month,
@@ -1309,8 +1333,12 @@ function savePlan(){
     actual:Number(state.pf_actual)||0,
     owner:state.pf_owner,
     status:state.pf_status,
-    okrObj:state.pf_okr_obj,   // ID của Objective
-    okrKr:state.pf_okr_kr,     // ID của Key Result
+    okrObj:state.pf_okr_obj,   // ID Trụ cột (Objective)
+    okrKr:state.pf_okr_kr,     // ID KPI (Key Result)
+    action:state.pf_action||"",
+    expected:state.pf_expected||"",
+    cost:state.pf_cost||"",
+    weeks:(existing&&existing.weeks)?existing.weeks:{},
   };
   if(state.editPlan!==null && state.editPlan!==undefined){
     const key=String(state.editPlan);
@@ -1320,15 +1348,16 @@ function savePlan(){
   }
   else plans.unshift(item);
   ls_set("ta_plans",plans);
-  // Sync lên Google Sheets qua GET
   syncGet({action:"savePlanGet", id:item.id, title:item.title,
     month:item.month, target:item.target||"", actual:item.actual||"",
     owner:item.owner||"", status:item.status||"",
-    okrObj:item.okrObj||"", okrKr:item.okrKr||""});
+    okrObj:item.okrObj||"", okrKr:item.okrKr||"",
+    hanhdong:item.action||"", ketqua:item.expected||"", chiphi:item.cost||"",
+    weeks:JSON.stringify(item.weeks||{})});
   if(!(state.editPlan!==null && state.editPlan!==undefined)){
     try{ postNotif("Giao việc mới", (item.title||"Công việc")+(item.owner?(" → "+item.owner):"")+(item.month?(" • "+item.month):""), "giaoviec"); }catch(e){}
   }
-  setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu"});
+  setState({plans,showPlanForm:false,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",pf_action:"",pf_expected:"",pf_cost:""});
 }
 function deletePlan(id){
   if(!confirm("Xóa kế hoạch này?"))return;
@@ -1452,6 +1481,7 @@ function khoiPhucDuLieu(){
 }
 
 function buildHTML(){
+  if(state.screen==="wait")return '<div style="padding:40px;text-align:center;color:#888;font-family:system-ui">⏳ Đang tải…</div>';
   if(state.screen==="login")return renderLogin();
   return renderApp();
 }
@@ -1857,30 +1887,52 @@ function getKRTotal(krId){
 }
 
 function okrNum(n){ n=Number(n)||0; return n.toLocaleString('vi-VN'); }
+function shade(hex,amt){amt=(amt===undefined?-26:amt);try{let h=String(hex).replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);r=Math.max(0,Math.min(255,r+amt));g=Math.max(0,Math.min(255,g+amt));b=Math.max(0,Math.min(255,b+amt));return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}catch(e){return hex;}}
+function okrObjScore(obj){if(!obj||!obj.krs||!obj.krs.length)return 0;return Math.round(obj.krs.reduce((acc,kr)=>{const pt=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((sm,p)=>sm+Number(p.actual||0),0);const a=pt>0?pt:((state.actuals[kr.id]||{}).actual||0);return acc+pct(a,kr.target);},0)/obj.krs.length);}
+function monthToQuarter(m){const mm=/T(\d+)\/(\d+)/.exec(m||"");if(!mm)return state.quarter;const q=Math.ceil((+mm[1])/3);return "Q"+q+"/"+mm[2];}
+function quarterMonths(q){const mm=/Q(\d)\/(\d+)/.exec(q||"");if(!mm)return [];const st=(+mm[1]-1)*3+1;return [st,st+1,st+2].map(x=>"T"+x+"/"+mm[2]);}
+function togglePlanWeek(pid,key){const plans=[...state.plans];const i=plans.findIndex(p=>String(p.id)===String(pid));if(i<0)return;const wk=Object.assign({},plans[i].weeks||{});wk[key]=wk[key]?0:1;plans[i]=Object.assign({},plans[i],{weeks:wk});ls_set("ta_plans",plans);const p=plans[i];syncGet({action:"savePlanGet",id:p.id,title:p.title||"",month:p.month||"",target:p.target||"",actual:p.actual||"",owner:p.owner||"",status:p.status||"",okrObj:p.okrObj||"",okrKr:p.okrKr||"",hanhdong:p.action||"",ketqua:p.expected||"",chiphi:p.cost||"",weeks:JSON.stringify(wk)});setState({plans});}
 function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
   const gs=allKRs.length?Math.round(allKRs.reduce((s,kr)=>s+pct(getKRTotal(kr.id),kr.target),0)/allKRs.length):0;
   const gst=stInfo(gs);
   const ICONS=["🎯","🎓","🎵","📱","💰","👨‍🏫","🏆","📊","🚀","⭐","🎸","🎹","💡","📋","🔥"];
+  const PILLAR_PALETTE=["#2563EB","#0E9F6E","#E8830C","#8B5CF6","#C0392B","#0F3460","#16A085","#B7950B"];
   const okrEditorModal = state.showOKREditor ? `
   <div class="modal-overlay" id="okrEditorOverlay">
     <div class="modal">
       <div class="modal-head">
-        <span style="font-size:15px;font-weight:800">${state.okr_editObj==="new"?"➕ Thêm Objective":"✏️ Sửa Objective"}</span>
+        <span style="font-size:15px;font-weight:800">${state.okr_editObj==="new"?"➕ Thêm trụ cột / mục tiêu":"✏️ Sửa trụ cột / mục tiêu"}</span>
         <button class="btn-sm" id="btnCloseOKREditor" style="background:#eee;color:#333">✕</button>
       </div>
       <div class="modal-body">
-        <div class="form-group" style="margin-bottom:10px">
-          <div class="form-label">Icon</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-            ${ICONS.map(ic=>`<span class="okr-icon-btn" data-icon="${ic}" style="font-size:22px;cursor:pointer;padding:4px;border-radius:6px;border:2px solid ${ic===state.okr_obj_icon?"#D4AF37":"transparent"}">${ic}</span>`).join("")}
+        <div class="form-row">
+          <div class="form-group" style="max-width:150px">
+            <div class="form-label">Icon</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              ${ICONS.slice(0,8).map(ic=>`<span class="okr-icon-btn" data-icon="${ic}" style="font-size:19px;cursor:pointer;padding:3px;border-radius:6px;border:2px solid ${ic===state.okr_obj_icon?"#D4AF37":"transparent"}">${ic}</span>`).join("")}
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Màu trụ cột</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;padding-top:2px">
+              ${PILLAR_PALETTE.map(c=>`<span class="okr-color-btn" data-color="${c}" style="width:25px;height:25px;border-radius:50%;cursor:pointer;background:${c};border:3px solid ${c===state.okr_obj_color?"#1A1A2E":"#fff"};box-shadow:0 0 0 1px #d8dde6"></span>`).join("")}
+            </div>
           </div>
         </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <div class="form-label">Tên trụ cột</div>
+          <input class="form-input" id="okr-obj-title" placeholder="VD: MARKETING & SALES" value="${(state.okr_obj_title||'').replace(/"/g,'&quot;')}"/>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <div class="form-label">🎯 Mục tiêu (có con số cụ thể)</div>
+          <textarea class="form-input" id="okr-obj-goal" rows="2" style="resize:vertical" placeholder="VD: Tăng doanh số 4 tỷ → 5,5 tỷ (+34%)">${(state.okr_obj_goal||'').replace(/</g,'&lt;')}</textarea>
+        </div>
         <div class="form-group" style="margin-bottom:14px">
-          <div class="form-label">Tên mục tiêu (Objective)</div>
-          <input class="form-input" id="okr-obj-title" placeholder="VD: Tăng trưởng học viên" value="${state.okr_obj_title}"/>
+          <div class="form-label">⏰ Deadline</div>
+          <input class="form-input" id="okr-obj-deadline" placeholder="VD: 31/12/2026" value="${(state.okr_obj_deadline||'').replace(/"/g,'&quot;')}"/>
         </div>
         ${state.okr_error?`<div style="color:#E74C3C;font-size:12px;margin-bottom:8px">${state.okr_error}</div>`:""}
-        <button class="btn-primary" id="btnSaveObj" style="width:100%">💾 Lưu Objective</button>
+        <button class="btn-primary" id="btnSaveObj" style="width:100%">💾 Lưu trụ cột</button>
       </div>
     </div>
   </div>` : "";
@@ -1920,58 +1972,73 @@ function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
   </div>` : "";
 
   return okrEditorModal + krEditorModal + `
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
     <select id="qsel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
       ${QUARTERS.map(q=>`<option${q===state.quarter?" selected":""}>${q}</option>`).join("")}
     </select>
     <div class="badge" style="background:${gst.bg};color:${gst.color}">${gst.icon} Tổng thể: ${gs}%</div>
-    ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm Objective</button>`:""}
+    ${state.user.isAdmin?`<button class="btn-success" id="btnAddObj" style="font-size:11px;padding:5px 12px">➕ Thêm trụ cột</button>
+    <button class="btn-sm" id="btnLoadPillars" style="font-size:11px;padding:6px 11px;background:#EEF4FF;color:#2563EB;border:1px solid #cfe0ff;font-weight:700">📥 Nạp mẫu Tứ Trụ</button>`:""}
     <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
   </div>
-  ${OBJECTIVES.map(obj=>{
-    const sc=obj.krs.length?Math.round(obj.krs.reduce((acc,kr)=>{
-      const pt=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((s,p)=>s+Number(p.actual||0),0);
-      const a=pt>0?pt:(state.actuals[kr.id]?.actual||0);
-      return acc+pct(a,kr.target);
-    },0)/obj.krs.length):0;
-    const st=stInfo(sc);
-    return`<div class="card okr-obj">
-      <div class="okr-obj-head">
-        <span style="font-size:18px">${obj.icon}</span>
-        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#fff">${obj.title}</div></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:70px"><div class="prog-wrap"><div class="prog-fill" style="width:${sc}%;background:${st.color}"></div></div></div>
-          <span style="font-size:13px;font-weight:800;color:${st.color};width:34px">${sc}%</span>
-          ${state.user.isAdmin?`<button class="btn-edit okr-edit-obj" data-oid="${obj.id}" data-title="${obj.title}" data-icon="${obj.icon}" style="padding:3px 7px;font-size:11px">✏️</button>
-          <button class="btn-danger okr-del-obj" data-oid="${obj.id}" style="padding:3px 7px;font-size:11px">🗑️</button>`:""}
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:18px">
+    ${OBJECTIVES.map(o=>{const col=o.color||pillarInfo(o.pillar).color;const sc=okrObjScore(o);return`
+      <div style="background:linear-gradient(135deg,${col},${shade(col)});border-radius:14px;padding:13px 15px;color:#fff;box-shadow:0 6px 16px ${col}3a">
+        <div style="font-size:19px">${o.icon||"🎯"}</div>
+        <div style="font-size:11px;font-weight:700;margin-top:6px;opacity:.96;line-height:1.3;min-height:28px">${o.title}</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-top:9px">
+          <div style="flex:1;background:rgba(255,255,255,.3);border-radius:4px;height:6px"><div style="width:${sc}%;height:100%;background:#fff;border-radius:4px"></div></div>
+          <span style="font-size:14px;font-weight:800">${sc}%</span>
         </div>
+      </div>`;}).join("")}
+  </div>
+
+  ${OBJECTIVES.map(obj=>{
+    const col=obj.color||pillarInfo(obj.pillar).color;
+    const soft=pillarInfo(obj.pillar).soft||"#F2F4F8";
+    const sc=okrObjScore(obj);
+    return`<div class="card" style="border-top:4px solid ${col}">
+      <div style="background:${soft};padding:13px 16px;display:flex;align-items:center;gap:11px;flex-wrap:wrap">
+        <div style="width:42px;height:42px;border-radius:12px;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0">${obj.icon||"🎯"}</div>
+        <div style="flex:1;min-width:150px">
+          <div style="font-size:14px;font-weight:800;color:${col};letter-spacing:.3px">${obj.title}</div>
+          ${obj.goal?`<div style="font-size:11.5px;color:#55606f;margin-top:4px;line-height:1.45">🎯 ${obj.goal}</div>`:""}
+        </div>
+        <div style="text-align:center;flex-shrink:0">
+          <div style="font-size:21px;font-weight:800;color:${col};line-height:1">${sc}%</div>
+          ${obj.deadline?`<div style="font-size:10px;color:#fff;background:${col};border-radius:20px;padding:2px 9px;margin-top:4px;white-space:nowrap">⏰ ${obj.deadline}</div>`:""}
+        </div>
+        ${state.user.isAdmin?`<div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-edit okr-edit-obj" data-oid="${obj.id}" style="padding:4px 8px;font-size:11px">✏️</button>
+          <button class="btn-danger okr-del-obj" data-oid="${obj.id}" style="padding:4px 8px;font-size:11px">🗑️</button>
+        </div>`:""}
       </div>
-      <div class="okr-kr-list">
-        ${state.user.isAdmin?`<div style="padding:6px 0 2px"><button class="btn-success okr-add-kr" data-oid="${obj.id}" style="font-size:11px;padding:4px 10px">➕ Thêm KR</button></div>`:""}
+      <div style="padding:4px 14px 12px">
+        ${state.user.isAdmin?`<div style="padding:8px 0 4px"><button class="btn-success okr-add-kr" data-oid="${obj.id}" style="font-size:11px;padding:4px 11px;background:${col}">➕ Thêm KPI</button></div>`:""}
         ${obj.krs.map((kr,i)=>{
           const planTotal=(state.plans||[]).filter(p=>p.okrKr===kr.id).reduce((sum,p)=>sum+Number(p.actual||0),0);
           const fromPlans=planTotal>0;
-          const actual=fromPlans?planTotal:(state.actuals[kr.id]?.actual||0);
-          const p=pct(actual,kr.target);const s=stInfo(p);
+          const actual=fromPlans?planTotal:((state.actuals[kr.id]||{}).actual||0);
+          const p=pct(actual,kr.target);const st=stInfo(p);
           const editable=state.user.isAdmin;
           const isEdit=state.editKR===kr.id;
           const ri2=roleInfo(kr.ownerRole);
-          return`<div class="okr-kr-row" style="opacity:${editable?1:0.6}">
-            <span style="font-size:10px;background:#F0F2F5;border-radius:4px;padding:1px 5px;color:#888;flex-shrink:0">KR${i+1}</span>
-            <span style="font-size:12px;font-weight:600;flex:1;color:#1A1A2E">${kr.text}</span>
-            <span style="font-size:10px;color:#aaa;white-space:nowrap">${ri2.icon} ${ri2.label}</span>
-            <div class="prog-wrap" style="width:60px;flex:none"><div class="prog-fill" style="width:${p}%;background:${s.color}"></div></div>
-            <span style="font-size:11px;font-weight:700;color:${s.color};width:30px;flex-shrink:0">${p}%</span>
+          return`<div class="okr-kr-row">
+            <span style="font-size:10px;background:${col}1a;color:${col};border-radius:5px;padding:2px 7px;font-weight:800;flex-shrink:0">KPI${i+1}</span>
+            <span style="font-size:12px;font-weight:600;flex:1;min-width:120px;color:#1A1A2E">${kr.text}</span>
+            <span style="font-size:10px;color:#9aa3b2;white-space:nowrap">${ri2.icon} ${ri2.label}</span>
+            <div class="prog-wrap" style="width:64px;flex:none"><div class="prog-fill" style="width:${p}%;background:${st.color}"></div></div>
+            <span style="font-size:11px;font-weight:800;color:${st.color};width:32px;flex-shrink:0">${p}%</span>
             ${isEdit?`<div style="display:flex;gap:4px;align-items:center">
-              <input id="krInput" type="number" value="${state.editVal}" style="width:60px;border:2px solid #D4AF37;border-radius:6px;padding:3px 6px;font-size:12px;outline:none" data-krid="${kr.id}"/>
+              <input id="krInput" type="number" value="${state.editVal}" style="width:62px;border:2px solid ${col};border-radius:6px;padding:3px 6px;font-size:12px;outline:none" data-krid="${kr.id}"/>
               <button class="btn-success" style="padding:4px 8px;font-size:12px" id="btnSaveKR">${state.saving?"...":"✓"}</button>
               <button id="btnCancelKR" style="background:#eee;border:none;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px">✕</button>
             </div>`:`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
               <button class="kr-edit-btn" data-krid="${kr.id}" data-actual="${actual}" ${editable&&!fromPlans?"":"disabled"}
-                style="opacity:${fromPlans?0.7:1};white-space:nowrap">${actual}<span style="color:#999;font-weight:600">/${kr.target}</span> ${kr.unit}</button>
-              ${fromPlans?`<span style="font-size:9px;color:#D4AF37">📋 từ KH</span>`:""}
+                style="opacity:${fromPlans?0.7:1};white-space:nowrap">${actual}<span style="color:#999;font-weight:600">/${kr.target}</span> <span style="font-size:10px;color:#888">${kr.unit}</span></button>
+              ${fromPlans?`<span style="font-size:9px;color:${col}">📋 từ KH</span>`:""}
             </div>`}
-            <span class="badge" style="background:${s.bg};color:${s.color};font-size:10px">${s.icon} ${s.label}</span>
             ${state.user.isAdmin?`<button class="btn-edit okr-edit-kr" data-oid="${obj.id}" data-kid="${kr.id}" data-text="${kr.text}" data-unit="${kr.unit}" data-target="${kr.target}" data-role="${kr.ownerRole}" style="padding:2px 6px;font-size:10px">✏️</button>
             <button class="btn-danger okr-del-kr" data-oid="${obj.id}" data-kid="${kr.id}" style="padding:2px 6px;font-size:10px">🗑️</button>`:""}
           </div>`;
@@ -1983,187 +2050,151 @@ function renderOKR(){  const allKRs=OBJECTIVES.flatMap(o=>o.krs);
 
 // ===== KẾ HOẠCH =====
 function renderPlan(){
-  const plans=state.plans.filter(p=>!state.month||p.month===state.month);
-  const statusColor={
-    "Hoàn thành":"#27AE60","Đang thực hiện":"#E67E22",
-    "Chưa bắt đầu":"#aaa","Bị trễ":"#E74C3C"
-  };
+  const statusColor={"Hoàn thành":"#27AE60","Đang thực hiện":"#E67E22","Chưa bắt đầu":"#aaa","Bị trễ":"#E74C3C"};
+  const pf=state.plan_pillar||"all";
+  const objOf=(p)=>OBJECTIVES.find(o=>o.id===p.okrObj);
+  const inFilter=(p)=>pf==="all"?true:((objOf(p)||{}).pillar===pf);
+  const totalShown=state.plans.filter(inFilter).length;
+  const doneShown=state.plans.filter(p=>inFilter(p)&&p.status==="Hoàn thành").length;
+  const linkedObjIds=new Set(OBJECTIVES.map(o=>o.id));
+  const unlinked=state.plans.filter(p=>!p.okrObj||!linkedObjIds.has(p.okrObj));
 
-  // Tính tổng actual cho từng KR từ các kế hoạch
-  function getKRActualFromPlans(krId){
-    return state.plans
-      .filter(p=>p.okrKr===krId && p.actual)
-      .reduce((s,p)=>s+Number(p.actual||0),0);
+  function weekStrip(p){
+    const q=monthToQuarter(p.month);
+    const mons=quarterMonths(q);
+    const wk=p.weeks||{};
+    const admin=state.user.isAdmin;
+    if(!mons.length) return "";
+    return `<div style="margin-top:10px;border-top:1px dashed #E7EBF3;padding-top:9px">
+      <div style="font-size:10px;color:#9aa3b2;margin-bottom:5px">📆 Tiến độ 90 ngày (${q}) — bấm ô để đánh dấu đã làm</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        ${mons.map(m=>{const mm=/T(\d+)/.exec(m);const lbl="T"+(mm?mm[1]:"");return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="font-size:9px;color:#9aa3b2;font-weight:800">${lbl}</div>
+          <div style="display:flex;gap:3px">
+            ${[1,2,3,4].map(w=>{const key=m+"#W"+w;const on=wk[key];return `<span class="plan-wk" ${admin?`data-pid="${p.id}" data-wk="${key}"`:""} title="${m} · Tuần ${w}" style="cursor:${admin?"pointer":"default"};display:inline-block;width:16px;height:16px;border-radius:4px;background:${on?"#27AE60":"#EDF1F7"};border:1px solid ${on?"#1f9a54":"#d6dbe6"}"></span>`;}).join("")}
+          </div></div>`;}).join("")}
+      </div>
+    </div>`;
   }
 
-  return`
-  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-    <select id="msel" style="border:2px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700">
-      <option value="">Tất cả tháng</option>
-      ${MONTHS.map(m=>`<option${m===state.month?" selected":""}>${m}</option>`).join("")}
-    </select>
-    ${state.user.isAdmin?`<button class="btn-success" id="btnAddPlan" style="font-size:12px;padding:6px 14px">➕ Thêm kế hoạch</button>`:""}
-    <div class="badge" style="background:#E8F8F0;color:#27AE60">${plans.filter(p=>p.status==="Hoàn thành").length}/${plans.length} hoàn thành</div>
-    <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
-  </div>
-
-  <!-- Tóm tắt liên kết OKR -->
-  ${OBJECTIVES.some(o=>o.krs.some(kr=>state.plans.some(p=>p.okrKr===kr.id)))?`
-  <div class="card" style="margin-bottom:14px">
-    <div class="card-head"><span class="card-head-title">🎯 Tiến độ KH → OKR</span></div>
-    ${OBJECTIVES.map(obj=>{
-      const linkedKRs = obj.krs.filter(kr=>state.plans.some(p=>p.okrKr===kr.id));
-      if(!linkedKRs.length) return "";
-      return`<div style="padding:10px 18px;border-bottom:1px solid #F5F5F5">
-        <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:8px">${obj.icon} ${obj.title}</div>
-        ${linkedKRs.map(kr=>{
-          const planActual = getKRActualFromPlans(kr.id);
-          const p = Math.min(Math.round((planActual/kr.target)*100),100);
-          const st = stInfo(p);
-          const linkedPlans = state.plans.filter(pl=>pl.okrKr===kr.id);
-          return`<div style="margin-bottom:8px;padding:8px;background:#F8F9FA;border-radius:8px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-              <span style="font-size:11px;color:#888;flex:1">KR: ${kr.text} (MT: ${kr.target} ${kr.unit})</span>
-              <span style="font-size:13px;font-weight:800;color:${st.color}">${planActual}/${kr.target} ${kr.unit} (${p}%)</span>
-            </div>
-            <div style="background:#F0F0F0;border-radius:4px;height:6px;margin-bottom:6px">
-              <div style="width:${p}%;height:100%;background:${st.color};border-radius:4px"></div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${linkedPlans.map(pl=>`<span style="font-size:10px;background:#fff;border:1px solid #ddd;border-radius:4px;padding:2px 6px;color:#555">
-                ${pl.title}: <b>${pl.actual||0}</b> ${kr.unit}
-              </span>`).join("")}
-            </div>
-          </div>`;
-        }).join("")}
-      </div>`;
-    }).join("")}
-  </div>`:""}
-
-  <!-- Danh sách kế hoạch -->
-  <div class="card">
-    ${plans.length===0?`<div style="padding:32px;text-align:center;color:#aaa">Chưa có kế hoạch nào ${state.month?"cho "+state.month:""}. ${state.user.isAdmin?"Bấm ➕ Thêm kế hoạch.":""}</div>`:""}
-    ${plans.map(p=>{
-      // Tìm KR được gắn
-      let krInfo = null;
-      if(p.okrKr){
-        OBJECTIVES.forEach(o=>{
-          const kr=o.krs.find(k=>k.id===p.okrKr);
-          if(kr) krInfo={obj:o, kr};
-        });
-      }
-      const pct = p.target>0?Math.min(Math.round((Number(p.actual||0)/Number(p.target))*100),100):0;
-      const st = stInfo(pct);
-      return`<div class="plan-item card-pad" style="padding:12px 18px">
-        <div class="plan-status" style="background:${statusColor[p.status]||"#aaa"}"></div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:#1A1A2E;margin-bottom:3px">${p.title}</div>
-          <div style="font-size:11px;color:#888;margin-bottom:4px">
-            👤 ${p.owner||"-"} &nbsp;|&nbsp; 📅 ${p.month}
-            ${krInfo?`&nbsp;|&nbsp; 🎯 <span style="color:#D4AF37;font-weight:700">${krInfo.obj.icon} ${krInfo.kr.text}</span>`:""}
+  function planCard(p){
+    const obj=objOf(p);
+    const col=obj?(obj.color||pillarInfo(obj.pillar).color):"#64748b";
+    let kr=null; if(obj&&p.okrKr) kr=obj.krs.find(k=>k.id===p.okrKr);
+    const pc=p.target>0?Math.min(Math.round((Number(p.actual||0)/Number(p.target))*100),100):0;
+    const st=stInfo(pc);
+    return `<div style="border:1px solid #E7EBF3;border-left:4px solid ${col};border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 6px 16px rgba(15,52,96,.09)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:13.5px;font-weight:800;color:#1A1A2E">${p.title||"(chưa đặt tên)"}</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:5px;align-items:center">
+            ${kr?`<span style="font-size:10px;background:${col}1a;color:${col};border-radius:20px;padding:2px 9px;font-weight:700">🎯 ${kr.text}</span>`:""}
+            <span style="font-size:10.5px;color:#8a94a6">👤 ${p.owner||"-"}</span>
+            <span style="font-size:10.5px;color:#8a94a6">📅 ${p.month||"-"}</span>
+            ${p.cost?`<span style="font-size:10.5px;color:#8a94a6">💰 ${p.cost}</span>`:""}
           </div>
-          ${p.target>0?`<div style="display:flex;align-items:center;gap:8px">
-            <div style="background:#F0F0F0;border-radius:4px;height:5px;flex:1">
-              <div style="width:${pct}%;height:100%;background:${st.color};border-radius:4px"></div>
-            </div>
-            <span style="font-size:11px;font-weight:700;color:${st.color}">${p.actual||0}/${p.target} (${pct}%)</span>
-          </div>`:""}
+          ${p.expected?`<div style="font-size:11px;color:#55606f;margin-top:6px">✅ <b style="font-weight:700">KQ mong đợi:</b> ${p.expected}</div>`:""}
         </div>
-        <span class="badge" style="background:${statusColor[p.status]||"#eee"}22;color:${statusColor[p.status]||"#888"};font-size:10px">${p.status}</span>
+        <span class="badge" style="background:${(statusColor[p.status]||"#aaa")}22;color:${statusColor[p.status]||"#888"};font-size:10px;white-space:nowrap">${p.status}</span>
         ${(state.user.isAdmin||isMyPlan(p))?`<div style="display:flex;gap:4px">
           <button class="btn-edit" data-pid="${p.id}">✏️</button>
           ${state.user.isAdmin?`<button class="btn-danger" data-delplan="${p.id}">🗑️</button>`:""}
         </div>`:""}
-      </div>`;
-    }).join("")}
-  </div>`;
+      </div>
+      ${p.target>0?`<div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+        <div style="background:#EEF1F7;border-radius:4px;height:6px;flex:1"><div style="width:${pc}%;height:100%;background:${st.color};border-radius:4px"></div></div>
+        <span style="font-size:11px;font-weight:800;color:${st.color};white-space:nowrap">${p.actual||0}/${p.target} (${pc}%)</span>
+      </div>`:""}
+      ${weekStrip(p)}
+    </div>`;
+  }
+
+  return `
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    ${state.user.isAdmin?`<button class="btn-success" id="btnAddPlan" style="font-size:12px;padding:6px 14px">➕ Thêm việc / kế hoạch</button>`:""}
+    <div class="badge" style="background:#E8F8F0;color:#27AE60">${doneShown}/${totalShown} hoàn thành</div>
+    <button class="btn-sm btn-gold" id="btnRefreshTab" style="font-size:11px;padding:5px 10px">🔄 Làm mới</button>
+  </div>
+
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="pl-chip" data-plpillar="all" style="border:1.5px solid ${pf==="all"?"#1A1A2E":"#E1E7F0"};background:${pf==="all"?"#1A1A2E":"#fff"};color:${pf==="all"?"#fff":"#55606f"};border-radius:20px;padding:5px 13px;font-size:11.5px;font-weight:700;cursor:pointer">Tất cả</button>
+    ${PILLARS.map(pl=>`<button class="pl-chip" data-plpillar="${pl.id}" style="border:1.5px solid ${pf===pl.id?pl.color:"#E1E7F0"};background:${pf===pl.id?pl.color:"#fff"};color:${pf===pl.id?"#fff":"#55606f"};border-radius:20px;padding:5px 13px;font-size:11.5px;font-weight:700;cursor:pointer">${pl.icon} ${pl.name.split(" & ")[0]}</button>`).join("")}
+  </div>
+
+  ${OBJECTIVES.filter(o=>pf==="all"||o.pillar===pf).map(o=>{
+    const col=o.color||pillarInfo(o.pillar).color;
+    const list=state.plans.filter(p=>p.okrObj===o.id);
+    return `<div class="card" style="border-top:3px solid ${col}">
+      <div style="background:${pillarInfo(o.pillar).soft||"#F2F4F8"};padding:10px 15px;display:flex;align-items:center;gap:9px">
+        <span style="font-size:17px">${o.icon||"🎯"}</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:800;color:${col}">${o.title}</div>
+        ${o.deadline?`<div style="font-size:10px;color:#8a94a6">⏰ ${o.deadline}</div>`:""}</div>
+        <span style="font-size:11px;color:#8a94a6">${list.length} việc</span>
+      </div>
+      <div style="padding:12px 14px">
+        ${list.length?list.map(planCard).join(""):`<div style="padding:16px;text-align:center;color:#aab3c2;font-size:12px">Chưa có việc cho trụ này.${state.user.isAdmin?" Bấm ➕ Thêm việc / kế hoạch.":""}</div>`}
+      </div>
+    </div>`;
+  }).join("")}
+
+  ${(pf==="all"&&unlinked.length)?`<div class="card" style="border-top:3px solid #94a3b8">
+    <div style="background:#F1F5F9;padding:10px 15px;display:flex;align-items:center;gap:9px">
+      <span style="font-size:17px">📋</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:800;color:#64748b">Chưa gắn trụ cột</div></div>
+      <span style="font-size:11px;color:#8a94a6">${unlinked.length} việc</span>
+    </div>
+    <div style="padding:12px 14px">${unlinked.map(planCard).join("")}</div>
+  </div>`:""}
+  `;
 }
 
 
 function renderPlanModal(){
-  // GV chỉ được cập nhật "Thực tế đạt được" và "Trạng thái"; các mục khác do Giám đốc giao
   const roLock = (state.user && state.user.isAdmin) ? "" : "disabled";
   const statusList=["Chưa bắt đầu","Đang thực hiện","Hoàn thành","Bị trễ"];
-  // Build OKR options
-  let objOptions = "<option value=\"\">-- Không gắn OKR --</option>";
-  OBJECTIVES.forEach(o=>{
-    objOptions += "<option value=\""+o.id+"\"" + (state.pf_okr_obj===o.id?" selected":"") + ">"+o.icon+" "+o.title+"</option>";
-  });
-  // Build KR options based on selected obj
-  let krOptions = "<option value=\"\">-- Chọn Key Result --</option>";
-  if(state.pf_okr_obj){
-    const obj = OBJECTIVES.find(o=>o.id===state.pf_okr_obj);
-    if(obj) obj.krs.forEach((kr,i)=>{
-      krOptions += "<option value=\""+kr.id+"\"" + (state.pf_okr_kr===kr.id?" selected":"") + ">KR"+(i+1)+": "+kr.text+" (MT: "+kr.target+" "+kr.unit+")</option>";
-    });
-  }
+  let objOptions="<option value=\"\">-- Chọn trụ cột / mục tiêu --</option>";
+  OBJECTIVES.forEach(o=>{objOptions+="<option value=\""+o.id+"\""+(state.pf_okr_obj===o.id?" selected":"")+">"+(o.icon||"🎯")+" "+o.title+"</option>";});
+  let krOptions="<option value=\"\">-- Chọn KPI --</option>";
+  if(state.pf_okr_obj){const obj=OBJECTIVES.find(o=>o.id===state.pf_okr_obj);if(obj)obj.krs.forEach((kr,i)=>{krOptions+="<option value=\""+kr.id+"\""+(state.pf_okr_kr===kr.id?" selected":"")+">KPI"+(i+1)+": "+kr.text+" (MT: "+kr.target+" "+kr.unit+")</option>";});}
 
-  return`<div class="modal-overlay" id="planOverlay">
-    <div class="modal">
-      <div class="modal-head">
-        <span style="font-size:15px;font-weight:800">${state.editPlan?"✏️ Sửa":"➕ Thêm"} kế hoạch</span>
-        <button class="btn-sm" id="btnClosePlan" style="background:#eee;color:#333">✕</button>
+  return`<div class="modal-overlay" id="planOverlay"><div class="modal">
+    <div class="modal-head"><span style="font-size:15px;font-weight:800">${state.editPlan?"✏️ Sửa":"➕ Thêm"} việc / kế hoạch</span>
+      <button class="btn-sm" id="btnClosePlan" style="background:#eee;color:#333">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:10px">
+        <div class="form-label">Tên việc / Hành động *</div>
+        <input class="form-input" id="pf-title" placeholder="VD: Chạy Facebook Ads tuyển sinh Piano" value="${(state.pf_title||'').replace(/"/g,'&quot;')}" ${roLock}/>
       </div>
-      <div class="modal-body">
-
-        <!-- Thông tin cơ bản -->
-        <div class="form-group" style="margin-bottom:10px">
-          <div class="form-label">Tên kế hoạch / hành động *</div>
-          <input class="form-input" id="pf-title" placeholder="VD: Chạy ads Facebook tuyển sinh Piano" value="${state.pf_title}" ${roLock}/>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <div class="form-label">Tháng</div>
-            <select class="form-select" id="pf-month" ${roLock}>
-              ${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}
-            </select>
-          </div>
-          <div class="form-group">
-            <div class="form-label">Người phụ trách</div>
-            <input class="form-input" id="pf-owner" placeholder="Tên người phụ trách" value="${state.pf_owner}" ${roLock}/>
-          </div>
-        </div>
-
-        <!-- Gắn vào OKR -->
-        <div style="background:#F8F9FA;border-radius:10px;padding:12px;margin-bottom:10px;border:2px solid #E5E7EB">
-          <div style="font-size:12px;font-weight:700;color:#1A1A2E;margin-bottom:8px">🎯 Gắn vào OKR (tuỳ chọn)</div>
-          <div class="form-group" style="margin-bottom:8px">
-            <div class="form-label">Objective</div>
-            <select class="form-select" id="pf-okr-obj" ${roLock}>${objOptions}</select>
-          </div>
-          ${state.pf_okr_obj?`<div class="form-group">
-            <div class="form-label">Key Result</div>
-            <select class="form-select" id="pf-okr-kr" ${roLock}>${krOptions}</select>
-          </div>`:""}
-        </div>
-
-        <!-- Mục tiêu & Thực tế -->
-        <div class="form-row">
-          <div class="form-group">
-            <div class="form-label">Mục tiêu (con số)</div>
-            <input class="form-input" id="pf-target" type="number" placeholder="VD: 10" value="${state.pf_target}" ${roLock}/>
-          </div>
-          <div class="form-group">
-            <div class="form-label">Thực tế đạt được</div>
-            <input class="form-input" id="pf-actual" type="number" placeholder="0" value="${state.pf_actual}"/>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-bottom:14px">
-          <div class="form-label">Trạng thái</div>
-          <select class="form-select" id="pf-status">
-            ${statusList.map(s=>`<option${s===state.pf_status?" selected":""}>${s}</option>`).join("")}
-          </select>
-        </div>
-
-        ${roLock?`<div style="background:#FFF7E0;border:1px solid #F0DFA8;border-radius:8px;padding:9px 11px;font-size:11px;color:#8A6D00;margin-bottom:10px;line-height:1.5">
-          ℹ️ Bạn chỉ cập nhật được <b>Thực tế đạt được</b> và <b>Trạng thái</b>. Các mục khác do Giám đốc giao.
-        </div>`:""}
-        <button class="btn-primary" id="btnSavePlan" style="width:100%">💾 Lưu kế hoạch</button>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Tháng</div>
+          <select class="form-select" id="pf-month" ${roLock}>${MONTHS.map(m=>`<option${m===state.pf_month?" selected":""}>${m}</option>`).join("")}</select></div>
+        <div class="form-group"><div class="form-label">Người phụ trách</div>
+          <input class="form-input" id="pf-owner" placeholder="Tên người phụ trách" value="${(state.pf_owner||'').replace(/"/g,'&quot;')}" ${roLock}/></div>
       </div>
-    </div>
-  </div>`;
+      <div style="background:#F6F8FC;border-radius:10px;padding:12px;margin-bottom:10px;border:1.5px solid #E5EAF3">
+        <div style="font-size:12px;font-weight:800;color:#1A1A2E;margin-bottom:8px">🎯 Gắn vào Mục tiêu Tứ Trụ</div>
+        <div class="form-group" style="margin-bottom:8px"><div class="form-label">Trụ cột / Mục tiêu</div>
+          <select class="form-select" id="pf-okr-obj" ${roLock}>${objOptions}</select></div>
+        ${state.pf_okr_obj?`<div class="form-group"><div class="form-label">KPI liên kết</div>
+          <select class="form-select" id="pf-okr-kr" ${roLock}>${krOptions}</select></div>`:""}
+      </div>
+      <div class="form-group" style="margin-bottom:10px"><div class="form-label">✅ Kết quả mong đợi</div>
+        <input class="form-input" id="pf-expected" placeholder="VD: 300 học sinh đăng ký" value="${(state.pf_expected||'').replace(/"/g,'&quot;')}" ${roLock}/></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">Mục tiêu (con số)</div>
+          <input class="form-input" id="pf-target" type="number" placeholder="VD: 10" value="${state.pf_target}" ${roLock}/></div>
+        <div class="form-group"><div class="form-label">Thực tế đạt được</div>
+          <input class="form-input" id="pf-actual" type="number" placeholder="0" value="${state.pf_actual}"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">💰 Chi phí (nếu có)</div>
+          <input class="form-input" id="pf-cost" placeholder="VD: 12.000.000" value="${(state.pf_cost||'').replace(/"/g,'&quot;')}" ${roLock}/></div>
+        <div class="form-group"><div class="form-label">Trạng thái</div>
+          <select class="form-select" id="pf-status">${statusList.map(st=>`<option${st===state.pf_status?" selected":""}>${st}</option>`).join("")}</select></div>
+      </div>
+      ${roLock?`<div style="background:#FFF7E0;border:1px solid #F0DFA8;border-radius:8px;padding:9px 11px;font-size:11px;color:#8A6D00;margin-bottom:10px;line-height:1.5">ℹ️ Bạn chỉ cập nhật được <b>Thực tế đạt được</b> và <b>Trạng thái</b>. Các mục khác do Giám đốc giao.</div>`:""}
+      <button class="btn-primary" id="btnSavePlan" style="width:100%">💾 Lưu</button>
+    </div></div></div>`;
 }
 
 
@@ -3421,13 +3452,17 @@ function attachEvents(){
     loadActuals();
   });
   // OKR Editor
-  document.getElementById("btnAddObj")?.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:"new",okr_obj_title:"",okr_obj_icon:"🎯",okr_error:""}));
+  document.getElementById("btnAddObj")?.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:"new",okr_obj_title:"",okr_obj_icon:"🎯",okr_obj_goal:"",okr_obj_deadline:"",okr_obj_color:"#2563EB",okr_obj_pillar:"mkt",okr_error:""}));
+  document.getElementById("btnLoadPillars")?.addEventListener("click",()=>{ if(!confirm("Nạp lại 4 TRỤ CỘT mẫu (Marketing & Sales · Vận hành & Tài chính · Đội ngũ & Văn hóa · Lãnh đạo & Chiến lược)?\n\nDanh sách mục tiêu hiện tại sẽ được THAY bằng mẫu Tứ Trụ.")) return; OBJECTIVES=JSON.parse(JSON.stringify(DEFAULT_OBJECTIVES)); saveObjectives(OBJECTIVES); setState({}); });
   document.getElementById("btnCloseOKREditor")?.addEventListener("click",()=>setState({showOKREditor:false}));
   document.getElementById("okrEditorOverlay")?.addEventListener("click",e=>{if(e.target.id==="okrEditorOverlay")setState({showOKREditor:false})});
   document.getElementById("okr-obj-title")?.addEventListener("input",e=>state.okr_obj_title=e.target.value);
+  document.getElementById("okr-obj-goal")?.addEventListener("input",e=>state.okr_obj_goal=e.target.value);
+  document.getElementById("okr-obj-deadline")?.addEventListener("input",e=>state.okr_obj_deadline=e.target.value);
+  document.querySelectorAll(".okr-color-btn").forEach(b=>b.addEventListener("click",()=>setState({okr_obj_color:b.dataset.color})));
   document.querySelectorAll(".okr-icon-btn").forEach(b=>b.addEventListener("click",()=>setState({okr_obj_icon:b.dataset.icon})));
   document.getElementById("btnSaveObj")?.addEventListener("click",saveObjective);
-  document.querySelectorAll(".okr-edit-obj").forEach(b=>b.addEventListener("click",()=>setState({showOKREditor:true,okr_editObj:b.dataset.oid,okr_obj_title:b.dataset.title,okr_obj_icon:b.dataset.icon,okr_error:""})));
+  document.querySelectorAll(".okr-edit-obj").forEach(b=>b.addEventListener("click",()=>{const o=OBJECTIVES.find(x=>x.id===b.dataset.oid)||{};setState({showOKREditor:true,okr_editObj:b.dataset.oid,okr_obj_title:o.title||"",okr_obj_icon:o.icon||"🎯",okr_obj_goal:o.goal||"",okr_obj_deadline:o.deadline||"",okr_obj_color:o.color||"#2563EB",okr_obj_pillar:o.pillar||"",okr_error:""});}));
   document.querySelectorAll(".okr-del-obj").forEach(b=>b.addEventListener("click",()=>deleteObjective(b.dataset.oid)));
   // KR Editor
   document.getElementById("btnCloseKREditor")?.addEventListener("click",()=>setState({okr_editKR:null}));
@@ -3448,7 +3483,7 @@ function attachEvents(){
 
   // PLAN
   document.getElementById("msel")?.addEventListener("change",e=>{setState({month:e.target.value});loadPlansFromSheets();});
-  document.getElementById("btnAddPlan")?.addEventListener("click",()=>setState({showPlanForm:true,editPlan:null,pf_title:"",pf_target:"",pf_owner:"",pf_status:"Chưa bắt đầu",pf_month:state.month}));
+  document.getElementById("btnAddPlan")?.addEventListener("click",()=>setState({showPlanForm:true,editPlan:null,pf_title:"",pf_target:"",pf_actual:"",pf_owner:"",pf_status:"Chưa bắt đầu",pf_month:state.month,pf_okr_obj:(state.plan_pillar&&state.plan_pillar!=="all"?((OBJECTIVES.find(o=>o.pillar===state.plan_pillar)||{}).id||""):""),pf_okr_kr:"",pf_expected:"",pf_cost:""}));
   document.getElementById("btnClosePlan")?.addEventListener("click",()=>setState({showPlanForm:false}));
   document.getElementById("planOverlay")?.addEventListener("click",e=>{if(e.target.id==="planOverlay")setState({showPlanForm:false})});
   document.getElementById("pf-title")?.addEventListener("input",e=>state.pf_title=e.target.value);
@@ -3460,8 +3495,12 @@ function attachEvents(){
   document.getElementById("pf-owner")?.addEventListener("input",e=>state.pf_owner=e.target.value);
   document.getElementById("pf-status")?.addEventListener("change",e=>state.pf_status=e.target.value);
   document.getElementById("btnSavePlan")?.addEventListener("click",savePlan);
-  document.querySelectorAll("[data-pid]").forEach(b=>b.addEventListener("click",()=>{const p=state.plans.find(x=>x.id==b.dataset.pid);if(p)setState({showPlanForm:true,editPlan:p.id,pf_title:p.title,pf_target:p.target||0,pf_actual:p.actual||0,pf_owner:p.owner,pf_status:p.status,pf_month:p.month,pf_okr_obj:p.okrObj||"",pf_okr_kr:p.okrKr||""});}));
+  document.querySelectorAll("[data-pid]").forEach(b=>b.addEventListener("click",()=>{const p=state.plans.find(x=>String(x.id)===String(b.dataset.pid));if(p)setState({showPlanForm:true,editPlan:p.id,pf_title:p.title||"",pf_target:p.target||0,pf_actual:p.actual||0,pf_owner:p.owner||"",pf_status:p.status||"Chưa bắt đầu",pf_month:p.month,pf_okr_obj:p.okrObj||"",pf_okr_kr:p.okrKr||"",pf_expected:p.expected||"",pf_cost:p.cost||""});}));
   document.querySelectorAll("[data-delplan]").forEach(b=>b.addEventListener("click",()=>deletePlan(Number(b.dataset.delplan))));
+  document.getElementById("pf-expected")?.addEventListener("input",e=>state.pf_expected=e.target.value);
+  document.getElementById("pf-cost")?.addEventListener("input",e=>state.pf_cost=e.target.value);
+  document.querySelectorAll(".pl-chip").forEach(b=>b.addEventListener("click",()=>setState({plan_pillar:b.dataset.plpillar})));
+  document.querySelectorAll(".plan-wk[data-pid]").forEach(b=>b.addEventListener("click",()=>togglePlanWeek(b.dataset.pid,b.dataset.wk)));
 
   // LUONG
   document.getElementById("lmsel")?.addEventListener("change",e=>{setState({month:e.target.value});loadLuongFromSheets(e.target.value);});
@@ -3552,6 +3591,28 @@ function attachEvents(){
 
 // Khởi động: nếu đã đăng nhập trước đó thì vào thẳng, không phải gõ lại mật khẩu
 (function(){
+  if(window.EMBED){
+    // Nhúng: không tự đăng nhập bằng phiên cũ; chờ app học sinh (cùng origin) cấp quyền
+    var qs=new URLSearchParams(location.search);
+    state.tab=qs.get("tab")||"okr";
+    state.screen="wait";
+    window.addEventListener("message",function(ev){
+      if(ev.origin!==location.origin||ev.source!==window.parent) return;
+      var m=ev.data||{};
+      if(m.type==="ql-init"){
+        state.tab=m.tab||state.tab;
+        try{ USERS=loadUsers(); }catch(e){}
+        var u={username:String(m.user||"admin"),name:String(m.name||"Giám đốc"),role:"admin",isAdmin:true,luong:0};
+        enterApp(u);
+        try{ window.parent.postMessage({type:"ql-entered"},location.origin);}catch(e){}
+      } else if(m.type==="ql-tab" && state.user){
+        setState({tab:m.tab});
+      }
+    });
+    document.getElementById("app").innerHTML='<div style="padding:40px;text-align:center;color:#888;font-family:system-ui">⏳ Đang tải…</div>';
+    try{ window.parent.postMessage({type:"ql-ready"},location.origin);}catch(e){}
+    return;
+  }
   try{
     const s = ls_get("ta_session");
     if(s && s.username){
@@ -3822,7 +3883,7 @@ window.ccPrintLuong=function(){
 <script>
 (function(){
   // 1) Đăng ký service worker (mở nhanh + chạy offline nhẹ)
-  if ('serviceWorker' in navigator) {
+  if (!window.EMBED && 'serviceWorker' in navigator) {
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(err){
         console.warn('SW register failed:', err);
@@ -3844,6 +3905,7 @@ window.ccPrintLuong=function(){
     return b;
   }
   window.addEventListener('beforeinstallprompt', function(e){
+    if(window.EMBED) return;
     e.preventDefault();
     deferred = e;
     var btn = makeBtn('⬇️ Cài đặt ứng dụng', async function(){
@@ -3858,7 +3920,7 @@ window.ccPrintLuong=function(){
   // 3) iOS Safari: không có nút cài tự động → hiện gợi ý 1 lần
   var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
   var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  if (isIOS && !standalone && !localStorage.getItem('ta_ios_hint')) {
+  if (!window.EMBED && isIOS && !standalone && !localStorage.getItem('ta_ios_hint')) {
     var hint = makeBtn('📲 Thêm vào Màn hình chính', function(){
       alert('Trên Safari: bấm nút Chia sẻ (ô vuông có mũi tên) → "Thêm vào MH chính" (Add to Home Screen).');
       localStorage.setItem('ta_ios_hint','1');
