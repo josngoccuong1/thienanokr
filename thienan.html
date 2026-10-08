@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/10/2026 · v5</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/10/2026 · v6</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -711,6 +711,9 @@ main section{animation:hienLen .25s ease}
       </div>
       <div class="the" style="padding:10px 14px;margin-bottom:16px;font-size:13px;color:#6b7280">Mỗi lần thu học phí hệ thống tạo 1 phiếu thu riêng, <strong>không bao giờ bị ghi đè</strong>. Bấm tên học viên để mở hồ sơ, bấm "In" để in lại hóa đơn.</div>
       <div class="the"><div id="lstKetQua"><div class="dangTai" style="padding:20px">Đang tải...</div></div></div>
+    </section>
+    <section id="vung-quantri" class="an">
+      <iframe id="qlFrame" title="Quản trị & vận hành" style="width:100%;height:calc(100vh - 150px);min-height:520px;border:0;background:#fff;border-radius:12px"></iframe>
     </section>
     <section id="vung-nhachangloat" class="an">
       <div class="the" style="padding:14px;margin-bottom:14px">
@@ -2310,6 +2313,8 @@ function apDungPhanQuyen(){
   var sel = document.getElementById('chonCoSoXem');
   var tnd = document.getElementById('tab-nguoidung');
   var nqlm = document.getElementById('nutMoQuanLyMenu');
+  var tqt = document.getElementById('tab-quantri');
+  if(tqt){ var dqt = tqt.closest('.navDrop'); if(dqt) dqt.style.display = admin ? '' : 'none'; }
   if(nqlm) nqlm.style.display = laAdmin() ? '' : 'none';
   if(!admin){
     CoSoDangXem = NguoiDung.coSo || '';
@@ -2449,6 +2454,16 @@ var MENU_DINH_NGHIA = [
     {id:'crm_giuchan', icon:'shield', ten:'Giữ chân', onclick:"moCrmSub('giuchan')"},
     {id:'crm_thongke', icon:'donut_small', ten:'Thống kê nguồn', onclick:"moCrmSub('thongke')"}
   ]},
+  {id:'quantri', icon:'admin_panel_settings', ten:'Quản trị', mau:'#4f46e5', onclick:"navToggle(this,event)||moQL('okr')", chiAdmin:true, con:[
+    {id:'quantri_okr', icon:'track_changes', ten:'OKR', onclick:"moQL('okr')"},
+    {id:'quantri_plan', icon:'event_note', ten:'Kế hoạch', onclick:"moQL('plan')"},
+    {id:'quantri_lotrinh', icon:'route', ten:'Lộ trình', onclick:"moQL('lotrinh')"},
+    {id:'quantri_phuongphap', icon:'menu_book', ten:'Phương pháp', onclick:"moQL('phuongphap')"},
+    {id:'quantri_baohanh', icon:'build', ten:'Bảo hành', onclick:"moQL('baohanh')"},
+    {id:'quantri_luong', icon:'payments', ten:'Lương', onclick:"moQL('luong')"},
+    {id:'quantri_chamcong', icon:'schedule', ten:'Chấm công', onclick:"moQL('chamcong')"},
+    {id:'quantri_users', icon:'badge', ten:'Nhân sự', onclick:"moQL('users')"}
+  ]},
   {id:'nguoidung', icon:'manage_accounts', ten:'Người dùng', mau:'#64748b', onclick:"doiTab('nguoidung')", anMacDinhKhongDoiQuyen:true}
 ];
 var MenuTuyChinh = {}; // {id: {ten:'...', an:true/false}, _themMoi:[{id,chaId,ten,icon,hanhDongId}]} — nạp từ Firebase lúc khởi động
@@ -2529,9 +2544,34 @@ function toggleMenuDiDong(hienThi){
   nav.classList.toggle('mo', mo);
   phu.classList.toggle('mo', mo);
 }
+/* ---------- Quản trị & vận hành (nhúng app-firebase.html) ---------- */
+var _qlSan = false, _qlTabCho = 'okr';
+function moQL(tab){
+  if(!laAdmin()){ bao('Chỉ quản trị viên mới dùng mục này', true); return; }
+  _qlTabCho = tab || 'okr';
+  doiTab('quantri');
+  var f = document.getElementById('qlFrame');
+  if(!f) return;
+  if(!f.getAttribute('src')){
+    _qlSan = false;
+    f.setAttribute('src', 'app-firebase.html?embed=1&tab=' + encodeURIComponent(_qlTabCho));
+  } else if(_qlSan && f.contentWindow){
+    f.contentWindow.postMessage({type:'ql-tab', tab:_qlTabCho}, location.origin);
+  }
+}
+window.addEventListener('message', function(ev){
+  var f = document.getElementById('qlFrame');
+  if(!f || ev.source !== f.contentWindow || ev.origin !== location.origin) return;
+  var m = ev.data || {};
+  if(m.type === 'ql-ready'){
+    var u = (window.FB && FB.auth) ? FB.auth.currentUser : null;
+    if(!u || !NguoiDung || !laAdmin()) return;   // chưa đăng nhập / không phải admin → không cấp quyền
+    f.contentWindow.postMessage({type:'ql-init', user:(u.email||'').split('@')[0], name:(NguoiDung.hoTen||u.email||'Giám đốc'), tab:_qlTabCho}, location.origin);
+  } else if(m.type === 'ql-entered'){ _qlSan = true; }
+});
 function doiTab(ten){
   toggleMenuDiDong(false);
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','quantri','nguoidung'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
@@ -3509,7 +3549,7 @@ function napDsDiemDanh(){
 }
 function ddXemCaThang(){ var e=document.getElementById('ddNgayLoc'); if(e) e.value=''; veDsDiemDanh(); }
 function _anMoiVung(tabChon){
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','nguoidung','tamnghi','lichhoc','loctt','baocaothue','nhachangloat'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','quantri','nguoidung','tamnghi','lichhoc','loctt','baocaothue','nhachangloat'].forEach(function(t){
     var b=document.getElementById('tab-'+t); if(b) b.classList.remove('chon');
     var v=document.getElementById('vung-'+t); if(v) v.classList.add('an');
   });
