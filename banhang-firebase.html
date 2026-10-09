@@ -980,7 +980,7 @@ function renderOrders(){
     <div class="panel"><div class="panel-head"><h3>Danh sách đơn hàng</h3>
       <div class="tools">
         <div class="search"><span class="si">🔍</span><input id="oSearch" placeholder="Tìm mã đơn, khách…" value="${esc(oFilter.q)}"></div>
-        <select class="filter" id="oStatus"><option value="">Mọi trạng thái</option><option value="Hoàn thành">Hoàn thành</option><option value="Mới">Mới</option><option value="Đang xử lý">Đang xử lý</option><option value="Đã hủy">Đã hủy</option><option value="_no">Đang còn nợ</option></select>
+        <select class="filter" id="oStatus"><option value="">Mọi trạng thái</option><option value="Hoàn thành">Hoàn thành</option><option value="Mới">Mới</option><option value="Đang xử lý">Đang xử lý</option><option value="Đã hủy">Đã hủy</option><option value="_no">Đang còn nợ tiền</option><option value="_thieugiao">Còn thiếu món giao</option></select>
         <button class="btn btn-ghost btn-sm" onclick="openImportOrders()">📥 Nhập Excel</button>
         <button class="btn btn-primary btn-sm" onclick="openOrderForm()">＋ Tạo đơn hàng</button>
       </div></div>
@@ -996,6 +996,7 @@ function filteredOrders(){
   const q=oFilter.q.toLowerCase().trim();
   return ORDERS.filter(o=>{
     if(oFilter.status==='_no'){if((Number(o.conNo)||0)<=0)return false;}
+    else if(oFilter.status==='_thieugiao'){if(!(o.monNo||[]).some(m=>!m.daGiao))return false;}
     else if(oFilter.status&&(o.trangThai||'Hoàn thành')!==oFilter.status)return false;
     if(q){const hay=[o.maDon,o.khachTen,o.khachSDT].join(' ').toLowerCase();if(!hay.includes(q))return false;}
     return true;});
@@ -1015,7 +1016,9 @@ function orderRow(o){
   const noCell=conNo>0?`<span style="color:var(--danger);font-weight:700">${money(conNo)}</span>`:'<span style="color:var(--muted-2)">—</span>';
   const bhTxt=o.baoHanhThang>0?`🛡 BH ${warrantyText(o)}`:'';
   const note=[bhTxt,o.ghiChu].filter(Boolean).join(' · ');
-  const noteCell=note?`<div style="max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted)" title="${esc(note)}">${esc(note)}</div>`:'<span style="color:var(--muted-2)">—</span>';
+  const monChua=(o.monNo||[]).filter(m=>!m.daGiao).length;
+  const monBadge=monChua>0?`<span class="chip low" style="font-size:10px;margin-right:5px">📦 Thiếu ${monChua}</span>`:'';
+  const noteCell=(note||monBadge)?`<div style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--muted)" title="${esc(note)}">${monBadge}${esc(note)}</div>`:'<span style="color:var(--muted-2)">—</span>';
   const printSvg='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
   return `<tr style="cursor:pointer" onclick="openOrderDetail('${esc(o._id)}')"><td class="t-code">${esc(o.maDon||'')}</td><td style="white-space:nowrap">${esc(o.ngayHienThi||'—')}</td><td class="t-name">${esc(o.khachTen||'Khách lẻ')}</td><td style="white-space:nowrap;font-size:12.5px">${esc(o.createdBy||'—')}</td><td class="t-num t-price">${money(o.tongCong)}</td><td class="t-num" style="color:var(--ok)">${money(o.daTra)}</td><td class="t-num">${noCell}</td><td>${stChip}</td><td>${noteCell}</td><td><div class="row-act"><button class="icon-btn" title="Xem" onclick="event.stopPropagation();openOrderDetail('${esc(o._id)}')">👁</button><button class="icon-btn" title="In hóa đơn" onclick="event.stopPropagation();printInvoice('${esc(o._id)}')">${printSvg}</button><button class="icon-btn del" title="Xóa" onclick="event.stopPropagation();deleteOrder('${esc(o._id)}')">🗑</button></div></td></tr>`;
 }
@@ -1303,6 +1306,7 @@ function openOrderDetail(id){
             ${feeLines}
             <div class="od-row" style="border-top:1px solid var(--line);margin-top:5px;padding-top:9px;font-size:17px"><b>TỔNG TIỀN</b><b style="color:var(--gold-2)">${money(o.tongCong)}₫</b></div>
           </div>
+          ${monNoBox(o)}
         </div>
         <div>
           <div class="od-box">
@@ -1315,6 +1319,7 @@ function openOrderDetail(id){
             <div class="od-row"><span>Tổng tiền</span><b>${money(o.tongCong)}₫</b></div>
             <div class="od-row"><span>Đã thanh toán</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
             <div class="od-row" style="font-size:16px"><span>Còn nợ</span><b style="color:${o.conNo>0?'var(--danger)':'var(--muted)'}">${money(o.conNo)}₫</b></div>
+            ${o.conNo>0?`<button class="btn btn-primary btn-block btn-sm" style="margin-top:10px" onclick="openThuNo('${esc(id)}')">💵 Thu nợ / trả góp</button>`:''}
           </div>
           <div class="od-box">
             <h4>Lịch sử thanh toán</h4>
@@ -1325,6 +1330,75 @@ function openOrderDetail(id){
         </div>
       </div>
     </div>`,'lg');
+}
+/* --- Thu nợ / trả góp --- */
+function openThuNo(id){
+  const o=ORDERS.find(x=>x._id===id);if(!o)return;const conNo=Number(o.conNo)||0;
+  const today=new Date();const defDate=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  openModal(`<div class="modal-head"><h3>Thu nợ · ${esc(o.maDon)}</h3><button onclick="openOrderDetail('${esc(id)}')">×</button></div>
+    <div class="modal-body">
+      <div class="od-box" style="background:var(--warn-bg);border-color:#f0dcae;margin-bottom:14px">
+        <div class="od-row"><span>Khách hàng</span><b>${esc(o.khachTen||'Khách lẻ')}</b></div>
+        <div class="od-row"><span>Tổng tiền</span><b>${money(o.tongCong)}₫</b></div>
+        <div class="od-row"><span>Đã trả</span><b style="color:var(--ok)">${money(o.daTra)}₫</b></div>
+        <div class="od-row" style="font-size:16px"><span>Còn nợ</span><b style="color:var(--danger)">${money(conNo)}₫</b></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Số tiền khách trả (₫) <span class="req">*</span></label><input id="tnTien" type="number" value="${conNo}" placeholder="0"></div>
+        <div class="field"><label>Ngày</label><input id="tnNgay" type="date" value="${defDate}"></div>
+        <div class="field full"><label>Hình thức</label><select id="tnPttt"><option>Tiền mặt</option><option>Chuyển khoản</option></select></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('tnTien').value=${conNo}">Trả hết</button><button class="btn btn-ghost btn-sm" onclick="document.getElementById('tnTien').value=${Math.round(conNo/2)}">Trả 1/2</button></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="openOrderDetail('${esc(id)}')">Hủy</button><button class="btn btn-primary" id="tnBtn" onclick="confirmThuNo('${esc(id)}')">Xác nhận thu</button></div>`);
+}
+async function confirmThuNo(id){
+  const o=ORDERS.find(x=>x._id===id);if(!o)return;const conNo=Number(o.conNo)||0;
+  let tien=Number($('tnTien').value)||0;if(tien<=0){toast('Nhập số tiền','warn');return;}if(tien>conNo)tien=conNo;
+  const d=parseVNDate($('tnNgay').value);const pttt=$('tnPttt').value;
+  const btn=$('tnBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{
+    const newDaTra=(Number(o.daTra)||0)+tien,newConNo=Math.max(0,conNo-tien);
+    await db.collection(COL.orders).doc(o._id).set({daTra:newDaTra,conNo:newConNo,updatedAt:new Date().toISOString()},{merge:true});
+    if(o.khachId){try{await db.collection(COL.customers).doc(o.khachId).update({congNo:FV().increment(-tien)});}catch(e){}}
+    const txId='TRX-'+slug(o.maDon)+'-'+Date.now();
+    await db.collection(COL.transactions).doc(slug(txId)).set({maGD:txId,loai:'Thu',ngay:$('tnNgay').value,ngayHienThi:d.disp||$('tnNgay').value,ngaySort:d.sort||Date.now(),soTien:tien,danhMuc:'Thu nợ',moTa:'Thu nợ đơn '+o.maDon+(o.khachTen&&o.khachTen!=='Khách lẻ'?' - '+o.khachTen:''),phuongThuc:pttt,refOrderId:o.maDon,thamChieu:o.maDon,ghiChu:'Trả góp',createdAt:new Date().toISOString()});
+    toast(newConNo===0?'Đã thu đủ — đơn hết nợ ✓':'Đã thu '+money(tien)+'₫ · còn '+money(newConNo)+'₫','ok');
+    await Promise.all([loadOrders(),loadCustomers(),loadTransactions()]);openOrderDetail(id);
+  }catch(e){console.error(e);toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='Xác nhận thu';}
+}
+/* --- Món còn thiếu phải giao (mình nợ khách) --- */
+function monNoBox(o){
+  const items=o.monNo||[];const conLai=items.filter(m=>!m.daGiao).length;
+  const list=items.length?items.map((m,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f2f6"><div style="flex:1;min-width:0"><span style="font-weight:600;${m.daGiao?'text-decoration:line-through;color:var(--muted-2)':''}">${esc(m.ten)}</span> <span style="color:var(--muted-2);font-size:12px">×${m.sl||1}</span>${m.daGiao&&m.ngayGiao?`<small style="display:block;color:var(--muted-2)">Đã giao ${esc(m.ngayGiao)}</small>`:''}</div>${m.daGiao?'<span class="chip ok" style="font-size:10.5px">✓ Đã giao</span>':`<button class="btn btn-primary btn-sm" onclick="giaoMon('${esc(o._id)}',${i})">✓ Đã giao</button>`}<button class="icon-btn del" title="Xóa" onclick="xoaMonNo('${esc(o._id)}',${i})">🗑</button></div>`).join(''):'<div style="color:var(--muted-2);font-size:13px;padding:4px 0">Không có món nào đang nợ giao.</div>';
+  return `<div class="od-box"${conLai>0?' style="background:var(--warn-bg);border-color:#f0dcae"':''}>
+    <h4${conLai>0?' style="color:var(--warn)"':''}>📦 Món còn thiếu phải giao ${conLai>0?`<span class="chip low" style="font-size:10px;margin-left:4px">Còn ${conLai}</span>`:''}</h4>
+    ${list}
+    <button class="btn btn-ghost btn-sm" style="margin-top:9px" onclick="addMonNo('${esc(o._id)}')">＋ Thêm món nợ giao</button>
+  </div>`;
+}
+function addMonNo(id){
+  openModal(`<div class="modal-head"><h3>Thêm món nợ giao</h3><button onclick="openOrderDetail('${esc(id)}')">×</button></div>
+    <div class="modal-body"><div class="grid2">
+      <div class="field full"><label>Tên món (ghế, khăn, ống sáy…) <span class="req">*</span></label><input id="mnTen" placeholder="VD: Ghế piano"></div>
+      <div class="field"><label>Số lượng</label><input id="mnSL" type="number" value="1"></div>
+    </div></div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="openOrderDetail('${esc(id)}')">Hủy</button><button class="btn btn-primary" id="mnBtn" onclick="saveMonNo('${esc(id)}')">Thêm</button></div>`,'sm');
+}
+async function saveMonNo(id){
+  const o=ORDERS.find(x=>x._id===id);if(!o)return;const ten=$('mnTen').value.trim();if(!ten){toast('Nhập tên món','warn');return;}
+  const sl=Number($('mnSL').value)||1;const arr=(o.monNo||[]).concat([{ten,sl,daGiao:false}]);
+  const btn=$('mnBtn');btn.disabled=true;btn.textContent='Đang lưu…';
+  try{await db.collection(COL.orders).doc(id).set({monNo:arr},{merge:true});o.monNo=arr;toast('Đã thêm món nợ giao','ok');await loadOrders();openOrderDetail(id);}catch(e){toast('Lỗi: '+e.message,'err');btn.disabled=false;btn.textContent='Thêm';}
+}
+async function giaoMon(id,i){
+  const o=ORDERS.find(x=>x._id===id);if(!o||!o.monNo||!o.monNo[i])return;
+  const arr=o.monNo.map((m,k)=>k===i?{...m,daGiao:true,ngayGiao:new Date().toLocaleDateString('vi-VN')}:m);
+  try{await db.collection(COL.orders).doc(id).set({monNo:arr},{merge:true});o.monNo=arr;toast('Đã đánh dấu giao','ok');await loadOrders();openOrderDetail(id);}catch(e){toast('Lỗi: '+e.message,'err');}
+}
+async function xoaMonNo(id,i){
+  const o=ORDERS.find(x=>x._id===id);if(!o||!o.monNo)return;const arr=o.monNo.filter((m,k)=>k!==i);
+  try{await db.collection(COL.orders).doc(id).set({monNo:arr},{merge:true});o.monNo=arr;await loadOrders();openOrderDetail(id);}catch(e){toast('Lỗi: '+e.message,'err');}
 }
 async function updateOrderStatus(id){
   const o=ORDERS.find(x=>x._id===id);if(!o)return;const st=$('odStatus').value;
