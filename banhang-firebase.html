@@ -775,13 +775,24 @@ function custRow(c){
 }
 function openCustomerDetail(id){
   const c=CUSTOMERS.find(x=>x._id===id);if(!c)return;const debt=Number(c.congNo)||0;
+  // Lịch sử bảo hành & sửa chữa của khách này
+  const cName=(c.ten||'').trim().toLowerCase();const cPhone=(c.dienThoai||'').replace(/\D/g,'');
+  const matchCust=(kTen,kSDT,kId)=>{if(kId&&kId===id)return true;if(cPhone&&kSDT&&kSDT.replace(/\D/g,'')===cPhone)return true;if(cName&&kTen&&kTen.trim().toLowerCase()===cName)return true;return false;};
+  const bhOfCust=(typeof BAOHANH!=='undefined'?BAOHANH:[]).filter(o=>matchCust(o.khachTen,o.khachSDT,o.khachId));
+  const scOfCust=(typeof SUACHUA!=='undefined'?SUACHUA:[]).filter(s=>matchCust(s.khachTen,s.khachSDT,s.khachId));
+  const bhHist=bhOfCust.map(o=>{const st=bhStatus(o);return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="closeModal();setTimeout(()=>openWarrantyDetail('${esc(o._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🛡 ${esc(o.tenSanPham||'')}</div><div style="font-size:11.5px;color:var(--muted-2)">Mua ${esc(o.ngayMua||'—')}${o.serial?' · SN '+esc(o.serial):''}</div></div><span class="chip ${st.cls}" style="font-size:10px;white-space:nowrap">${st.txt}</span></div>`;}).join('');
+  const scHist=scOfCust.map(s=>{const st=scStatus(s.trangThai);return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="closeModal();setTimeout(()=>openSuaChuaDetail('${esc(s._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔧 ${esc(s.loaiLoi||'Sửa chữa')} — ${esc(s.sanPham||'')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(s.ngay||'')}${!s.trongBaoHanh&&(Number(s.phi)||0)>0?' · phí '+money(s.phi)+'₫':' · miễn phí'}</div></div><span class="chip ${st.cls}" style="font-size:10px;white-space:nowrap">${st.ic} ${esc(s.trangThai)}</span></div>`;}).join('');
+  const histBlock=`<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-weight:700;font-size:13.5px">🛡 Lịch sử bảo hành & sửa chữa</div><button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:12px" onclick="closeModal();setTimeout(()=>suaChuaKhach('${esc(id)}'),60)">＋ Tạo phiếu sửa</button></div>
+    <div style="font-size:12px;color:var(--muted-2);margin-bottom:6px">${bhOfCust.length} sản phẩm bảo hành · ${scOfCust.length} lần sửa chữa</div>
+    ${bhHist||''}${scHist||''}
+    ${(!bhHist&&!scHist)?'<div style="color:var(--muted-2);font-size:13px;padding:10px 0;text-align:center">Chưa có lịch sử bảo hành / sửa chữa</div>':''}</div>`;
   const loaiChip=c.loai==='Doanh nghiệp'?'<span class="chip dn">Doanh nghiệp</span>':'<span class="chip cn">Cá nhân</span>';
   const info=(l,v)=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f2f6"><span style="color:var(--muted);font-size:13px">${l}</span><span style="font-weight:600;font-size:13.5px;text-align:right">${v||'<span style=\"color:var(--muted-2);font-weight:400\">—</span>'}</span></div>`;
   openModal(`<div class="modal-head"><h3>Chi tiết khách hàng</h3><button onclick="closeModal()">×</button></div>
     <div class="modal-body"><div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:18px"><div style="width:48px;height:48px;border-radius:12px;background:var(--gold-soft);color:var(--gold-2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px">${esc((c.ten||'?').trim().charAt(0).toUpperCase())}</div><div style="flex:1"><div style="font-family:ui-monospace,monospace;color:var(--muted);font-size:12.5px;font-weight:700">${esc(c.maKH||'')}</div><div style="font-size:18px;font-weight:800;margin-top:2px">${esc(c.ten||'')}</div><div style="margin-top:7px">${loaiChip} ${c.nhom?`<span class="chip vip">${esc(c.nhom)}</span>`:''}</div></div></div>
       ${debt>0?`<div style="background:var(--danger-bg);border-radius:11px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center"><span style="color:var(--danger);font-weight:600;font-size:13px">Công nợ hiện tại</span><span style="color:var(--danger);font-weight:800;font-size:20px">${money(debt)}₫</span></div>`:`<div style="background:var(--ok-bg);border-radius:11px;padding:12px 16px;margin-bottom:16px;color:var(--ok);font-weight:600;font-size:13px;text-align:center">✓ Không có công nợ</div>`}
       <div>${info('Số điện thoại',c.dienThoai?esc(c.dienThoai):'')}${info('Email',c.email?esc(c.email):'')}${info('Địa chỉ',c.diaChi?esc(c.diaChi):'')}${info('Hạng',c.hang?esc(c.hang):'')}${info('Công ty',c.congTy?esc(c.congTy):'')}${info('Mã số thuế',c.maSoThue?esc(c.maSoThue):'')}${c.ghiChu?`<div style="padding:12px 0"><div style="color:var(--muted);font-size:13px;margin-bottom:6px">Ghi chú</div><div style="font-size:13.5px;line-height:1.6;background:#fafbfc;border-radius:9px;padding:11px 13px">${esc(c.ghiChu)}</div></div>`:''}</div>
-      <div style="margin-top:12px;padding:12px 14px;background:#f7f9fc;border-radius:10px;color:var(--muted-2);font-size:12.5px;line-height:1.6">🧾 <b>Lịch sử mua hàng</b> và 💳 <b>Thanh toán</b> sẽ hiển thị khi hoàn thành module Đơn hàng.</div>
+      ${histBlock}
     </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Đóng</button><button class="btn btn-primary" onclick="openCustomerForm('${esc(id)}')">✎ Sửa khách hàng</button></div>`);
 }
 function openCustomerForm(id){
@@ -2017,7 +2028,7 @@ function openSuaChuaForm(id,prefill){
   const inBH=edit?!!s.trongBaoHanh:true;
   openModal(`<div class="modal-head"><h3>${edit?'Sửa phiếu '+esc(s.maSC):'Tạo phiếu sửa chữa'}</h3><button onclick="closeModal()">×</button></div>
     <div class="modal-body"><div class="grid2">
-      <div class="field"><label>Khách hàng <span class="req">*</span></label><input id="fscKhach" value="${esc(s.khachTen||'')}" placeholder="Tên khách báo lỗi"></div>
+      <div class="field"><label>Khách hàng <span class="req">*</span></label><input id="fscKhach" list="fscKhachList" value="${esc(s.khachTen||'')}" placeholder="Chọn khách có sẵn hoặc gõ tên" oninput="scFillKhach()"><datalist id="fscKhachList">${CUSTOMERS.map(c=>`<option value="${esc(c.ten)}">${c.dienThoai?esc(c.dienThoai):''}</option>`).join('')}</datalist><input type="hidden" id="fscKhachId" value="${esc(s.khachId||'')}"></div>
       <div class="field"><label>Điện thoại</label><input id="fscSDT" value="${esc(s.khachSDT||'')}" placeholder="Để gọi lại khi xong"></div>
       <div class="field full"><label>Địa chỉ (nếu đến tận nơi)</label><input id="fscDiaChi" value="${esc(s.diaChi||'')}" placeholder="Địa chỉ khách"></div>
       <div class="field"><label>Sản phẩm / đàn <span class="req">*</span></label><input id="fscSP" list="fscProdList" value="${esc(s.sanPham||'')}" placeholder="VD: Piano Yamaha U3"><datalist id="fscProdList">${prodList}</datalist></div>
@@ -2032,12 +2043,13 @@ function openSuaChuaForm(id,prefill){
     </div></div>
     <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-primary" id="saveScBtn" onclick="saveSuaChua('${edit?esc(id):''}')">${edit?'Lưu':'Tạo phiếu'}</button></div>`,'lg');
 }
+function scFillKhach(){const v=($('fscKhach').value||'').trim().toLowerCase();const c=CUSTOMERS.find(x=>(x.ten||'').trim().toLowerCase()===v);const idEl=$('fscKhachId');if(c){if($('fscSDT'))$('fscSDT').value=c.dienThoai||'';if($('fscDiaChi')&&!$('fscDiaChi').value.trim())$('fscDiaChi').value=c.diaChi||'';if(idEl)idEl.value=c._id;}else{if(idEl)idEl.value='';}}
 async function saveSuaChua(id){
   const khach=$('fscKhach').value.trim();const sp=$('fscSP').value.trim();
   if(!khach){toast('Nhập tên khách','warn');return;}
   if(!sp){toast('Nhập sản phẩm / đàn','warn');return;}
   const d=parseVNDate($('fscNgay').value);const inBH=$('fscInBH').checked;
-  const data={khachTen:khach,khachSDT:$('fscSDT').value.trim(),diaChi:$('fscDiaChi').value.trim(),sanPham:sp,serial:$('fscSerial').value.trim(),maBaoHanh:$('fscMaBH').value.trim(),loaiLoi:$('fscLoi').value,moTa:$('fscMoTa').value.trim(),ngay:d.disp||$('fscNgay').value,ngaySort:d.sort||Date.now(),trangThai:$('fscTt').value,trongBaoHanh:inBH,phi:inBH?0:(Number($('fscPhi').value)||0),updatedAt:new Date().toISOString()};
+  const data={khachTen:khach,khachId:($('fscKhachId')?.value||''),khachSDT:$('fscSDT').value.trim(),diaChi:$('fscDiaChi').value.trim(),sanPham:sp,serial:$('fscSerial').value.trim(),maBaoHanh:$('fscMaBH').value.trim(),loaiLoi:$('fscLoi').value,moTa:$('fscMoTa').value.trim(),ngay:d.disp||$('fscNgay').value,ngaySort:d.sort||Date.now(),trangThai:$('fscTt').value,trongBaoHanh:inBH,phi:inBH?0:(Number($('fscPhi').value)||0),updatedAt:new Date().toISOString()};
   const btn=$('saveScBtn');btn.disabled=true;btn.textContent='Đang lưu…';
   try{
     if(id){await db.collection(COL.suachua).doc(id).set(data,{merge:true});toast('Đã cập nhật phiếu sửa','ok');}
@@ -2117,6 +2129,10 @@ async function scTraKhach(id){
 }
 function deleteSuaChua(id){const s=SUACHUA.find(x=>x._id===id);if(!s)return;openModal(`<div class="modal-head"><h3>Xóa phiếu sửa</h3><button onclick="closeModal()">×</button></div><div class="modal-body"><p style="line-height:1.6">Xóa phiếu <b>${esc(s.maSC)}</b> — ${esc(s.sanPham||'')}?</p></div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">Hủy</button><button class="btn btn-danger" id="delScBtn" onclick="confirmDeleteSuaChua('${esc(id)}')">Xóa</button></div>`,'sm');}
 async function confirmDeleteSuaChua(id){const b=$('delScBtn');b.disabled=true;b.textContent='Đang xóa…';try{await db.collection(COL.suachua).doc(id).delete();toast('Đã xóa','ok');closeModal();await loadSuaChua();if(CURRENT_VIEW==='suachua')renderSuaChua();else if(CURRENT_VIEW==='dashboard')renderDashboard();}catch(e){toast('Lỗi: '+e.message,'err');b.disabled=false;b.textContent='Xóa';}}
+function suaChuaKhach(custId){
+  const c=CUSTOMERS.find(x=>x._id===custId);if(!c)return;closeModal();
+  openSuaChuaForm(null,{khachTen:c.ten||'',khachId:c._id,khachSDT:c.dienThoai||'',diaChi:c.diaChi||'',trangThai:'Tiếp nhận'});
+}
 function suaChuaTuBaoHanh(bhId){
   const o=BAOHANH.find(x=>x._id===bhId);if(!o)return;closeModal();
   const st=bhStatus(o);const inBH=st.dl!==null&&st.dl>=0;
