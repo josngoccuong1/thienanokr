@@ -725,9 +725,11 @@ async function handleImportOrders(file){
 }
 
 /* ===== KHÁCH HÀNG ===== */
-let cFilter={q:'',loai:'',debt:'',page:1,per:20};
+let cFilter={q:'',loai:'',debt:'',month:'',page:1,per:20};
+function custMonth(){if(!cFilter.month)return CUSTOMERS;return CUSTOMERS.filter(c=>monthKeyOf(null,c.createdAt||c.updatedAt)===cFilter.month);}
 function renderCustomers(){
-  const total=CUSTOMERS.length,dn=CUSTOMERS.filter(c=>c.loai==='Doanh nghiệp').length,noNo=CUSTOMERS.filter(c=>(Number(c.congNo)||0)>0).length,tongNo=CUSTOMERS.reduce((s,c)=>s+(Number(c.congNo)||0),0);
+  const base=custMonth();
+  const total=base.length,dn=base.filter(c=>c.loai==='Doanh nghiệp').length,noNo=base.filter(c=>(Number(c.congNo)||0)>0).length,tongNo=base.reduce((s,c)=>s+(Number(c.congNo)||0),0);
   $('view').innerHTML=`
     <div class="stat-grid">
       <div class="stat g5"><div class="ic">👤</div><div class="lbl">Tổng khách</div><div class="val">${money(total)}</div></div>
@@ -738,6 +740,7 @@ function renderCustomers(){
     <div class="panel"><div class="panel-head"><h3>Danh sách khách hàng</h3>
       <div class="tools">
         <div class="search"><span class="si">🔍</span><input id="cSearch" placeholder="Tìm tên, SĐT, mã KH…" value="${esc(cFilter.q)}"></div>
+        ${monthSelectHtml('cMonth',monthsFromKeys(CUSTOMERS.map(c=>monthKeyOf(null,c.createdAt||c.updatedAt))),cFilter.month)}
         <select class="filter" id="cLoai"><option value="">Tất cả loại</option><option value="Cá nhân">Cá nhân</option><option value="Doanh nghiệp">Doanh nghiệp</option></select>
         <select class="filter" id="cDebt"><option value="">Mọi công nợ</option><option value="debt">Đang có nợ</option><option value="clear">Không nợ</option></select>
         <button class="btn btn-ghost btn-sm" onclick="openImportCust()">📥 Nhập</button>
@@ -748,6 +751,7 @@ function renderCustomers(){
       <div id="cTableWrap"><div class="spin"></div></div>
     </div>`;
   $('cLoai').value=cFilter.loai;$('cDebt').value=cFilter.debt;
+  $('cMonth').onchange=e=>{cFilter.month=e.target.value;cFilter.page=1;renderCustomers();};
   $('cSearch').oninput=e=>{cFilter.q=e.target.value;cFilter.page=1;drawCustomerTable();};
   $('cLoai').onchange=e=>{cFilter.loai=e.target.value;cFilter.page=1;drawCustomerTable();};
   $('cDebt').onchange=e=>{cFilter.debt=e.target.value;cFilter.page=1;drawCustomerTable();};
@@ -755,7 +759,7 @@ function renderCustomers(){
 }
 function filteredCustomers(){
   const q=cFilter.q.toLowerCase().trim();
-  return CUSTOMERS.filter(c=>{if(cFilter.loai&&c.loai!==cFilter.loai)return false;const debt=Number(c.congNo)||0;if(cFilter.debt==='debt'&&debt<=0)return false;if(cFilter.debt==='clear'&&debt>0)return false;if(q){const hay=[c.maKH,c.ten,c.dienThoai,c.email,c.congTy].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});
+  return custMonth().filter(c=>{if(cFilter.loai&&c.loai!==cFilter.loai)return false;const debt=Number(c.congNo)||0;if(cFilter.debt==='debt'&&debt<=0)return false;if(cFilter.debt==='clear'&&debt>0)return false;if(q){const hay=[c.maKH,c.ten,c.dienThoai,c.email,c.congTy].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});
 }
 function drawCustomerTable(){
   const wrap=$('cTableWrap');if(!wrap)return;const all=filteredCustomers();
@@ -860,6 +864,9 @@ function txMonthKey(t){const ts=t.ngaySort;if(ts){const d=new Date(ts);return d.
 function txMonths(){const set={};TRANSACTIONS.forEach(t=>{const k=txMonthKey(t);if(k)set[k]=1;});return Object.keys(set).sort().reverse();}
 function monthTx(){if(!fFilter.month)return TRANSACTIONS;return TRANSACTIONS.filter(t=>txMonthKey(t)===fFilter.month);}
 function monthLabel(m){return 'Tháng '+Number(m.slice(5))+'/'+m.slice(0,4);}
+function monthKeyOf(ts,dateStr){if(ts){const d=new Date(Number(ts));if(!isNaN(d.getTime()))return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}const n=String(dateStr||'');if(/^\d{4}-\d{2}/.test(n))return n.slice(0,7);const m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(n);if(m)return m[3]+'-'+String(Number(m[2])).padStart(2,'0');return '';}
+function monthsFromKeys(keys){const set={};keys.forEach(k=>{if(k)set[k]=1;});return Object.keys(set).sort().reverse();}
+function monthSelectHtml(id,months,cur){return `<select class="filter" id="${id}"><option value="">📅 Tất cả tháng</option>${months.map(m=>`<option value="${m}" ${cur===m?'selected':''}>${monthLabel(m)}</option>`).join('')}</select>`;}
 function renderFinance(){
   const list=monthTx();
   const thu=list.filter(t=>t.loai==='Thu').reduce((s,t)=>s+(Number(t.soTien)||0),0);
@@ -986,13 +993,15 @@ async function confirmSyncQL(){
 }
 
 /* ===== ĐƠN HÀNG ===== */
-let oFilter={q:'',status:'',page:1,per:20};
+let oFilter={q:'',status:'',month:'',page:1,per:20};
 const FV=()=>firebase.firestore.FieldValue;
+function ordMonth(){if(!oFilter.month)return ORDERS;return ORDERS.filter(o=>monthKeyOf(o.ngaySort,o.ngay)===oFilter.month);}
 function orderStats(){
-  const count=ORDERS.length;
-  const doanhThu=ORDERS.reduce((s,o)=>s+(Number(o.tongCong)||0),0);
-  const daThu=ORDERS.reduce((s,o)=>s+(Number(o.daTra)||0),0);
-  const conNo=ORDERS.reduce((s,o)=>s+(Number(o.conNo)||0),0);
+  const base=ordMonth();
+  const count=base.length;
+  const doanhThu=base.reduce((s,o)=>s+(Number(o.tongCong)||0),0);
+  const daThu=base.reduce((s,o)=>s+(Number(o.daTra)||0),0);
+  const conNo=base.reduce((s,o)=>s+(Number(o.conNo)||0),0);
   const today=new Date();const key=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const donHomNay=ORDERS.filter(o=>o.ngay===key).length;
   return {count,doanhThu,daThu,conNo,donHomNay};
@@ -1009,6 +1018,7 @@ function renderOrders(){
     <div class="panel"><div class="panel-head"><h3>Danh sách đơn hàng</h3>
       <div class="tools">
         <div class="search"><span class="si">🔍</span><input id="oSearch" placeholder="Tìm mã đơn, khách…" value="${esc(oFilter.q)}"></div>
+        ${monthSelectHtml('oMonth',monthsFromKeys(ORDERS.map(o=>monthKeyOf(o.ngaySort,o.ngay))),oFilter.month)}
         <select class="filter" id="oStatus"><option value="">Mọi trạng thái</option><option value="Hoàn thành">Hoàn thành</option><option value="Mới">Mới</option><option value="Đang xử lý">Đang xử lý</option><option value="Đã hủy">Đã hủy</option><option value="_no">Đang còn nợ tiền</option><option value="_thieugiao">Còn thiếu món giao</option></select>
         <button class="btn btn-ghost btn-sm" onclick="openImportOrders()">📥 Nhập Excel</button>
         <button class="btn btn-primary btn-sm" onclick="openOrderForm()">＋ Tạo đơn hàng</button>
@@ -1018,12 +1028,13 @@ function renderOrders(){
   $('oStatus').value=oFilter.status;
   $('oSearch').oninput=e=>{oFilter.q=e.target.value;oFilter.page=1;drawOrderTable();};
   $('oStatus').onchange=e=>{oFilter.status=e.target.value;oFilter.page=1;drawOrderTable();};
+  $('oMonth').onchange=e=>{oFilter.month=e.target.value;oFilter.page=1;renderOrders();};
   drawOrderTable();
 }
 function orderPayStatus(o){const total=Number(o.tongCong)||0,paid=Number(o.daTra)||0;if(paid>=total&&total>0)return 'paid';if(paid<=0)return 'unpaid';return 'partial';}
 function filteredOrders(){
   const q=oFilter.q.toLowerCase().trim();
-  return ORDERS.filter(o=>{
+  return ordMonth().filter(o=>{
     if(oFilter.status==='_no'){if((Number(o.conNo)||0)<=0)return false;}
     else if(oFilter.status==='_thieugiao'){if(!(o.monNo||[]).some(m=>!m.daGiao))return false;}
     else if(oFilter.status&&(o.trangThai||'Hoàn thành')!==oFilter.status)return false;
