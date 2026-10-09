@@ -371,6 +371,10 @@ function renderDashboard(){
   const lowList=lowStock.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.tenSP)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(p.maSP)}</div></div><span style="color:${(Number(p.tonKho)||0)<=0?'var(--danger)':'var(--warn)'};font-weight:700;font-size:13.5px;white-space:nowrap">Tồn ${money(p.tonKho)}</span></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Tồn kho ổn định</div>';
   const bhSoon=BAOHANH.map(o=>({o,dl:bhDaysLeft(o)})).filter(x=>x.dl!==null&&x.dl>=0&&x.dl<=60).sort((a,b)=>a.dl-b.dl).slice(0,5);
   const bhList=bhSoon.map(x=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('warranty');setTimeout(()=>openWarrantyDetail('${esc(x.o._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.o.tenSanPham||'')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(x.o.khachTen||'')} · ${esc(x.o.baoHanhDen||'')}</div></div><span class="chip ${x.dl<=30?'low':'vip'}" style="font-size:10.5px;white-space:nowrap">Còn ${x.dl} ngày</span></div>`).join('')||'<div style="color:var(--muted-2);padding:16px;text-align:center;font-size:13px">Không có bảo hành sắp hết</div>';
+  // Món phụ kiện mình còn nợ khách (chưa giao)
+  const monNoOrders=O.filter(o=>(o.monNo||[]).some(m=>!m.daGiao));
+  const monNoCount=monNoOrders.reduce((s,o)=>s+(o.monNo||[]).filter(m=>!m.daGiao).length,0);
+  const monNoList=monNoOrders.slice(0,6).map(o=>{const items=(o.monNo||[]).filter(m=>!m.daGiao);const itemStr=items.map(m=>esc(m.ten)+((Number(m.sl)||1)>1?' ×'+(Number(m.sl)||1):'')).join(', ');return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('orders');setTimeout(()=>openOrderDetail('${esc(o._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.khachTen||'Khách lẻ')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(o.maDon||'')}</div></div><div style="text-align:right;min-width:0;max-width:60%"><div style="color:var(--warn);font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📦 ${itemStr}</div></div></div>`;}).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Không nợ món nào</div>';
 
   $('view').innerHTML=`
     <div style="background:linear-gradient(120deg,#12203c 0%,#1c2f52 55%,#2a4270 100%);border-radius:18px;padding:22px 26px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
@@ -393,6 +397,7 @@ function renderDashboard(){
       <div class="stat g1"><div class="ic">🧾</div><div class="lbl">Đơn hàng trong kỳ</div><div class="val">${money(ordersIn.length)}</div><div class="sub">Giá trị ${money(doanhThuDon)}₫</div></div>
       <div class="stat g6"><div class="ic">⏳</div><div class="lbl">Đơn còn nợ (kỳ)</div><div class="val">${money(donNo.length)}</div><div class="sub">${money(donNo.reduce((s,o)=>s+(Number(o.conNo)||0),0))}₫ chưa thu</div></div>
       <div class="stat g3"><div class="ic">💳</div><div class="lbl">Tổng phải thu (hiện tại)</div><div class="val" style="font-size:20px;color:var(--danger)">${money(phaiThu)}<span style="font-size:12px"> ₫</span></div><div class="sub">Toàn bộ công nợ khách</div></div>
+      <div class="stat g2"><div class="ic">📦</div><div class="lbl">Món nợ khách (chưa giao)</div><div class="val" style="color:${monNoCount>0?'var(--warn)':'var(--ok)'}">${money(monNoCount)}</div><div class="sub">${monNoOrders.length} đơn còn thiếu phụ kiện</div></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;align-items:start;margin-top:4px">
@@ -402,9 +407,15 @@ function renderDashboard(){
           <svg viewBox="0 0 ${cw} 198" style="width:100%;height:auto"><defs><linearGradient id="gThu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2fbd6e"/><stop offset="1" stop-color="#1c8a4d"/></linearGradient><linearGradient id="gChi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee6b5e"/><stop offset="1" stop-color="#c0392b"/></linearGradient></defs><line x1="0" y1="${base}" x2="${cw}" y2="${base}" stroke="#e6e9ef" stroke-width="1.5"/>${bars}</svg>
         </div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h3>Khách nợ nhiều nhất</h3><button class="btn btn-ghost btn-sm" onclick="navigate('customers')">Xem tất cả</button></div>
-        <div style="padding:6px 18px 14px">${debtList}</div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="panel">
+          <div class="panel-head"><h3>💰 Khách nợ tiền</h3><button class="btn btn-ghost btn-sm" onclick="navigate('customers')">Tất cả</button></div>
+          <div style="padding:6px 18px 14px">${debtList}</div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>📦 Món đang nợ khách ${monNoCount>0?`<span class="chip low" style="font-size:10px;margin-left:6px">${monNoCount}</span>`:''}</h3><button class="btn btn-ghost btn-sm" onclick="navigate('orders');setTimeout(()=>{oFilter.status='_thieugiao';renderOrders();},80)">Xem</button></div>
+          <div style="padding:6px 18px 14px">${monNoList}</div>
+        </div>
       </div>
     </div>
 
