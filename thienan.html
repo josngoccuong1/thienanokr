@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 09/10/2026 · v11</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 09/10/2026 · v12</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -5468,60 +5468,75 @@ QT.meta=null; QT.okrChon=null;
 function qtMeta(){ return Object.assign({},QT_META_MAC_DINH,QT.meta||{}); }
 function qtChonTru(oid){ QT.okrChon=oid; qtVe(); window.scrollTo({top:0,behavior:'smooth'}); }
 function qtOkrBackTatCa(){ QT.okrChon=null; qtVe(); }
+function qtRing(p,c,size){ var in_=size-12; return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:conic-gradient('+c+' '+(p*3.6)+'deg,#e6eaf2 0);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:'+in_+'px;height:'+in_+'px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:'+Math.round(size/4.2)+'px;color:'+c+'">'+p+'%</div></div>'; }
+function qtDoiThuTu(oi,huong){
+  if(!qtCoQuyen()) return; var j=oi+huong; if(j<0||j>=QT.obj.length) return;
+  var t=QT.obj[oi]; QT.obj[oi]=QT.obj[j]; QT.obj[j]=t;
+  qtLuuThuTu().then(function(){ qtVe(); }).catch(function(e){ bao(e.message,true); });
+}
+function qtDoiThuTuKR(oi,ki,huong){
+  if(!qtCoQuyen()) return; var ks=QT.obj[oi].krs, j=ki+huong; if(j<0||j>=ks.length) return;
+  var t=ks[ki]; ks[ki]=ks[j]; ks[j]=t;
+  qtLuuThuTu().then(function(){ qtVe(); }).catch(function(e){ bao(e.message,true); });
+}
 function qtVeOKR(){
-  var ad=qtCoQuyen(), QUY=qtDsQuy();
+  var ad=qtCoQuyen(), QUY=qtDsQuy(), M=qtMeta();
   var kr=[]; QT.obj.forEach(function(o){ kr=kr.concat(o.krs||[]); });
-  var gs=kr.length?Math.round(kr.reduce(function(s,k){return s+qtPct(qtTongKR(k).v,k.target);},0)/kr.length):0, gst=qtTT(gs);
+  var gs=kr.length?Math.round(kr.reduce(function(s,k){return s+qtPct(qtTongKR(k).v,k.target);},0)/kr.length):0;
+  var dat=kr.filter(function(k){return qtPct(qtTongKR(k).v,k.target)>=80;}).length;
   var chon=QT.okrChon?QT.obj.filter(function(o){return o.id===QT.okrChon;})[0]:null;
   if(QT.okrChon&&!chon) QT.okrChon=null;
-  var h='<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'
-    +(chon?'<button class="nutPhu" style="padding:7px 14px;font-size:13px" onclick="qtOkrBackTatCa()">← Tất cả trụ cột</button>':'')
-    +'<select style="width:auto;font-weight:700" onchange="QT.quy=this.value;qtVe()">'+QUY.map(function(q){return '<option'+(q===QT.quy?' selected':'')+'>'+q+'</option>';}).join('')+'</select>'
-    +'<span style="background:'+gst.nen+';color:'+gst.mau+';padding:6px 12px;border-radius:20px;font-weight:700;font-size:13px">'+gst.icon+' Tổng thể: '+gs+'%</span>'
-    +(ad?'<button class="nutNho nutXanh" onclick="qtMoMuc(-1)">➕ Thêm trụ cột</button>'+(QT.obj.length?'':'<button class="nutNho vien" onclick="qtNapMau()">📥 Nạp mẫu Tứ Trụ</button>'):'')+'</div>';
-  if(!QT.obj.length) return h+'<div class="the" style="padding:30px;text-align:center;color:#6b7280">Chưa có trụ cột / mục tiêu nào.'+(ad?' Bấm <b>➕ Thêm trụ cột</b> hoặc <b>📥 Nạp mẫu Tứ Trụ</b>.':'')+'</div>';
-  // Thanh trụ cột nhỏ gọn: bấm để nhảy sang trụ đó
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+QT.obj.map(function(o){
-    var c=qtMauObj(o), sc=qtDiemObj(o), on=chon&&chon.id===o.id;
-    return '<div onclick="qtChonTru(\''+esc(o.id)+'\')" title="'+esc(o.title)+'" style="cursor:pointer;display:flex;align-items:center;gap:8px;background:'+(on?c:'#fff')+';color:'+(on?'#fff':'#1a2540')+';border:2px solid '+c+';border-radius:10px;padding:6px 11px;box-shadow:0 2px 6px '+c+'33;transition:transform .12s" onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'none\'">'
-      +'<span style="font-size:16px">'+esc(o.icon||'🎯')+'</span><span style="font-size:12px;font-weight:800;white-space:nowrap">'+esc(o.title)+'</span>'
-      +'<span style="font-size:11px;font-weight:800;background:'+(on?'rgba(255,255,255,.28)':c)+';color:#fff;border-radius:20px;padding:1px 8px">'+sc+'%</span></div>';
-  }).join('')+'</div>';
-  if(chon) return h+qtTheTru(chon,QT.obj.indexOf(chon));
-  return h+qtBangTongQuan(ad);
-}
-function qtBangTongQuan(ad){
-  var M=qtMeta();
-  var KH='border:2px solid #1f3a6e;border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(31,58,110,.12);background:#fff;margin-bottom:18px';
-  var tit='background:linear-gradient(90deg,#6fae2f,#8BC34A);color:#13240a;font-weight:800;padding:10px 14px;font-size:14px;letter-spacing:.3px';
-  var th='background:linear-gradient(#FFB300,#FF9800);color:#1a1a1a;font-weight:800;padding:8px 10px;font-size:12px;border:1px solid #c77800;text-align:center';
-  var td='padding:8px 10px;border:1px solid #c5ccd8;font-size:13px;vertical-align:middle;white-space:normal;overflow-wrap:anywhere';
-  var info=function(l,v,bg){ return '<tr><td style="'+td+';background:'+bg+';text-align:right;white-space:nowrap;width:140px;font-weight:700">'+l+'</td><td style="'+td+';background:#f4f6fa">'+esc(v)+'</td></tr>'; };
-  var h='<div style="max-width:780px;'+KH+'"><div style="background:linear-gradient(135deg,#1A1A2E,#16213E 55%,#0F3460);color:#D4AF37;text-align:center;font-size:19px;font-weight:800;padding:13px;letter-spacing:.8px">'+esc(M.tieude)+'</div>'
-    +'<table style="width:100%;border-collapse:collapse">'+info('Kỳ lập kế hoạch',M.ky,'#C9D9F3')+'</table>'
-    +(ad?'<div style="padding:7px 10px;background:#f4f6fa;border-top:1px solid #c5ccd8"><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa tiêu đề / kỳ kế hoạch</button></div>':'')+'</div>';
-  // Bảng 2: OKR - KPI - Target - Kết quả (liên kết Kế hoạch)
-  var rows='', stt=0;
-  QT.obj.forEach(function(o,i){
-    var ks=o.krs||[], bg=QT_MAU_HANG[i%4], bgk=QT_MAU_KPI[i%4], c=qtMauObj(o);
-    if(!ks.length){ rows+='<tr style="background:'+bg+'"><td style="'+td+';text-align:center;border-left:5px solid '+c+'">'+(i+1)+'</td><td style="'+td+';font-weight:800">'+esc(o.title)+'</td><td colspan="3" style="'+td+';color:#777">Chưa có KPI</td></tr>'; return; }
-    ks.forEach(function(k,ki){
-      stt++; var t=qtTongKR(k), p=qtPct(t.v,k.target), st=qtTT(p);
-      var lk=QT.plans.filter(function(x){return x.okrKr===k.id;});
-      var chips=lk.map(function(x){ var tg=Number(x.target)||0; return '<div style="display:flex;gap:6px;align-items:center;font-size:11.5px;background:#fff;border:1px solid '+c+'66;border-left:3px solid '+c+';border-radius:6px;padding:3px 7px;margin-top:4px"><span style="flex:1">'+esc(x.title||'')+'</span><span style="color:#6b7280;white-space:nowrap">'+esc(x.month||'')+'</span><b style="color:'+c+';white-space:nowrap">'+(Number(x.actual)||0)+(tg?'/'+tg:'')+'</b></div>'; }).join('');
-      var ketqua='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:70px;background:rgba(255,255,255,.75);border:1px solid #c5ccd8;border-radius:5px;height:9px;overflow:hidden"><div style="width:'+p+'%;height:100%;background:'+st.mau+'"></div></div><b style="color:'+st.mau+';font-size:13px;white-space:nowrap">'+t.v+' <span style="font-weight:600;color:#6b7280">('+p+'%)</span></b></div>'
-        +(lk.length?'<div style="font-size:10.5px;color:#4b5563;margin-top:3px">📋 Liên kết '+lk.length+' việc trong Kế hoạch'+(t.tuKH?'':' · đang dùng số nhập tay')+'</div>'+chips:'<div style="font-size:10.5px;color:#9aa3b2;margin-top:3px">'+(t.v?'✍️ Số nhập tay':'Chưa có việc nào trong Kế hoạch gắn vào KPI này')+'</div>');
-      rows+='<tr style="background:'+bgk+'">'
-        +(ki===0?'<td rowspan="'+ks.length+'" onclick="qtChonTru(\''+esc(o.id)+'\')" style="'+td+';text-align:center;font-size:16px;font-weight:800;cursor:pointer;background:'+bg+';border-left:5px solid '+c+'">'+(i+1)+'</td><td rowspan="'+ks.length+'" onclick="qtChonTru(\''+esc(o.id)+'\')" style="'+td+';font-weight:800;cursor:pointer;background:'+bg+'">'+esc(o.icon||'')+' '+esc(o.title)+'<div style="font-weight:400;font-size:11px;color:#55606f;margin-top:4px">'+(o.krs||[]).length+' KPI · '+qtDiemObj(o)+'%</div></td>':'')
-        +'<td style="'+td+'"><b>KPI '+stt+':</b> '+esc(k.text)+'</td>'
-        +'<td style="'+td+';text-align:center;font-weight:800;white-space:nowrap">'+esc(k.target)+' <span style="font-weight:600;font-size:11px">'+esc(k.unit||'')+'</span></td>'
-        +'<td style="'+td+';min-width:250px">'+ketqua+'</td></tr>';
-    });
-  });
-  h+='<div style="'+KH+'"><div style="'+tit+'">CÁC KPI TRỌNG YẾU ĐỂ ĐẠT MỤC TIÊU <span style="font-weight:400;font-size:12px">— '+esc(QT.quy)+' · kết quả tự cộng từ mục Kế hoạch</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:780px">'
-    +'<tr><th style="'+th+';width:46px">STT</th><th style="'+th+';width:170px">OKR</th><th style="'+th+'">TÊN KPI</th><th style="'+th+';width:120px">TARGET</th><th style="'+th+'">KẾT QUẢ (LIÊN KẾT KẾ HOẠCH)</th></tr>'+rows+'</table></div></div>';
+  var chip=function(n,l,c){ return '<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:7px 14px;text-align:center;min-width:76px"><div style="font-size:18px;font-weight:800;color:'+c+'">'+n+'</div><div style="font-size:10.5px;color:#cfd8ea;margin-top:1px">'+l+'</div></div>'; };
+  // HERO
+  var h='<div style="background:linear-gradient(135deg,#1A1A2E,#16213E 55%,#0F3460);border-radius:16px;padding:16px 20px;margin-bottom:14px;box-shadow:0 8px 24px rgba(15,52,96,.25);border:1px solid #D4AF3755">'
+    +'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">'
+    +qtRing(gs,'#D4AF37',76)
+    +'<div style="flex:1;min-width:200px"><div style="color:#D4AF37;font-size:20px;font-weight:800;letter-spacing:.8px">'+esc(M.tieude)+'</div><div style="color:#cfd8ea;font-size:13px;margin-top:4px">📅 Kỳ lập kế hoạch: <b style="color:#fff">'+esc(M.ky)+'</b></div>'
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><select style="width:auto;font-weight:700;padding:5px 10px;font-size:12.5px" onchange="QT.quy=this.value;qtVe()">'+QUY.map(function(q){return '<option'+(q===QT.quy?' selected':'')+'>'+q+'</option>';}).join('')+'</select>'
+    +(ad?'<button class="nutNho" style="background:#D4AF37;color:#1a1a2e" onclick="qtMoMuc(-1)">➕ Thêm OKR</button><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa tiêu đề / kỳ</button>'+(QT.obj.length?'':'<button class="nutNho vien" onclick="qtNapMau()">📥 Nạp mẫu</button>'):'')+'</div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+chip(QT.obj.length,'OKR','#7FB2FF')+chip(kr.length,'KPI','#9BE7C4')+chip(dat+'/'+kr.length,'KPI đạt ≥80%','#FFD36B')+chip(QT.plans.length,'Việc kế hoạch','#F5A3C7')+'</div></div></div>';
+  if(!QT.obj.length) return h+'<div class="the" style="padding:30px;text-align:center;color:#6b7280">Chưa có OKR nào.'+(ad?' Bấm <b>➕ Thêm OKR</b> hoặc <b>📥 Nạp mẫu</b>.':'')+'</div>';
+  // Thanh chọn OKR
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
+    +'<div onclick="qtOkrBackTatCa()" style="cursor:pointer;border:2px solid #1f3a6e;background:'+(chon?'#fff':'#1f3a6e')+';color:'+(chon?'#1f3a6e':'#fff')+';border-radius:10px;padding:6px 13px;font-size:12px;font-weight:800">📋 Tất cả</div>'
+    +QT.obj.map(function(o){
+      var c=qtMauObj(o), sc=qtDiemObj(o), on=chon&&chon.id===o.id;
+      return '<div onclick="qtChonTru(\''+esc(o.id)+'\')" title="'+esc(o.title)+'" style="cursor:pointer;display:flex;align-items:center;gap:7px;background:'+(on?c:'#fff')+';color:'+(on?'#fff':'#1a2540')+';border:2px solid '+c+';border-radius:10px;padding:5px 11px;box-shadow:0 2px 6px '+c+'33">'
+        +'<span style="font-size:15px">'+esc(o.icon||'🎯')+'</span><span style="font-size:12px;font-weight:800;white-space:nowrap">'+esc(o.title)+'</span><span style="font-size:11px;font-weight:800;background:'+(on?'rgba(255,255,255,.28)':c)+';color:#fff;border-radius:20px;padding:1px 8px">'+sc+'%</span></div>';
+    }).join('')+'</div>';
+  QT.obj.forEach(function(o,oi){ if(!chon||chon.id===o.id) h+=qtTheOKR(o,oi); });
+  if(ad) h+='<div onclick="qtMoMuc(-1)" style="cursor:pointer;border:2px dashed #9fb0cc;border-radius:14px;padding:14px;text-align:center;color:#3b5683;font-weight:700;background:#f8fafd">➕ Thêm OKR mới</div>';
   return h;
 }
+function qtTheOKR(o,oi){
+  var ad=qtCoQuyen(), c=qtMauObj(o), soft=qtTru(o.pillar).soft, sc=qtDiemObj(o), ks=o.krs||[];
+  var nutNho=function(ic,fn,tit,mau){ return '<button class="nutNho vien" title="'+tit+'" style="padding:3px 8px;'+(mau?'color:'+mau+';':'')+'" onclick="'+fn+'">'+ic+'</button>'; };
+  var rows=ks.map(function(k,ki){
+    var t=qtTongKR(k), p=qtPct(t.v,k.target), st=qtTT(p), r=qtRole(k.ownerRole), bg=ki%2?soft:'#fff';
+    var lk=QT.plans.filter(function(x){return x.okrKr===k.id;});
+    var chips=lk.map(function(x){ var tg=Number(x.target)||0; return '<div style="display:flex;gap:8px;align-items:center;font-size:12px;background:#fff;border:1px solid '+c+'55;border-left:3px solid '+c+';border-radius:6px;padding:4px 8px;margin-top:4px"><span style="flex:1">'+esc(x.title||'')+'</span><span style="color:#6b7280;white-space:nowrap">'+esc(x.month||'')+' · '+esc(x.status||'')+'</span><b style="color:'+c+';white-space:nowrap">'+(Number(x.actual)||0)+(tg?'/'+tg:'')+'</b></div>'; }).join('');
+    var ketqua='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:90px;background:#e9edf4;border-radius:6px;height:10px;overflow:hidden"><div style="width:'+p+'%;height:100%;background:'+st.mau+'"></div></div><b style="color:'+st.mau+';font-size:13px;white-space:nowrap">'+t.v+' <span style="font-weight:600;color:#6b7280">('+p+'%)</span></b>'
+      +((ad&&!t.tuKH)?'<button class="nutNho vien" style="padding:2px 7px" title="Nhập số thực tế" onclick="qtNhapKR('+oi+','+ki+')">✍️ Nhập</button>':'')+'</div>'
+      +(lk.length?'<details style="margin-top:4px"><summary style="cursor:pointer;font-size:11.5px;color:'+c+';font-weight:700">📋 Liên kết '+lk.length+' việc trong Kế hoạch'+(t.tuKH?'':' (đang dùng số nhập tay)')+'</summary>'+chips+'</details>':'<div style="font-size:11px;color:#9aa3b2;margin-top:3px">'+(t.v?'✍️ Số nhập tay':'Chưa có việc nào trong Kế hoạch gắn vào KPI này')+'</div>');
+    return '<tr style="background:'+bg+'"><td style="'+qtTD+';text-align:center;font-weight:800;color:'+c+'">'+(ki+1)+'</td>'
+      +'<td style="'+qtTD+';font-weight:600">'+esc(k.text)+'<div style="font-size:11px;color:#8a94a6;font-weight:400;margin-top:2px">'+r.icon+' '+esc(r.label)+'</div></td>'
+      +'<td style="'+qtTD+';text-align:center;white-space:nowrap"><b style="font-size:14px">'+esc(k.target)+'</b> <span style="font-size:11px;color:#6b7280">'+esc(k.unit||'')+'</span></td>'
+      +'<td style="'+qtTD+';min-width:250px">'+ketqua+'</td>'
+      +(ad?'<td style="'+qtTD+';white-space:nowrap;text-align:center">'+nutNho('▲','qtDoiThuTuKR('+oi+','+ki+',-1)','Lên','')+nutNho('▼','qtDoiThuTuKR('+oi+','+ki+',1)','Xuống','')+nutNho('✏️','qtMoKR('+oi+','+ki+')','Sửa KPI / target','')+nutNho('🗑','qtXoaKR('+oi+','+ki+')','Xóa KPI','#b42318')+'</td>':'')+'</tr>';
+  }).join('');
+  var th='background:'+c+';color:#fff;font-size:11.5px;font-weight:800;padding:8px 10px;text-align:center;letter-spacing:.3px';
+  var bang=ks.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px"><tr><th style="'+th+';width:44px">STT</th><th style="'+th+';text-align:left">TÊN KPI</th><th style="'+th+';width:140px">TARGET</th><th style="'+th+'">KẾT QUẢ (LIÊN KẾT KẾ HOẠCH)</th>'+(ad?'<th style="'+th+';width:150px">THAO TÁC</th>':'')+'</tr>'+rows+'</table></div>':'<div style="padding:16px;color:#9aa3b2;text-align:center">Chưa có KPI nào.</div>';
+  return '<div style="border:2px solid '+c+';border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:0 4px 14px '+c+'30;background:#fff">'
+    +'<div style="background:linear-gradient(90deg,'+soft+',#fff);padding:12px 16px;display:flex;align-items:center;gap:13px;flex-wrap:wrap;border-bottom:2px solid '+c+'">'
+    +'<div style="width:46px;height:46px;border-radius:12px;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 3px 8px '+c+'66">'+esc(o.icon||'🎯')+'</div>'
+    +'<div style="flex:1;min-width:180px"><div style="font-size:11px;font-weight:800;color:'+c+';letter-spacing:.6px">OKR '+(oi+1)+(o.deadline?' · ⏰ '+esc(o.deadline):'')+'</div><div style="font-size:15.5px;font-weight:800;color:#1a2540;margin-top:1px">'+esc(o.title)+'</div>'+(o.goal?'<div style="font-size:12.5px;color:#4b5565;margin-top:3px;line-height:1.45">🎯 '+esc(o.goal)+'</div>':'')+'</div>'
+    +qtRing(sc,c,56)
+    +(ad?'<div style="display:flex;gap:4px;flex-wrap:wrap">'+nutNho('▲','qtDoiThuTu('+oi+',-1)','Đưa lên','')+nutNho('▼','qtDoiThuTu('+oi+',1)','Đưa xuống','')+nutNho('✏️ Sửa OKR','qtMoMuc('+oi+')','Sửa OKR','')+nutNho('🗑','qtXoaMuc('+oi+')','Xóa OKR','#b42318')+'</div>':'')
+    +'</div>'+bang
+    +(ad?'<div style="padding:9px 14px;background:'+soft+';border-top:1px solid '+c+'55"><button class="nutNho" style="background:'+c+'" onclick="qtMoKR('+oi+',-1)">➕ Thêm KPI</button></div>':'')
+    +'</div>';
+}
+var qtTD='padding:9px 10px;border-top:1px solid #e3e8f0;vertical-align:middle;font-size:13px;white-space:normal';
 function qtMoMeta(){
   if(!qtCoQuyen()) return; var M=qtMeta();
   moModal('✏️ Tiêu đề & kỳ kế hoạch',
@@ -5531,31 +5546,6 @@ function qtLuuMeta(){
   var m=Object.assign({},QT.meta||{},{tieude:document.getElementById('qtMT').value.trim(),ky:document.getElementById('qtMKY').value.trim()});
   khoaLuu(true);
   FB.setDoc(FB.doc(FB.db,'caidat','okr_meta'),m).then(function(){ QT.meta=m; dongModal(); bao('Đã lưu'); qtVe(); }).catch(function(e){ khoaLuu(false); bao(e.message,true); });
-}
-/* Thẻ chi tiết 1 trụ cột (danh sách KPI, sửa/xóa/nhập thực tế) */
-function qtTheTru(o,oi){
-  var ad=qtCoQuyen(), c=qtMauObj(o), soft=qtTru(o.pillar).soft, sc=qtDiemObj(o);
-  var rows=(o.krs||[]).map(function(k,ki){
-    var t=qtTongKR(k), p=qtPct(t.v,k.target), st=qtTT(p), r=qtRole(k.ownerRole);
-    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #eef1f6">'
-      +'<span style="font-size:10px;background:'+c+'1a;color:'+c+';border-radius:5px;padding:2px 7px;font-weight:800">KPI'+(ki+1)+'</span>'
-      +'<span style="font-size:13px;font-weight:600;flex:1;min-width:140px">'+esc(k.text)+'</span>'
-      +'<span style="font-size:11px;color:#9aa3b2;white-space:nowrap">'+r.icon+' '+esc(r.label)+'</span>'
-      +'<div style="width:70px;background:#EEF1F7;border-radius:4px;height:6px"><div style="width:'+p+'%;height:100%;background:'+st.mau+';border-radius:4px"></div></div>'
-      +'<span style="font-size:12px;font-weight:800;color:'+st.mau+';width:38px">'+p+'%</span>'
-      +'<span><button class="nutNho vien" '+((ad&&!t.tuKH)?'onclick="qtNhapKR('+oi+','+ki+')"':'disabled style="opacity:.75"')+'>'+t.v+'<span style="color:#999">/'+esc(k.target)+'</span> <span style="font-size:10px;color:#888">'+esc(k.unit||'')+'</span></button>'+(t.tuKH?'<div style="font-size:9px;color:'+c+';text-align:center">📋 từ kế hoạch</div>':'')+'</span>'
-      +(ad?'<span style="display:flex;gap:4px"><button class="nutNho vien" onclick="qtMoKR('+oi+','+ki+')">✏️</button><button class="nutNho vien" style="color:#b42318" onclick="qtXoaKR('+oi+','+ki+')">🗑</button></span>':'')
-      +'</div>';
-  }).join('');
-  var plans=QT.plans.filter(function(p){return p.okrObj===o.id;});
-  var dsKH=plans.length?'<div style="margin-top:12px;font-weight:700;color:'+c+'">🗓 Việc trong kế hoạch ('+plans.length+')</div>'+plans.map(function(p){ var tg=Number(p.target)||0; return '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:13px;padding:6px 0;border-bottom:1px dashed #e5e9f0"><span style="flex:1;min-width:160px">'+esc(p.title)+'</span><span style="color:#8a94a6">👤 '+esc(p.owner||'-')+' · 📅 '+esc(p.month||'-')+'</span><span style="font-weight:700">'+esc(p.status||'')+'</span>'+(tg?'<span style="color:'+c+';font-weight:800">'+(Number(p.actual)||0)+'/'+tg+'</span>':'')+'</div>'; }).join(''):'';
-  return '<div class="the" style="border-top:4px solid '+c+';margin-bottom:14px">'
-    +'<div style="background:'+soft+';padding:13px 16px;display:flex;align-items:center;gap:11px;flex-wrap:wrap">'
-    +'<div style="width:42px;height:42px;border-radius:12px;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:21px">'+esc(o.icon||'🎯')+'</div>'
-    +'<div style="flex:1;min-width:150px"><div style="font-size:14px;font-weight:800;color:'+c+'">'+esc(o.title)+'</div>'+(o.goal?'<div style="font-size:12px;color:#55606f;margin-top:4px;line-height:1.45">🎯 '+esc(o.goal)+'</div>':'')+'</div>'
-    +'<div style="text-align:center"><div style="font-size:21px;font-weight:800;color:'+c+';line-height:1">'+sc+'%</div>'+(o.deadline?'<div style="font-size:10px;color:#fff;background:'+c+';border-radius:20px;padding:2px 9px;margin-top:4px;white-space:nowrap">⏰ '+esc(o.deadline)+'</div>':'')+'</div>'
-    +(ad?'<div style="display:flex;gap:4px"><button class="nutNho vien" onclick="qtMoMuc('+oi+')">✏️</button><button class="nutNho vien" style="color:#b42318" onclick="qtXoaMuc('+oi+')">🗑</button></div>':'')
-    +'</div><div style="padding:4px 16px 14px">'+(ad?'<div style="padding:8px 0 2px"><button class="nutNho" style="background:'+c+'" onclick="qtMoKR('+oi+',-1)">➕ Thêm KPI</button></div>':'')+(rows||'<div style="padding:14px;color:#9aa3b2">Chưa có KPI.</div>')+dsKH+'</div></div>';
 }
 function qtNapMau(){
   if(!qtCoQuyen()) return;
