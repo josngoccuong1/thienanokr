@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 09/10/2026 · v10</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 09/10/2026 · v11</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -5498,14 +5498,8 @@ function qtBangTongQuan(ad){
   var td='padding:8px 10px;border:1px solid #c5ccd8;font-size:13px;vertical-align:middle;white-space:normal;overflow-wrap:anywhere';
   var info=function(l,v,bg){ return '<tr><td style="'+td+';background:'+bg+';text-align:right;white-space:nowrap;width:140px;font-weight:700">'+l+'</td><td style="'+td+';background:#f4f6fa">'+esc(v)+'</td></tr>'; };
   var h='<div style="max-width:780px;'+KH+'"><div style="background:linear-gradient(135deg,#1A1A2E,#16213E 55%,#0F3460);color:#D4AF37;text-align:center;font-size:19px;font-weight:800;padding:13px;letter-spacing:.8px">'+esc(M.tieude)+'</div>'
-    +'<table style="width:100%;border-collapse:collapse">'+info('Mục tiêu chung',M.chung,'#F9D5D3')+info('Công ty',M.congty,'#FFE9A8')+info('CEO',M.ceo,'#CDEFD0')+info('Kỳ lập kế hoạch',M.ky,'#C9D9F3')+'</table>'
-    +(ad?'<div style="padding:7px 10px;background:#f4f6fa;border-top:1px solid #c5ccd8"><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa thông tin chung</button></div>':'')+'</div>';
-  // Bảng 1
-  h+='<div style="'+KH+'"><div style="'+tit+'">'+QT.obj.length+' MỤC TIÊU THEO '+QT.obj.length+' TRỤ CỘT <span style="font-weight:400;font-size:12px">— bấm vào một dòng để xem chi tiết</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;table-layout:fixed;min-width:640px">'
-    +'<tr><th style="'+th+';width:46px">STT</th><th style="'+th+';width:230px">TRỤ CỘT</th><th style="'+th+'">MỤC TIÊU (CÓ CON SỐ)</th><th style="'+th+';width:105px">DEADLINE</th><th style="'+th+';width:70px">ĐẠT</th></tr>'
-    +QT.obj.map(function(o,i){ var bg=QT_MAU_HANG[i%4], c=qtMauObj(o), sc=qtDiemObj(o), st=qtTT(sc);
-      return '<tr onclick="qtChonTru(\''+esc(o.id)+'\')" style="cursor:pointer;background:'+bg+'" onmouseover="this.style.filter=\'brightness(.94)\'" onmouseout="this.style.filter=\'none\'"><td style="'+td+';text-align:center;font-weight:800;border-left:5px solid '+c+'">'+(i+1)+'</td><td style="'+td+';font-weight:800">'+esc(o.icon||'')+' '+esc(o.title)+'</td><td style="'+td+'">'+esc(o.goal||'')+'</td><td style="'+td+';text-align:center">'+esc(o.deadline||'')+'</td><td style="'+td+';text-align:center;font-weight:800;color:'+st.mau+'">'+sc+'%</td></tr>'; }).join('')
-    +'</table></div></div>';
+    +'<table style="width:100%;border-collapse:collapse">'+info('Kỳ lập kế hoạch',M.ky,'#C9D9F3')+'</table>'
+    +(ad?'<div style="padding:7px 10px;background:#f4f6fa;border-top:1px solid #c5ccd8"><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa tiêu đề / kỳ kế hoạch</button></div>':'')+'</div>';
   // Bảng 2: OKR - KPI - Target - Kết quả (liên kết Kế hoạch)
   var rows='', stt=0;
   QT.obj.forEach(function(o,i){
@@ -5530,12 +5524,11 @@ function qtBangTongQuan(ad){
 }
 function qtMoMeta(){
   if(!qtCoQuyen()) return; var M=qtMeta();
-  moModal('✏️ Thông tin chung của kỳ kế hoạch',
-    o('Tiêu đề','<input id="qtMT" value="'+esc(M.tieude)+'">')+o('Mục tiêu chung','<textarea id="qtMC" rows="2">'+esc(M.chung)+'</textarea>')
-    +o('Công ty','<input id="qtMCT" value="'+esc(M.congty)+'">')+o('CEO','<input id="qtMCEO" value="'+esc(M.ceo)+'">')+o('Kỳ lập kế hoạch','<input id="qtMKY" value="'+esc(M.ky)+'">'),'qtLuuMeta()');
+  moModal('✏️ Tiêu đề & kỳ kế hoạch',
+    o('Tiêu đề','<input id="qtMT" value="'+esc(M.tieude)+'">')+o('Kỳ lập kế hoạch','<input id="qtMKY" value="'+esc(M.ky)+'">'),'qtLuuMeta()');
 }
 function qtLuuMeta(){
-  var m={tieude:document.getElementById('qtMT').value.trim(),chung:document.getElementById('qtMC').value.trim(),congty:document.getElementById('qtMCT').value.trim(),ceo:document.getElementById('qtMCEO').value.trim(),ky:document.getElementById('qtMKY').value.trim()};
+  var m=Object.assign({},QT.meta||{},{tieude:document.getElementById('qtMT').value.trim(),ky:document.getElementById('qtMKY').value.trim()});
   khoaLuu(true);
   FB.setDoc(FB.doc(FB.db,'caidat','okr_meta'),m).then(function(){ QT.meta=m; dongModal(); bao('Đã lưu'); qtVe(); }).catch(function(e){ khoaLuu(false); bao(e.message,true); });
 }
