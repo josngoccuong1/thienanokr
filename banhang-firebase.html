@@ -365,7 +365,7 @@ function renderDashboard(){
   // snapshots hiện tại
   const recent=O.slice(0,6).map(o=>{const tt=o.trangThai||'Hoàn thành';const cls={'Hoàn thành':'ok','Mới':'cn','Đang xử lý':'vip','Đã hủy':'low'}[tt]||'cn';return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('orders');setTimeout(()=>openOrderDetail('${esc(o._id)}'),60)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.khachTen||'Khách lẻ')}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(o.maDon)} · ${esc(o.ngayHienThi||'')}</div></div><div style="text-align:right"><div class="t-price" style="font-size:13.5px">${money(o.tongCong)}₫</div><span class="chip ${cls}" style="font-size:10px">${esc(tt)}</span></div></div>`;}).join('')||'<div style="color:var(--muted-2);padding:16px;text-align:center">Chưa có đơn hàng</div>';
   const topDebt=C.filter(c=>(Number(c.congNo)||0)>0).sort((a,b)=>(b.congNo||0)-(a.congNo||0)).slice(0,5);
-  const debtList=topDebt.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="navigate('customers');setTimeout(()=>openCustomerDetail('${esc(c._id)}'),60)"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.ten)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(c.dienThoai||'')}</div></div><div style="color:var(--danger);font-weight:700;font-size:13.5px;white-space:nowrap">${money(c.congNo)}₫</div></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Không có khách nợ</div>';
+  const debtList=topDebt.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6;cursor:pointer" onclick="openCustomerDetail('${esc(c._id)}')"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.ten)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(c.dienThoai||'')}</div></div><div style="color:var(--danger);font-weight:700;font-size:13.5px;white-space:nowrap">${money(c.congNo)}₫</div></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Không có khách nợ</div>';
   const lowStock=P.filter(p=>!p.laDichVu&&(Number(p.tonToiThieu)||0)>0&&(Number(p.tonKho)||0)<=(Number(p.tonToiThieu)||0)).slice(0,6);
   const hetHang=P.filter(p=>!p.laDichVu&&(Number(p.tonKho)||0)<=0).length;
   const lowList=lowStock.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f2f6"><div style="min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.tenSP)}</div><div style="font-size:11.5px;color:var(--muted-2)">${esc(p.maSP)}</div></div><span style="color:${(Number(p.tonKho)||0)<=0?'var(--danger)':'var(--warn)'};font-weight:700;font-size:13.5px;white-space:nowrap">Tồn ${money(p.tonKho)}</span></div>`).join('')||'<div style="color:var(--ok);padding:16px;text-align:center;font-size:13px">✓ Tồn kho ổn định</div>';
@@ -1844,20 +1844,38 @@ function bhLookupUrl(code){return location.origin+location.pathname+'?bh='+code;
 function bhQrImg(code,size){return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&data=${encodeURIComponent(bhLookupUrl(code))}`;}
 function bhDaysLeft(o){if(!o.baoHanhDen)return null;const [d,m,y]=o.baoHanhDen.split('/').map(Number);const end=new Date(y,m-1,d,23,59,59);const now=new Date();return Math.ceil((end-now)/86400000);}
 function bhStatus(o){const dl=bhDaysLeft(o);if(dl===null)return {txt:'Không xác định',cls:'cn',dl:null};if(dl<0)return {txt:'Hết bảo hành',cls:'low',dl};if(dl<=30)return {txt:'Sắp hết ('+dl+' ngày)',cls:'vip',dl};return {txt:'Còn bảo hành',cls:'ok',dl};}
-let wFilter={q:'',page:1,per:20};
+let wFilter={q:'',page:1,per:20,view:'list'};
 function renderWarranty(){
   const total=BAOHANH.length;let con=0,sap=0,het=0;
   BAOHANH.forEach(o=>{const dl=bhDaysLeft(o);if(dl===null)return;if(dl<0)het++;else if(dl<=30)sap++;else con++;});
+  const soKhach=warrantyByCustomer().length;
+  const tabBtn=(v,lbl)=>`<button onclick="wFilter.view='${v}';wFilter.page=1;renderWarranty()" style="padding:7px 15px;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;background:${wFilter.view===v?'var(--gold)':'#eef1f6'};color:${wFilter.view===v?'#12203c':'var(--muted)'}">${lbl}</button>`;
   $('view').innerHTML=`
     <div class="stat-grid">
       <div class="stat g1"><div class="ic">🛡</div><div class="lbl">Tổng phiếu BH</div><div class="val">${money(total)}</div></div>
       <div class="stat g5"><div class="ic">✓</div><div class="lbl">Còn bảo hành</div><div class="val">${money(con)}</div></div>
       <div class="stat g3"><div class="ic">⏰</div><div class="lbl">Sắp hết (≤30 ngày)</div><div class="val">${money(sap)}</div></div>
-      <div class="stat g4"><div class="ic">⌛</div><div class="lbl">Hết bảo hành</div><div class="val">${money(het)}</div></div>
+      <div class="stat g6"><div class="ic">👥</div><div class="lbl">Khách đã bảo hành</div><div class="val">${money(soKhach)}</div></div>
     </div>
-    <div class="panel"><div class="panel-head"><h3>Danh sách phiếu bảo hành</h3><div class="tools"><div class="search"><span class="si">🔍</span><input id="wSearch" placeholder="Tìm mã BH, sản phẩm, khách…" value="${esc(wFilter.q)}"></div><button class="btn btn-primary btn-sm" onclick="openWarrantyForm()">＋ Tạo phiếu bảo hành</button></div></div><div id="wTableWrap"><div class="spin"></div></div></div>`;
-  $('wSearch').oninput=e=>{wFilter.q=e.target.value;wFilter.page=1;drawWarrantyTable();};
-  drawWarrantyTable();
+    <div class="panel"><div class="panel-head"><div style="display:flex;gap:7px">${tabBtn('list','📋 Phiếu bảo hành')}${tabBtn('khach','👥 Theo khách hàng')}</div><div class="tools"><div class="search"><span class="si">🔍</span><input id="wSearch" placeholder="Tìm mã BH, sản phẩm, khách…" value="${esc(wFilter.q)}"></div><button class="btn btn-primary btn-sm" onclick="openWarrantyForm()">＋ Tạo phiếu bảo hành</button></div></div><div id="wTableWrap"><div class="spin"></div></div></div>`;
+  $('wSearch').oninput=e=>{wFilter.q=e.target.value;wFilter.page=1;wFilter.view==='khach'?drawWarrantyByCustomer():drawWarrantyTable();};
+  wFilter.view==='khach'?drawWarrantyByCustomer():drawWarrantyTable();
+}
+function warrantyByCustomer(){
+  const g={};
+  const keyOf=(sdt,ten,fid)=>((sdt||'').replace(/\D/g,''))||((ten||'').trim().toLowerCase())||fid;
+  BAOHANH.forEach(o=>{const k=keyOf(o.khachSDT,o.khachTen,o._id);if(!g[k])g[k]={ten:o.khachTen||'—',sdt:o.khachSDT||'',bh:0,bhCon:0,sc:0,custId:o.khachId||'',last:0};g[k].bh++;if((bhDaysLeft(o)||-1)>=0)g[k].bhCon++;if(o.khachId&&!g[k].custId)g[k].custId=o.khachId;g[k].last=Math.max(g[k].last,o.createdSort||0);});
+  (typeof SUACHUA!=='undefined'?SUACHUA:[]).forEach(s=>{const k=keyOf(s.khachSDT,s.khachTen,s._id);if(!g[k])g[k]={ten:s.khachTen||'—',sdt:s.khachSDT||'',bh:0,bhCon:0,sc:0,custId:s.khachId||'',last:0};g[k].sc++;if(s.khachId&&!g[k].custId)g[k].custId=s.khachId;g[k].last=Math.max(g[k].last,s.createdSort||0);});
+  return Object.values(g).sort((a,b)=>(b.bh+b.sc)-(a.bh+a.sc));
+}
+function resolveCust(gr){return CUSTOMERS.find(c=>{if(gr.custId&&c._id===gr.custId)return true;const p=(c.dienThoai||'').replace(/\D/g,'');if(gr.sdt&&p&&p===gr.sdt.replace(/\D/g,''))return true;if(gr.ten&&gr.ten!=='—'&&(c.ten||'').trim().toLowerCase()===gr.ten.trim().toLowerCase())return true;return false;});}
+function wCustClick(ten,sdt,custId){const cust=resolveCust({ten,sdt,custId});if(cust){openCustomerDetail(cust._id);}else{wFilter.q=ten&&ten!=='—'?ten:(sdt||'');wFilter.view='list';renderWarranty();}}
+function drawWarrantyByCustomer(){
+  const wrap=$('wTableWrap');if(!wrap)return;const q=wFilter.q.toLowerCase().trim();
+  let all=warrantyByCustomer();if(q)all=all.filter(g=>[g.ten,g.sdt].join(' ').toLowerCase().includes(q));
+  if(all.length===0){wrap.innerHTML=`<div class="empty"><div class="em-ic">👥</div><h4>Chưa có khách nào bảo hành</h4><p>Tạo phiếu bảo hành hoặc phiếu sửa chữa, khách sẽ xuất hiện tại đây.</p></div>`;return;}
+  const rows=all.map(g=>`<tr style="cursor:pointer" onclick="wCustClick('${esc((g.ten||'').replace(/'/g,''))}','${esc(g.sdt||'')}','${esc(g.custId||'')}')"><td class="t-name">${esc(g.ten||'—')}</td><td>${g.sdt?esc(g.sdt):'<span style=\"color:var(--muted-2)\">—</span>'}</td><td class="t-num">${g.bh}${g.bhCon>0?` <small style="color:var(--ok)">(${g.bhCon} còn hạn)</small>`:''}</td><td class="t-num">${g.sc>0?g.sc:'<span style=\"color:var(--muted-2)\">—</span>'}</td><td style="text-align:right"><button class="icon-btn" title="Xem lịch sử" onclick="event.stopPropagation();wCustClick('${esc((g.ten||'').replace(/'/g,''))}','${esc(g.sdt||'')}','${esc(g.custId||'')}')">👁</button></td></tr>`).join('');
+  wrap.innerHTML=`<div style="padding:4px 2px 10px;color:var(--muted-2);font-size:12.5px">Bấm vào khách để xem toàn bộ lịch sử bảo hành & sửa chữa.</div><div class="tbl-wrap"><table><thead><tr><th>Khách hàng</th><th>Điện thoại</th><th class="t-num">SP bảo hành</th><th class="t-num">Lần sửa</th><th style="text-align:right"></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function filteredWarranty(){const q=wFilter.q.toLowerCase().trim();return BAOHANH.filter(o=>{if(q){const hay=[o.maBaoHanh,o.tenSanPham,o.khachTen,o.khachSDT,o.serial].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;});}
 function drawWarrantyTable(){
