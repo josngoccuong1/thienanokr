@@ -374,7 +374,7 @@ main section{animation:hienLen .25s ease}
   .navDropMenu a{white-space:normal}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 10/10/2026 · v15</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 10/10/2026 · v16</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -1121,7 +1121,8 @@ async function fbTaiBanDau(){
   var r = await Promise.all([ docsCol('hocvien'), docsCol('lop'), docsCol('khoahoc'), layConfig() ]);
   TatCaHV=r[0]; DsLop=r[1]; DsKhoa=r[2];
   // Tải sẵn số buổi còn lại (để chặn điểm danh khi hết khóa, kể cả tài khoản Giáo viên)
-  try{ MapBoSung = await fbBoSungHocVien(); }catch(e){}
+  // Tải số buổi/học phí ở NỀN (không chặn màn hình), xong thì vẽ lại danh sách
+  fbBoSungHocVien().then(function(m){ MapBoSung=m; var v=document.getElementById('vung-hocvien'); if(NguoiDung && v && !v.classList.contains('an') && typeof taiHocVien==='function') taiHocVien(TrangHV||1); }).catch(function(){});
   return { hocVien:r[0], lop:r[1], khoaHoc:r[2], danhMuc:r[3] };
 }
 
@@ -1788,14 +1789,24 @@ async function fbGiuChan(dl){
 }
 
 /* Thông tin bổ sung cho TOÀN BỘ học viên (lớp, đã học, còn lại, học phí, ngày đóng, TT học phí) */
-async function fbBoSungHocVien(){
-  var dkAll = await docsCol('dangky');
+var _bsChay=null,_bsCho=null;
+function fbBoSungHocVien(){
+  // Gộp các lần gọi chồng nhau: đang tải thì chỉ xếp thêm 1 lần tải lại sau cùng (dữ liệu luôn mới, không tải trùng)
+  if(!_bsChay){
+    _bsChay=_fbBoSungRaw().then(function(r){_bsChay=null;return r;},function(e){_bsChay=null;throw e;});
+    return _bsChay;
+  }
+  if(!_bsCho){
+    _bsCho=_bsChay.catch(function(){}).then(function(){ _bsCho=null; return fbBoSungHocVien(); });
+  }
+  return _bsCho;
+}
+async function _fbBoSungRaw(){
+  var _rs = await Promise.all([ docsCol('dangky'), docsCol('hocphi'), docsCol('phieuthu'), FB.getDocs(FB.collection(FB.db,'diemdanh')) ]);
+  var dkAll=_rs[0], hpAll=_rs[1], ptAll=_rs[2], ddAll=_rs[3];
   var lopMap={}; dkAll.forEach(function(r){ if(r.TrangThai!=='Đã nghỉ' && !lopMap[r.MaHV]) lopMap[r.MaHV]=r.TenLop||''; });
-  var hpAll = await docsCol('hocphi');
   var hpMap={}; hpAll.forEach(function(r){ var m=r.MaHV; if(!hpMap[m]) hpMap[m]={phaiThu:0,daThu:0}; hpMap[m].phaiThu+=soTienJS(r.PhaiThu); hpMap[m].daThu+=soTienJS(r.DaThu); });
-  var ptAll = await docsCol('phieuthu');
   var payDate={}; ptAll.forEach(function(r){ var m=r.MaHV; var d=String(r.NgayThu||''); if(!payDate[m]||d>payDate[m]) payDate[m]=d; });
-  var ddAll = await FB.getDocs(FB.collection(FB.db,'diemdanh'));
   var ddTheoHV={}; ddAll.docs.forEach(function(d){ var o=d.data(); var mm=String(o.MaHV); if(!ddTheoHV[mm]) ddTheoHV[mm]=[]; ddTheoHV[mm].push({NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||''}); });
   Object.keys(ddTheoHV).forEach(function(mm){ ddTheoHV[mm].sort(function(a,b){return a.NgayISO.localeCompare(b.NgayISO);}); });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
