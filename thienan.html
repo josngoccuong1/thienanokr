@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v17</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v18</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -2473,6 +2473,13 @@ var MENU_DINH_NGHIA = [
   ]},
   {id:'nguoidung', icon:'manage_accounts', ten:'Người dùng', mau:'#64748b', onclick:"doiTab('nguoidung')", anMacDinhKhongDoiQuyen:true}
 ];
+// Thứ tự thanh menu: Trang chủ, Học viên, Điểm danh, Kế hoạch mục tiêu, Đào tạo, rồi các mục còn lại
+(function(){
+  var uu=['trangchu','hocvien','diemdanh','quantri','daotao'];
+  var dau=uu.map(function(id){return MENU_DINH_NGHIA.filter(function(m){return m.id===id;})[0];}).filter(Boolean);
+  var con=MENU_DINH_NGHIA.filter(function(m){return uu.indexOf(m.id)<0;});
+  MENU_DINH_NGHIA.splice.apply(MENU_DINH_NGHIA,[0,MENU_DINH_NGHIA.length].concat(dau,con));
+})();
 var MenuTuyChinh = {}; // {id: {ten:'...', an:true/false}, _themMoi:[{id,chaId,ten,icon,hanhDongId}]} — nạp từ Firebase lúc khởi động
 // Danh mục các trang/chức năng có sẵn để admin chọn khi "Thêm mục" (gộp từ mọi mục + mục con đang có, bỏ trùng theo onclick)
 var HANH_DONG_CO_SAN = (function(){
