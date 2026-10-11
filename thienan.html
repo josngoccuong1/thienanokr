@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v22</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v23</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -5398,7 +5398,7 @@ var QT_ICONS=["🎯","🎓","🎵","📱","💰","👨‍🏫","🏆","📊","�
 var QT_COLORS=["#2563EB","#0E9F6E","#E8830C","#8B5CF6","#C0392B","#0F3460","#16A085","#B7950B"];
 var QT_TRANGTHAI=["Chưa bắt đầu","Đang thực hiện","Hoàn thành","Bị trễ"];
 var QT_MON=["Piano","Guitar","Organ","Thanh nhạc","Violin","Trống"];
-var QT={view:'okr',xem:'okr',obj:[],plans:[],act:{},quy:null,pill:'all',lt:null,pp:{},mon:'Piano',daTai:false,ltEdit:null,ppSua:-1,objSua:null,krSua:null,planSua:null,formTam:{}};
+var QT={view:'okr',xem:'okr',moOkr:{},obj:[],plans:[],act:{},quy:null,pill:'all',lt:null,pp:{},mon:'Piano',daTai:false,ltEdit:null,ppSua:-1,objSua:null,krSua:null,planSua:null,formTam:{}};
 
 function qtNamHienTai(){ return new Date().getFullYear(); }
 function qtQuyHienTai(){ var n=new Date(); return 'Q'+Math.ceil((n.getMonth()+1)/3)+'/'+n.getFullYear(); }
@@ -5618,12 +5618,27 @@ function qtTheOKR(o,oi,extra){
   return '<div style="border:2px solid '+c+';border-radius:11px;overflow:hidden;margin-bottom:9px;box-shadow:0 2px 8px '+c+'26;background:#fff">'
     +'<div style="background:linear-gradient(90deg,'+soft+',#fff);padding:6px 11px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-bottom:2px solid '+c+'">'
     +'<div style="width:32px;height:32px;border-radius:9px;background:'+c+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px">'+esc(o.icon||'🎯')+'</div>'
-    +'<div style="flex:1;min-width:170px"><div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;color:'+c+';letter-spacing:.5px;white-space:nowrap">'+(QT.kho==='nhom'?'NHÓM ':'OKR ')+(oi+1)+'</span><span style="font-size:14px;font-weight:800;color:#1a2540">'+esc(o.title)+'</span>'+(o.deadline?'<span style="font-size:11px;color:#6b7280;white-space:nowrap">⏰ '+esc(o.deadline)+'</span>':'')+'</div>'+(o.goal?'<div style="font-size:11.5px;color:#4b5565;margin-top:1px;line-height:1.35">🎯 '+esc(o.goal)+'</div>':'')+'</div>'
+    +'<div style="flex:1;min-width:170px"><div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap"><span style="font-size:11px;font-weight:800;color:'+c+';letter-spacing:.5px;white-space:nowrap">'+(QT.kho==='nhom'?'NHÓM ':'OKR ')+(oi+1)+'</span><span '+(QT.kho==='obj'?'onclick="qtBatOKR(\''+esc(o.id)+'\')" title="Bấm để xem / ẩn các việc kế hoạch của OKR này" style="cursor:pointer;':'style="')+'font-size:14px;font-weight:800;color:#1a2540">'+(QT.kho==='obj'?(QT.moOkr[o.id]?'▾ ':'▸ '):'')+esc(o.title)+'</span>'+(QT.kho==='obj'?'<span onclick="qtBatOKR(\''+esc(o.id)+'\')" style="cursor:pointer;background:'+c+';color:#fff;border-radius:20px;padding:1px 9px;font-size:11px;font-weight:700;white-space:nowrap">📋 '+qtDemViecOKR(o)+' việc</span>':'')+(o.deadline?'<span style="font-size:11px;color:#6b7280;white-space:nowrap">⏰ '+esc(o.deadline)+'</span>':'')+'</div>'+(o.goal?'<div style="font-size:11.5px;color:#4b5565;margin-top:1px;line-height:1.35">🎯 '+esc(o.goal)+'</div>':'')+'</div>'
     +qtRing(sc,c,40)
     +(ad?'<div style="display:flex;gap:3px;flex-wrap:wrap">'+nutNho('▲','qtDoiThuTu('+oi+',-1)','Đưa lên','')+nutNho('▼','qtDoiThuTu('+oi+',1)','Đưa xuống','')+nutNho('⇄','qtMoDoiTen('+oi+')','Hoán đổi tên với nhóm khác','')+nutNho('✏️ Sửa','qtMoMuc('+oi+')','Sửa','')+nutNho('🗑','qtXoaMuc('+oi+')','Xóa OKR','#b42318')+'</div>':'')
     +'</div>'+bang
     +(ad?'<div style="padding:4px 10px;background:'+soft+';border-top:1px solid '+c+'55"><button class="nutNho" style="background:'+c+'" onclick="qtMoKR('+oi+',-1)">➕ Thêm KPI</button></div>':'')
-    +(extra||'')+'</div>';
+    +(QT.kho==='obj'&&QT.moOkr[o.id]?qtPanelViecOKR(o,c,soft):'')+(extra||'')+'</div>';
+}
+function qtViecCuaOKR(o){ var ids={}; (o.krs||[]).forEach(function(k){ids[k.id]=1;}); return QT.plans.filter(function(x){return ids[x.kpiOkr]&&qtTrongKy(x);}); }
+function qtDemViecOKR(o){ return qtViecCuaOKR(o).length; }
+function qtBatOKR(id){ QT.moOkr[id]=!QT.moOkr[id]; qtVe(); }
+function qtPanelViecOKR(o,c,soft){
+  var ad=qtCoQuyen(), mau={'Hoàn thành':'#27AE60','Đang thực hiện':'#E67E22','Chưa bắt đầu':'#9aa3b2','Bị trễ':'#E74C3C'};
+  var ks=o.krs||[], tong=qtDemViecOKR(o);
+  var h='<div style="border-top:3px solid '+c+';background:#fbfcfe"><div style="background:'+c+'22;color:'+c+';padding:5px 12px;font-weight:800;font-size:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">🗓 Các việc trong Kế hoạch của OKR này — '+esc(qtKyNhan())+' ('+tong+')'+(ad?'<button class="nutNho" style="background:'+c+';margin-left:auto;padding:2px 9px" onclick="qtMoPlan(null)">➕ Thêm việc</button>':'')+'</div>';
+  if(!ks.length) return h+'<div style="padding:10px;color:#9aa3b2;font-size:12px;text-align:center">OKR chưa có KPI.</div></div>';
+  h+=ks.map(function(k,ki){
+    var ds=QT.plans.filter(function(x){return x.kpiOkr===k.id&&qtTrongKy(x);}), t=qtTongKR(k), pc=qtPct(t.v,qtTargetKy(k)), st=qtTT(pc);
+    return '<div style="border-top:1px solid #e3e8f0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 12px;background:'+c+'10"><b style="color:'+c+';font-size:12px">KPI '+(ki+1)+'</b><span style="font-weight:700;font-size:12.5px;flex:1;min-width:150px">'+esc(k.text)+'</span><b style="font-size:11.5px;color:'+st.mau+'">'+t.v+'/'+esc(qtTargetKy(k))+' ('+pc+'%)</b>'+(ad?'<button class="nutNho vien" style="padding:1px 7px" onclick="qtMoPlan(null,\'\',\''+esc(k.id)+'\')">➕ Việc</button>':'')+'</div>'
+      +(ds.length?ds.map(function(x){ var tg=Number(x.target)||0, ac=Number(x.actual)||0, ms=mau[x.status]||'#9aa3b2', idq=esc(String(x.id));
+        return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:3px 12px 3px 28px;border-top:1px solid #f0f2f7;font-size:12.5px"><span style="flex:1;min-width:170px;font-weight:600;color:#1a2540">▸ '+esc(x.title||'')+'</span><span style="font-size:11.5px;color:#6b7280">👤 '+esc(x.owner||'-')+'</span><span style="font-size:11.5px;color:#6b7280">'+esc(x.month||'')+'</span><span style="background:'+ms+'22;color:'+ms+';border-radius:20px;padding:1px 9px;font-size:11px;font-weight:800;white-space:nowrap">'+esc(x.status||'')+'</span><b style="font-size:11.5px;color:'+c+';min-width:48px;text-align:right">'+(tg?ac+'/'+tg:ac)+'</b>'+(ad?'<button class="nutNho vien" style="padding:1px 5px" onclick="qtMoPlan(\''+idq+'\')">✏️</button>':'')+'</div>'; }).join(''):'<div style="padding:3px 12px 5px 28px;font-size:11.5px;color:#aab3c2">Chưa có việc nào cho KPI này trong '+esc(qtKyNhan())+'</div>')+'</div>'; }).join('');
+  return h+'</div>';
 }
 var qtTD='padding:4px 8px;border-top:1px solid #e3e8f0;vertical-align:middle;font-size:12.5px;white-space:normal';
 function qtMoMeta(){
