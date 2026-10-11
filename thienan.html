@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 10/10/2026 · v16</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v17</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -5182,7 +5182,7 @@ function moModal(tieuDe, than, hamLuu, tuyChon){
     : '<button class="nutPhu" onclick="dongModal()">Hủy</button>'
       + '<button class="nutChinh" id="nutLuu" onclick="'+hamLuu+'">Lưu</button>';
   document.getElementById('khungModal').innerHTML =
-    '<div class="lop-phu" onclick="if(event.target===this)dongModal()">'
+    '<div class="lop-phu" onmousedown="this._md=(event.target===this)" onclick="if(event.target===this&&this._md)dongModal();this._md=false">'
     + '<div class="hopModal'+(tuyChon.rong?' rong':'')+'">'
     + '<div class="dauModal"><h2>'+tieuDe+'</h2><button class="dongModal" onclick="dongModal()">&times;</button></div>'
     + '<div class="thanModal" id="thanModal">'+than+'</div>'
