@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v19</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v20</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -5717,8 +5717,9 @@ function qtLuuNhapKR(){
 /* ====================== KẾ HOẠCH ====================== */
 function qtVePlan(){
   var ad=qtCoQuyen(), pf=QT.pill, mau={'Hoàn thành':'#27AE60','Đang thực hiện':'#E67E22','Chưa bắt đầu':'#9aa3b2','Bị trễ':'#E74C3C'};
+  if(pf!=='all'&&!QT.nhom.some(function(o){return o.id===pf;})) pf=QT.pill='all';  // bộ lọc theo NHÓM thật (id nhóm), không theo trụ cố định
   function objCua(p){ return qtTimNhomObj(p.okrObj); }
-  function loc(p){ return qtTrongKy(p)&&(pf==='all'||((objCua(p)||{}).pillar===pf)); }
+  function loc(p){ return qtTrongKy(p)&&(pf==='all'||p.okrObj===pf); }
   var tong=QT.plans.filter(loc).length, xong=QT.plans.filter(function(p){return loc(p)&&p.status==='Hoàn thành';}).length;
   var coObj={}; QT.nhom.concat(QT.obj).forEach(function(o){coObj[o.id]=1;});
   var chuaGan=QT.plans.filter(function(p){return qtTrongKy(p)&&(!p.okrObj||!coObj[p.okrObj]);});
@@ -5748,9 +5749,9 @@ function qtVePlan(){
   var h='<div style="margin-bottom:8px">'+qtThanhKy()+'</div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">'+(ad?'<button class="nutNho nutXanh" onclick="qtMoPlan(null)">➕ Thêm việc / kế hoạch</button>':'')
     +'<span style="background:#E8F8F0;color:#27AE60;padding:3px 10px;border-radius:20px;font-weight:700;font-size:11.5px">'+xong+'/'+tong+' hoàn thành</span></div>'
     +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">'
-    +[{id:'all',icon:'',color:'#1A1A2E',name:'Tất cả'}].concat(QT_PILLARS).map(function(pl){ var on=pf===pl.id;
-      return '<button onclick="QT.pill=\''+pl.id+'\';qtVe()" style="width:auto;border:1.5px solid '+(on?pl.color:'#E1E7F0')+';background:'+(on?pl.color:'#fff')+';color:'+(on?'#fff':'#55606f')+';border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer">'+(pl.icon?pl.icon+' ':'')+esc(pl.name)+'</button>'; }).join('')+'</div>';
-  h+=QT.nhom.filter(function(o){return pf==='all'||o.pillar===pf;}).map(function(o){
+    +[{id:'all',icon:'',color:'#1A1A2E',name:'Tất cả'}].concat(QT.nhom.map(function(o,i){ return {id:o.id,icon:o.icon||'🎯',color:qtMauObj(o),name:(i+1)+'. '+o.title}; })).map(function(pl){ var on=pf===pl.id;
+      return '<button onclick="QT.pill=\''+esc(pl.id)+'\';qtVe()" style="width:auto;border:1.5px solid '+(on?pl.color:'#E1E7F0')+';background:'+(on?pl.color:'#fff')+';color:'+(on?'#fff':'#55606f')+';border-radius:20px;padding:2px 10px;font-size:11.5px;font-weight:700;cursor:pointer">'+(pl.icon?pl.icon+' ':'')+esc(pl.name)+'</button>'; }).join('')+'</div>';
+  h+=QT.nhom.filter(function(o){return pf==='all'||o.id===pf;}).map(function(o){
     var oi=QT.nhom.indexOf(o), c=qtMauObj(o), ds=QT.plans.filter(function(p){return p.okrObj===o.id&&qtTrongKy(p);});
     var vi='<div style="padding:7px 10px;border-top:2px solid '+c+'33"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap"><b style="color:'+c+';font-size:12px">🗓 Việc trong kế hoạch ('+ds.length+') — '+esc(qtKyNhan())+'</b>'+(ad?'<button class="nutNho" style="background:'+c+'" onclick="qtMoPlan(null,\''+esc(o.id)+'\')">➕ Thêm việc</button>':'')+'</div>'
       +(ds.length?ds.map(the).join(''):'<div style="padding:6px;text-align:center;color:#aab3c2;font-size:12px">Chưa có việc cho nhóm này trong kỳ đã chọn.</div>')+'</div>';
