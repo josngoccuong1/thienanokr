@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 11/10/2026 · v26</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 12/10/2026 · v27</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
@@ -3575,13 +3575,14 @@ function veNhacHangLoat(){
   var nw=document.getElementById('nhNguongWrap'); if(nw) nw.style.display=(loc==='hetkhoa'||loc==='ca2')?'inline':'none';
   var ds=[];
   TatCaHV.forEach(function(h){
-    if(String(h.TrangThai||'')==='Đã nghỉ') return;
+    var _tt=String(h.TrangThai||'');
+    if(_tt==='Đã nghỉ'||_tt==='Bảo lưu') return;
     if(coSo && h.CoSo!==coSo) return;
     var bs=(typeof MapBoSung!=='undefined'?MapBoSung[h.MaHV]:null)||{};
     var conLai=(bs.ConLai!==''&&bs.ConLai!==undefined&&bs.ConLai!==null)?soTienJS(bs.ConLai):null;
     var ttHP=bs.TTHocPhi||'';
     var noHP=(ttHP==='Còn nợ'||ttHP==='Chưa đóng');
-    var sapHet=(conLai!==null && conLai<=nguong);
+    var sapHet=(conLai!==null && conLai<=nguong && ttHP!=='Đã đóng');
     var nhan=false;
     if(loc==='hetkhoa') nhan=sapHet;
     else if(loc==='no') nhan=noHP;
@@ -4428,7 +4429,7 @@ function napTrangChu(){
     if((h.ThangTao||_thangCuaNgay(h.NgayNhapHoc))===thangNay) hsMoiThang++;
     if(soTienJS(h.SoBuoiKhoa)>0){
       var conLai=soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa);
-      if(tt!=='Đã nghỉ' && conLai<=3) sapHet++;
+      if(!_khongNhacHetKhoa(h) && conLai<=3) sapHet++;
     }
   });
   // Thẻ số (doanh thu điền sau khi query)
@@ -4453,7 +4454,7 @@ function napTrangChu(){
   }).catch(function(){});
   // Cần chú ý: danh sách sắp hết khóa (top 5)
   var canBox=document.getElementById('dashCanChuY');
-  var dsSap=TatCaHV.filter(function(h){ if(!dungCoSo(h.CoSo))return false; if((h.TrangThai||'')==='Đã nghỉ')return false; if(soTienJS(h.SoBuoiKhoa)<=0)return false; return (soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa))<=3; })
+  var dsSap=TatCaHV.filter(function(h){ if(!dungCoSo(h.CoSo))return false; if(_khongNhacHetKhoa(h))return false; if(soTienJS(h.SoBuoiKhoa)<=0)return false; return (soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa))<=3; })
     .map(function(h){return {HoTen:h.HoTen,SDT:String(h.SDT_PhuHuynh||''),conLai:soTienJS(h.SoBuoiKhoa)-soTienJS(h.DaHocKhoa),TenKhoa:h.TenKhoa};})
     .sort(function(a,b){return a.conLai-b.conLai;}).slice(0,6);
   canBox.innerHTML = dsSap.length ? dsSap.map(function(r){ return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f3f5"><div><strong>'+esc(r.HoTen)+'</strong> <span class="ma">'+esc(r.TenKhoa)+'</span></div><div><span class="nhan no">còn '+r.conLai+' buổi</span> <a href="tel:'+esc(r.SDT)+'" class="ma">'+esc(r.SDT)+'</a></div></div>'; }).join('')
@@ -4729,6 +4730,13 @@ function locBangText(inp, boxId){
   rows.forEach(function(tr){ var ok = !tk || boDauJS(tr.textContent).indexOf(tk)>-1; tr.style.display=ok?'':'none'; if(ok)hien++; });
   var bao=inp.parentNode.querySelector('.locBaoSo'); if(bao) bao.textContent = tk?('Thấy '+hien+' kết quả'):'';
 }
+// Không đưa vào danh sách "sắp hết khóa": đã nghỉ, bảo lưu (tạm nghỉ), hoặc đã đóng học phí
+function _khongNhacHetKhoa(h){
+  var tt=String(h.TrangThai||'');
+  if(tt==='Đã nghỉ'||tt==='Bảo lưu') return true;
+  var bs=(typeof MapBoSung!=='undefined'?MapBoSung[h.MaHV]:null)||{};
+  return bs.TTHocPhi==='Đã đóng';
+}
 function napSapHetKhoa(){
   var sel=document.getElementById('shkKhoa');
   if(sel && sel.options.length<=1){
@@ -4744,7 +4752,7 @@ function napSapHetKhoa(){
     var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
     var ds=TatCaHV.filter(function(h){
       if(!dungCoSo(h.CoSo)) return false;
-      if(String(h.TrangThai||'')==='Đã nghỉ') return false;
+      if(_khongNhacHetKhoa(h)) return false;
       if(!(String(h.MaKhoa||'').trim() && soTienJS(h.SoBuoiKhoa)>0)) return false;
       if(maKhoa && h.MaKhoa!==maKhoa) return false;
       var bs=MapBoSung[h.MaHV]||{};
