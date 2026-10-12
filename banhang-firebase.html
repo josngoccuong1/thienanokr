@@ -231,7 +231,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const $=id=>document.getElementById(id);
 const slug=s=>String(s||'').trim().replace(/\s+/g,'_').replace(/[^\w\-]/g,'')||('ID'+Date.now());
 function toast(msg,type='ok'){const box=$('toast');const t=document.createElement('div');t.className='toast '+type;const ic={ok:'✓',err:'✕',warn:'⚠',info:'ℹ'}[type]||'✓';t.innerHTML=`<span>${ic}</span><span>${esc(msg)}</span>`;box.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(20px)';setTimeout(()=>t.remove(),250)},2800);}
-function openModal(html,size=''){const o=$('overlay');o.innerHTML=`<div class="modal ${size}">${html}</div>`;o.classList.add('show');o.onclick=e=>{if(e.target===o)closeModal();};}
+function openModal(html,size=''){const o=$('overlay');o.innerHTML=`<div class="modal ${size}">${html}</div>`;o.classList.add('show');let downOn=null;o.onmousedown=e=>{downOn=e.target;};o.onclick=e=>{if(e.target===o&&downOn===o)closeModal();};}
 function closeModal(){$('overlay').classList.remove('show');$('overlay').innerHTML='';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 function normKey(k){return String(k||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[%()]/g,'').replace(/\s+/g,' ').trim();}
