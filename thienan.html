@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v30</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v31</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -1144,15 +1144,16 @@ async function fbLuuHocVien(dl){
 
 async function fbXemHocVien(dl){
   var maHV=String(dl.maHV||'').trim();
-  var hd=await FB.getDoc(FB.doc(FB.db,'hocvien',maHV));
-  if(!hd.exists()) throw new Error('Không tìm thấy học viên.');
-  var hv=hd.data();
   var _kq = await Promise.all([
     docsWhere('dangky','MaHV',maHV),
     docsWhere('hocphi','MaHV',maHV),
     docsWhere('phieuthu','MaHV',maHV),
-    docsWhere('diemdanh','MaHV',maHV)
+    docsWhere('diemdanh','MaHV',maHV),
+    FB.getDoc(FB.doc(FB.db,'hocvien',maHV))
   ]);
+  var hd=_kq[4];
+  if(!hd.exists()) throw new Error('Không tìm thấy học viên.');
+  var hv=hd.data();
   var lopHocRaw=_kq[0], hocPhiRaw=_kq[1], phieuThuRaw=_kq[2], diemDanhRaw=_kq[3];
   var diemDanh=diemDanhRaw.map(function(r){ return {NgayISO:r.NgayISO||'',Ngay:r.Ngay||'',TenLop:r.TenLop||'',MaLop:r.MaLop||'',TrangThai:r.TrangThai||'',GhiChu:r.GhiChu||'',NguoiDiemDanh:r.NguoiDiemDanh||''}; })
     .sort(function(a,b){return String(b.NgayISO).localeCompare(String(a.NgayISO));});
@@ -1414,6 +1415,7 @@ async function fbThuTien(dl){
     var snap=await t.get(hdRef); if(!snap.exists()) throw new Error('Không tìm thấy hóa đơn '+maHD);
     var hp=snap.data(); var phaiThu=soTienJS(hp.PhaiThu), daThuCu=soTienJS(hp.DaThu); var conNo=phaiThu-daThuCu;
     if(conNo<=0) throw new Error('Kỳ học phí này đã thanh toán đủ.');
+    if(dl.tuCanBang && Math.abs(conNo-soTien)<=1000) soTien=conNo; // lệch làm tròn đơn giá khi gia hạn → tự cân bằng
     if(soTien>conNo) throw new Error('Số tiền vượt quá công nợ còn lại ('+conNo.toLocaleString('vi-VN')+' đ).');
     var daThuMoi=daThuCu+soTien; conNoConLai=phaiThu-daThuMoi;
     t.update(hdRef, {DaThu:daThuMoi, ConNo:conNoConLai});
@@ -2950,7 +2952,10 @@ function xoaHocVienUI(maHV, hoTen){
     dongModal(); bao('✓ Đã xóa học viên '+hoTen); taiHocVien(TrangHV||1);
   }).catch(function(e){ bao('Lỗi khi xóa: '+e.message, true); });
 }
-function moChiTiet(maHV){  moModal('Hồ sơ học viên', '<div class="dangTai">Đang tải hồ sơ...</div>', '',
+function moChiTiet(maHV){
+  var _hc=(TatCaHV||[]).filter(function(x){return String(x.MaHV)===String(maHV);})[0];
+  moModal('Hồ sơ học viên', (_hc?('<div style="padding:4px 2px 10px"><div style="font-size:18px;font-weight:700;color:#12294d">'+esc(_hc.HoTen)+' <span class="ma">'+esc(_hc.MaHV)+'</span></div>'
+    +'<div style="color:#48566b;margin-top:4px">📞 '+esc(_hc.SDT_PhuHuynh||'—')+' · '+esc(_hc.TenKhoa||'')+'</div></div>'):'')+'<div class="dangTai">Đang tải hồ sơ...</div>', '',
           {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
   goi('xemHocVien', {maHV:maHV}).then(function(d){
     ChiTiet = d;
@@ -3108,7 +3113,7 @@ function xacNhanGanKhoa(inHD){
   })
   .then(function(kqHP){
     maHDLuu=kqHP.MaHD;
-    if(daThu>0){ return goi('thuTien', {maHD:kqHP.MaHD, soTien:daThu, hinhThuc:hinhThuc, nguoiThu:NguoiDung.hoTen, ngayThuISO:ngayDong, ghiChu:'Đóng khóa '+k.TenKhoa}); }
+    if(daThu>0){ return goi('thuTien', {maHD:kqHP.MaHD, soTien:daThu, hinhThuc:hinhThuc, nguoiThu:NguoiDung.hoTen, ngayThuISO:ngayDong, tuCanBang:true, ghiChu:'Đóng khóa '+k.TenKhoa}); }
     return null;
   })
   .then(function(kqThu){
