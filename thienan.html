@@ -406,8 +406,9 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 12/10/2026 · v27</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v29</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
+      <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
       <button class="nutThoat" onclick="thoat()">Thoát</button>
     </div>
@@ -2386,12 +2387,52 @@ function dangNhap(){
     vaoApp(); })
     .catch(function(e){ loi.textContent = e.message; loi.classList.remove('an'); });
 }
+/* ---------- Thông báo cho mọi người khi đăng nhập (caidat/thongbao) ---------- */
+function _tbDaXem(pb){ try{ return localStorage.getItem('thienan_tb_xem')===String(pb); }catch(e){ return false; } }
+async function hienThongBaoDangNhap(){
+  try{
+    var d=await FB.getDoc(FB.doc(FB.db,'caidat','thongbao'));
+    if(!d.exists()) return; var t=d.data();
+    if(!t.bat || !String(t.noiDung||'').trim()) return;
+    if(t.hetHan && new Date().toISOString().slice(0,10) > t.hetHan) return;
+    if(_tbDaXem(t.phienBan)) return;
+    var pb=String(t.phienBan||'').replace(/[^0-9A-Za-z_-]/g,'');
+    moModal('📢 '+esc(t.tieuDe||'Thông báo'),
+      '<div style="white-space:pre-wrap;font-size:15px;line-height:1.6;color:#12294d">'+esc(t.noiDung)+'</div>'
+      +(t.nguoiDang?'<div style="margin-top:12px;font-size:12px;color:#6b7280">— '+esc(t.nguoiDang)+'</div>':''),
+      '',{chan:'<button class="nutPhu" onclick="dongModal()">Nhắc lại sau</button><button class="nutChinh" onclick="try{localStorage.setItem(\'thienan_tb_xem\',\''+pb+'\')}catch(e){}dongModal()">✓ Đã đọc</button>'});
+  }catch(e){}
+}
+async function moSoanThongBao(){
+  var t={}; try{ var d=await FB.getDoc(FB.doc(FB.db,'caidat','thongbao')); if(d.exists()) t=d.data(); }catch(e){}
+  moModal('📢 Thông báo cho mọi người đăng nhập',
+    o('Tiêu đề','<input id="tbTieuDe" value="'+esc(t.tieuDe||'')+'" placeholder="VD: Cập nhật mới / Lịch nghỉ lễ">')
+    +o('Nội dung','<textarea id="tbNoiDung" rows="6" placeholder="Nhập nội dung thông báo...">'+esc(t.noiDung||'')+'</textarea>',true)
+    +o('Hiện đến hết ngày (để trống = không giới hạn)','<input type="date" id="tbHetHan" value="'+esc(t.hetHan||'')+'">')
+    +'<label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="tbBat" '+(t.bat===false?'':'checked')+'> Đang bật (mọi người sẽ thấy 1 lần khi đăng nhập, cho đến khi bấm "Đã đọc")</label>',
+    'luuThongBao()');
+}
+async function luuThongBao(){
+  var nd=document.getElementById('tbNoiDung').value.trim();
+  if(!nd){ bao('Chưa nhập nội dung',true); return; }
+  khoaLuu(true);
+  try{
+    await FB.setDoc(FB.doc(FB.db,'caidat','thongbao'),{
+      tieuDe:document.getElementById('tbTieuDe').value.trim()||'Thông báo', noiDung:nd,
+      hetHan:document.getElementById('tbHetHan').value||'', bat:document.getElementById('tbBat').checked,
+      phienBan:String(Date.now()), nguoiDang:(NguoiDung&&NguoiDung.hoTen)||'', capNhat:new Date().toISOString()});
+    try{ localStorage.removeItem('thienan_tb_xem'); }catch(e){}
+    dongModal(); bao('✓ Đã đăng thông báo'); 
+  }catch(e){ khoaLuu(false); bao(e.message,true); }
+}
 function vaoApp(){
   if(daVaoApp) return; daVaoApp = true;
   document.getElementById('tenNguoi').textContent = NguoiDung ? NguoiDung.hoTen : '';
   document.getElementById('manDangNhap').classList.add('an');
   document.getElementById('manChinh').classList.remove('an');
   document.getElementById('bangHV').innerHTML = '<tr><td colspan="6" class="dangTai">Đang tải dữ liệu...</td></tr>';
+  try{ var nb=document.getElementById('nutThongBao'); if(nb && laAdmin()) nb.style.display=''; }catch(e){}
+  setTimeout(hienThongBaoDangNhap, 1500);
   goi('taiBanDau').then(function(bd){ apDungDuLieu(bd, true); }).catch(function(e){
     document.getElementById('bangHV').innerHTML = '<tr><td colspan="6" class="trong">Lỗi tải dữ liệu: '+esc(e.message)+'</td></tr>';
   });
@@ -2949,15 +2990,13 @@ function veChiTiet(){
 
     + '<h3 class="muc">Lớp đang theo học</h3>' + bangLopHoc(d.lopHoc)
     + '<h3 class="muc">Lịch sử điểm danh</h3>' + bangDiemDanhHV(d.diemDanh, d.ddThongKe)
-    + '<h3 class="muc">Học phí</h3>' + bangHocPhi(d.hocPhi)
-    + '<h3 class="muc">Phiếu thu đã lập</h3>' + bangPhieuThu(d.phieuThu);
+    + '<h3 class="muc" style="display:flex;justify-content:space-between;align-items:center">💰 Lịch sử học phí <span style="display:flex;gap:6px"><button class="nutNho vien" onclick="moTaoHocPhi()" title="Chỉ dùng khi cần tạo kỳ học phí thủ công">+ Kỳ thủ công</button></span></h3>' + bangLichSuHocPhi(d.hocPhi, d.phieuThu, t);
 
   document.getElementById('thanModal').innerHTML = html;
   document.getElementById('chanModal').innerHTML =
       '<button class="nutPhu" onclick="moThemVaoLopTuChiTiet()">Thêm vào lớp</button>'
-    + '<button class="nutPhu" onclick="ganKhoaTuChiTiet()" style="border-color:#0f7a4d;color:#0f7a4d">📚 Gia hạn / Đăng ký khóa</button>'
     + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
-    + '<button class="nutPhu" onclick="moTaoHocPhi()">Thêm kỳ học phí</button>'
+    + '<button class="nutChinh" onclick="ganKhoaTuChiTiet()" style="background:#0f7a4d">📚 Gia hạn khóa</button>'
     + (laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
     + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
 }
@@ -2999,9 +3038,9 @@ function ganKhoaTuChiTiet(){
   var h = ChiTiet.hocVien;
   var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
   if(!khoaMo.length){ bao('Chưa có khóa học nào. Tạo khóa ở tab Khóa học trước.', true); return; }
-  var optKhoa = '<option value="">— Chọn khóa học —</option>'+khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+soTienJS(k.SoBuoi)+'" data-gia="'+soTienJS(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
+  var optKhoa = '<option value="">— Chọn khóa học —</option>'+khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'"'+(k.MaKhoa===h.MaKhoa?' selected':'')+' data-buoi="'+soTienJS(k.SoBuoi)+'" data-gia="'+soTienJS(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
   var lopEm = (ChiTiet.lopHoc||[]).filter(function(l){return l.TrangThai!=='Đã nghỉ';});
-  var optLop = '<option value="">— Không gắn lớp cụ thể —</option>'+lopEm.map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'">'+esc(l.TenLop)+(l.MonHoc?' ('+esc(l.MonHoc)+')':'')+'</option>'; }).join('');
+  var optLop = '<option value="">— Không gắn lớp cụ thể —</option>'+lopEm.map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'"'+(lopEm.length===1?' selected':'')+'>'+esc(l.TenLop)+(l.MonHoc?' ('+esc(l.MonHoc)+')':'')+'</option>'; }).join('');
   var nay=new Date(); var isoNay=nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
   moModal('📚 Gia hạn / Đăng ký khóa — '+esc(h.HoTen),
     '<div class="baoLoi an" id="loiForm"></div>'
@@ -3011,11 +3050,11 @@ function ganKhoaTuChiTiet(){
     +   '<div class="o"><label>Số buổi</label><input id="gk_SoBuoi" readonly style="background:#f1f5f9"></div>'
     +   '<div class="o"><label>Học phí (phải thu)</label><input id="gk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700;color:#0f7a4d"></div>'
     +   '<div class="o rong"><label>Trạng thái học phí</label><select id="gk_TTHP" onchange="gkTinhTien()"><option value="Đã đóng đủ">Đã đóng đủ</option><option value="Đóng một phần">Đóng một phần</option><option value="Chưa đóng">Chưa đóng</option></select></div>'
-    +   '<div class="o"><label>Số tiền đóng</label><input id="gk_DaThu" inputmode="numeric" oninput="gkFmtTien(this)"></div>'
-    +   '<div class="o"><label>Ngày đóng</label><input type="date" id="gk_Ngay" value="'+isoNay+'"></div>'
-    +   '<div class="o rong"><label>Hình thức</label><select id="gk_HinhThuc"><option>Tiền mặt</option><option>Chuyển khoản</option><option>Quẹt thẻ</option></select></div>'
+    +   '<div class="o gkTien"><label>Số tiền đóng</label><input id="gk_DaThu" inputmode="numeric" oninput="gkFmtTien(this)"></div>'
+    +   '<div class="o gkTien"><label>Ngày đóng</label><input type="date" id="gk_Ngay" value="'+isoNay+'"></div>'
+    +   '<div class="o rong gkTien"><label>Hình thức</label><select id="gk_HinhThuc"><option>Tiền mặt</option><option>Chuyển khoản</option><option>Quẹt thẻ</option></select></div>'
     + '</div>'
-    + '<div style="font-size:12.5px;color:#6b7280;margin-top:8px">💡 App tự thêm khóa vào hàng đợi (điểm danh hết khóa cũ mới sang khóa này) + tạo kỳ học phí + phiếu thu (nếu đã đóng).</div>',
+    + '<div style="font-size:12.5px;color:#6b7280;margin-top:8px">💡 Khóa mới sẽ nối tiếp khóa cũ. Học phí và phiếu thu được ghi tự động trong “Lịch sử học phí”.</div>',
     'xacNhanGanKhoa()', {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="xacNhanGanKhoa(false)">✓ Gia hạn</button><button class="nutChinh" style="background:#0f7a4d" onclick="xacNhanGanKhoa(true)">✓ Gia hạn & In hóa đơn</button>'});
   setTimeout(gkTinhTien, 50);
 }
@@ -3029,6 +3068,7 @@ function gkTinhTien(){
   if(eB) eB.value=buoi?buoi+' buổi':'';
   if(eP) eP.value=gia?tien(gia)+' đ':'';
   var tt=(document.getElementById('gk_TTHP')||{}).value;
+  document.querySelectorAll('.gkTien').forEach(function(x){ x.style.display = (tt==='Chưa đóng')?'none':''; });
   if(eD){
     if(tt==='Đã đóng đủ'){ eD.value=gia?tien(gia):''; eD.readOnly=true; eD.style.background='#f1f5f9'; }
     else if(tt==='Chưa đóng'){ eD.value='0'; eD.readOnly=true; eD.style.background='#f1f5f9'; }
@@ -3235,6 +3275,37 @@ function bangHocPhi(ds){
     + '</tbody></table></div>';
 }
 
+function bangLichSuHocPhi(hp, pt, t){
+  hp=hp||[]; pt=pt||[];
+  if(!hp.length && !pt.length) return '<div class="trong" style="padding:22px">Chưa có lịch sử học phí. Bấm “📚 Gia hạn khóa” để đăng ký khóa và ghi học phí.</div>';
+  var theoHD={}; pt.forEach(function(p){ var k=String(p.MaHD||''); (theoHD[k]=theoHD[k]||[]).push(p); });
+  var maHPset={}; hp.forEach(function(h){ maHPset[String(h.MaHD||'')]=1; });
+  var tong='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin:4px 0 8px">'
+    +'<span>Tổng phải thu: <b>'+tien(t.tongPhaiThu)+'</b></span><span>Đã đóng: <b style="color:#0f7a4d">'+tien(t.tongDaThu)+'</b></span>'
+    +'<span>Còn nợ: <b style="color:'+(t.conNo>0?'#b42318':'#0f7a4d')+'">'+tien(Math.max(0,t.conNo))+'</b></span></div>';
+  function dongPT(p, inDam){
+    return '<tr style="background:#f8fafc"><td style="padding-left:26px;color:#475569">↳ '+esc(p.NgayThu||'')+'</td>'
+      +'<td colspan="3" style="color:#475569">'+esc(p.HinhThuc||'')+(p.NguoiThu?' · '+esc(p.NguoiThu):'')+' <span class="ma">'+esc(p.MaPT)+'</span></td>'
+      +'<td class="tien" style="color:#0f7a4d"><b>+'+tien(p.SoTien)+'</b></td><td></td><td></td>'
+      +'<td style="white-space:nowrap"><button class="nutNho vien" onclick="inHoaDon(\''+esc(p.MaPT)+'\')">In HĐ</button>'
+      +(laQuanLy()?' <button class="nutNho" style="background:#b42318" onclick="xoaPhieuThuUI(\''+esc(String(p.MaPT))+'\',\''+esc(String(p.MaHD||''))+'\','+soTienJS(p.SoTien)+')">Xóa</button>':'')+'</td></tr>';
+  }
+  var rows=hp.slice().sort(function(a,b){ return String(b.MaHD).localeCompare(String(a.MaHD)); }).map(function(p){
+    var lop=p.ConNo<=0?'hoc':(p.DaThu>0?'bao':'nghi');
+    var ttTxt=p.ConNo<=0?'Đã đóng đủ':(p.DaThu>0?'Đóng một phần':'Chưa đóng');
+    var dong='<tr><td><b>'+esc(p.NgayLap||'')+'</b></td><td colspan="2"><b>'+esc(p.TenLop||p.KyThu||'—')+'</b><div style="font-size:11px;color:#6b7280">'+esc(p.KyThu||'')+' · '+p.SoBuoi+' buổi · <span class="ma">'+esc(p.MaHD)+'</span></div></td>'
+      +'<td class="tien">'+tien(p.PhaiThu)+'</td><td class="tien">'+tien(p.DaThu)+'</td>'
+      +'<td class="tien">'+(p.ConNo>0?'<b style="color:#b42318">'+tien(p.ConNo)+'</b>':'0')+'</td>'
+      +'<td><span class="nhan '+lop+'">'+ttTxt+'</span></td>'
+      +'<td style="white-space:nowrap">'+(p.ConNo>0?'<button class="nutNho" onclick="moThuTien(\''+esc(p.MaHD)+'\','+p.ConNo+')">Đóng tiếp</button> ':'')
+      +(laQuanLy()?'<button class="nutNho" style="background:#b42318" onclick="xoaHocPhiUI(\''+esc(String(p._dong))+'\',\''+esc(p.KyThu||'')+'\','+(p.DaThu||0)+')">Xóa</button>':'')+'</td></tr>';
+    var ds=(theoHD[String(p.MaHD||'')]||[]).slice().sort(function(a,b){return String(a.MaPT).localeCompare(String(b.MaPT));});
+    return dong+ds.map(dongPT).join('');
+  }).join('');
+  var mo=pt.filter(function(p){ return !maHPset[String(p.MaHD||'')]; });
+  if(mo.length) rows+='<tr><td colspan="8" style="font-weight:600;padding-top:10px">Phiếu thu không gắn kỳ học phí</td></tr>'+mo.map(dongPT).join('');
+  return tong+'<div class="the cuonBang"><table class="nho"><thead><tr><th>Ngày</th><th colspan="2">Khóa / kỳ</th><th class="tien">Phải thu</th><th class="tien">Đã đóng</th><th class="tien">Còn nợ</th><th>Trạng thái</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
 function bangPhieuThu(ds){
   if(!ds.length) return '<div class="trong" style="padding:22px">Chưa có phiếu thu nào.</div>';
   return '<div class="the cuonBang"><table class="nho"><thead><tr>'
