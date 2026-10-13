@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v29</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v30</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -2990,7 +2990,7 @@ function veChiTiet(){
 
     + '<h3 class="muc">Lớp đang theo học</h3>' + bangLopHoc(d.lopHoc)
     + '<h3 class="muc">Lịch sử điểm danh</h3>' + bangDiemDanhHV(d.diemDanh, d.ddThongKe)
-    + '<h3 class="muc" style="display:flex;justify-content:space-between;align-items:center">💰 Lịch sử học phí <span style="display:flex;gap:6px"><button class="nutNho vien" onclick="moTaoHocPhi()" title="Chỉ dùng khi cần tạo kỳ học phí thủ công">+ Kỳ thủ công</button></span></h3>' + bangLichSuHocPhi(d.hocPhi, d.phieuThu, t);
+    + '<h3 class="muc" style="display:flex;justify-content:space-between;align-items:center">📚 Lịch sử gia hạn & học phí <span style="display:flex;gap:6px"><button class="nutNho vien" onclick="moTaoHocPhi()" title="Chỉ dùng khi cần tạo kỳ học phí thủ công">+ Kỳ thủ công</button></span></h3>' + bangLichSuKhoa(d, t);
 
   document.getElementById('thanModal').innerHTML = html;
   document.getElementById('chanModal').innerHTML =
@@ -3275,6 +3275,58 @@ function bangHocPhi(ds){
     + '</tbody></table></div>';
 }
 
+function _ngayVN(iso){ var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[3]+'/'+m[2]+'/'+m[1] : String(iso||''); }
+// Mỗi khóa học viên đã/đang/sắp học = 1 dòng gia hạn. Ngày gia hạn: nếu có phiếu học phí (gia hạn thủ công) → giữ ngày đó; không có → lấy buổi học đầu tiên của khóa.
+function bangLichSuKhoa(d, t){
+  var h=d.hocVien, hp=(d.hocPhi||[]).slice().sort(function(a,b){return String(a.MaHD).localeCompare(String(b.MaHD));}), pt=d.phieuThu||[];
+  var dd=(d.diemDanh||[]).slice().sort(function(a,b){return String(a.NgayISO||'').localeCompare(String(b.NgayISO||''));});
+  var kq=_chiaKhoa(dd, h.CacKhoa, soTienJS(h.SoBuoiKhoa));
+  var dung={}; var theoHD={}; pt.forEach(function(p){ var k=String(p.MaHD||''); (theoHD[k]=theoHD[k]||[]).push(p); });
+  var chunks=kq.chunks.filter(function(c,i){ return c.recs.length || (Array.isArray(h.CacKhoa) && i<h.CacKhoa.length); });
+  var items=chunks.map(function(c,i){
+    var ten=(c.ten||h.TenKhoa||('Khóa '+(i+1))); var tl=ten.trim().toLowerCase();
+    var khop=hp.filter(function(x){ return !dung[x.MaHD] && String(x.TenLop||'').trim().toLowerCase()===tl; })[0];
+    if(khop) dung[khop.MaHD]=1;
+    var dau=c.recs.length? (c.recs[0].NgayISO||'') : '';
+    return {lan:i+1, ten:ten, soBuoi:c.soBuoi, daHoc:c.coMat, dauISO:dau, hp:khop||null, hienTai:(i===kq.cur)};
+  });
+  hp.forEach(function(x){ if(!dung[x.MaHD]) items.push({lan:0, ten:x.TenLop||x.KyThu||'Kỳ học phí', soBuoi:x.SoBuoi, daHoc:x.SoBuoiDaHoc, dauISO:'', hp:x, rieng:true}); });
+  if(!items.length && !pt.length) return '<div class="trong" style="padding:22px">Chưa có lịch sử. Bấm “📚 Gia hạn khóa” để đăng ký khóa.</div>';
+  function dongPT(p){
+    return '<tr style="background:#f8fafc"><td></td><td style="color:#475569">↳ '+esc(p.NgayThu||'')+'</td>'
+      +'<td colspan="3" style="color:#475569">'+esc(p.HinhThuc||'')+(p.NguoiThu?' · '+esc(p.NguoiThu):'')+' <span class="ma">'+esc(p.MaPT)+'</span></td>'
+      +'<td class="tien" style="color:#0f7a4d"><b>+'+tien(p.SoTien)+'</b></td><td></td>'
+      +'<td style="white-space:nowrap"><button class="nutNho vien" onclick="inHoaDon(\''+esc(p.MaPT)+'\')">In HĐ</button>'
+      +(laQuanLy()?' <button class="nutNho" style="background:#b42318" onclick="xoaPhieuThuUI(\''+esc(String(p.MaPT))+'\',\''+esc(String(p.MaHD||''))+'\','+soTienJS(p.SoTien)+')">Xóa</button>':'')+'</td></tr>';
+  }
+  var rows=items.map(function(it){
+    var x=it.hp, ngay, nguon;
+    if(x && x.NgayLap){ ngay=x.NgayLap; nguon='<span class="nhan bao" style="font-size:10px">Gia hạn thủ công</span>'; }
+    else if(it.dauISO){ ngay=_ngayVN(it.dauISO); nguon='<span class="nhan hoc" style="font-size:10px">Buổi đầu của khóa</span>'; }
+    else { ngay='—'; nguon='<span class="nhan" style="font-size:10px">Chưa học buổi nào</span>'; }
+    var phu=(x&&x.NgayLap&&it.dauISO)?'<div style="font-size:11px;color:#6b7280">Buổi đầu: '+_ngayVN(it.dauISO)+'</div>':'';
+    var tt, tienCols, act='';
+    if(x){
+      var lop=x.ConNo<=0?'hoc':(x.DaThu>0?'bao':'nghi'); tt='<span class="nhan '+lop+'">'+(x.ConNo<=0?'Đã đóng đủ':(x.DaThu>0?'Đóng một phần':'Chưa đóng'))+'</span>';
+      tienCols='<td class="tien">'+tien(x.PhaiThu)+'</td><td class="tien">'+tien(x.DaThu)+'</td>';
+      if(x.ConNo>0) act+='<button class="nutNho" onclick="moThuTien(\''+esc(x.MaHD)+'\','+x.ConNo+')">Đóng tiếp</button> ';
+      if(laQuanLy()) act+='<button class="nutNho" style="background:#b42318" onclick="xoaHocPhiUI(\''+esc(String(x._dong))+'\',\''+esc(x.KyThu||'')+'\','+(x.DaThu||0)+')">Xóa</button>';
+    } else { tt='<span style="color:#9ca3af;font-size:12px">Chưa ghi học phí</span>'; tienCols='<td class="tien">—</td><td class="tien">—</td>'; }
+    var dong='<tr'+(it.hienTai?' style="background:#fffbea"':'')+'><td><b>'+(it.lan?('Khóa '+it.lan):'Khác')+'</b>'+(it.hienTai?'<div style="font-size:10px;color:#b7791f">đang học</div>':'')+'</td>'
+      +'<td><b>'+esc(ngay)+'</b><div>'+nguon+'</div>'+phu+'</td>'
+      +'<td colspan="2"><b>'+esc(it.ten)+'</b><div style="font-size:11px;color:#6b7280">'+(it.daHoc||0)+'/'+(it.soBuoi||'?')+' buổi'+(x?' · <span class="ma">'+esc(x.MaHD)+'</span>':'')+'</div></td>'
+      +tienCols+'<td>'+tt+(act?'<div style="margin-top:4px;white-space:nowrap">'+act+'</div>':'')+'</td></tr>';
+    var ds=x?(theoHD[String(x.MaHD||'')]||[]).slice().sort(function(a,b){return String(a.MaPT).localeCompare(String(b.MaPT));}):[];
+    return dong+ds.map(dongPT).join('');
+  }).join('');
+  var maHPset={}; (d.hocPhi||[]).forEach(function(x){ maHPset[String(x.MaHD||'')]=1; });
+  var mo=pt.filter(function(p){ return !maHPset[String(p.MaHD||'')]; });
+  if(mo.length) rows+='<tr><td colspan="7" style="font-weight:600;padding-top:10px">Phiếu thu không gắn kỳ học phí</td></tr>'+mo.map(dongPT).join('');
+  var tong='<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin:4px 0 8px"><span>Số khóa: <b>'+items.filter(function(i){return i.lan;}).length+'</b></span>'
+    +'<span>Tổng phải thu: <b>'+tien(t.tongPhaiThu)+'</b></span><span>Đã đóng: <b style="color:#0f7a4d">'+tien(t.tongDaThu)+'</b></span>'
+    +'<span>Còn nợ: <b style="color:'+(t.conNo>0?'#b42318':'#0f7a4d')+'">'+tien(Math.max(0,t.conNo))+'</b></span></div>';
+  return tong+'<div class="the cuonBang"><table class="nho"><thead><tr><th>Khóa</th><th>Ngày gia hạn</th><th colspan="2">Tên khóa</th><th class="tien">Phải thu</th><th class="tien">Đã đóng</th><th>Trạng thái</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
 function bangLichSuHocPhi(hp, pt, t){
   hp=hp||[]; pt=pt||[];
   if(!hp.length && !pt.length) return '<div class="trong" style="padding:22px">Chưa có lịch sử học phí. Bấm “📚 Gia hạn khóa” để đăng ký khóa và ghi học phí.</div>';
