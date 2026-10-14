@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v34</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v35</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -2721,7 +2721,8 @@ function moHocVien(hv){
         : '<div style="font-size:13px;color:#b45309">Chưa có khóa học nào. Vào tab “Khóa học” tạo khóa (VD: Piano cơ bản 2tr) trước.</div>'),
       false, 'rong') : '';
   var truongSoBuoi = moi ? o('Số buổi','<input id="f_SoBuoiKhoa" type="number" min="0" placeholder="Tự điền theo khóa" value="">') : '';
-  var truongHocPhi = moi ? o('Học phí (đ) — tự nhảy theo khóa','<input id="f_HocPhi" type="number" min="0" step="1000" placeholder="Tự điền theo khóa" value="">') : '';
+  var truongHocPhi = moi ? o('Học phí (đ) — tự nhảy theo khóa','<input id="f_HocPhi" type="number" min="0" step="1000" placeholder="Tự điền theo khóa" value="" oninput="hvTinhGiam()">') : '';
+  var truongGiam = moi ? _oGiamGia('f',0,'d') + o('Phải thu (sau giảm)','<input id="f_PhaiThu" readonly style="background:#f1f5f9;font-weight:700;color:#0f7a4d">') : '';
   var thuTuan = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ Nhật'];
   var daChonThu = String(hv.NgayHoc||'').split(/[,\/\-\u2013]+/).map(function(x){return x.trim();});
   var truongNgayHoc = moi ? o('Ngày học trong tuần (bấm chọn)',
@@ -2745,6 +2746,7 @@ function moHocVien(hv){
   + truongKhoa
   + truongSoBuoi
   + truongHocPhi
+  + truongGiam
   + truongNgayHoc
   + truongXepLop
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(hv.GhiChu)+'</textarea>',false,'rong')
@@ -2758,6 +2760,7 @@ function chonKhoaTuDong(){
   var elSB=document.getElementById('f_SoBuoiKhoa'), elHP=document.getElementById('f_HocPhi');
   if(elSB) elSB.value = sel.value ? (opt.getAttribute('data-buoi')||'') : '';
   if(elHP) elHP.value = sel.value ? (opt.getAttribute('data-gia')||'') : '';
+  hvTinhGiam();
 }
 
 function luuHocVien(dong, ma){
@@ -2790,6 +2793,9 @@ function luuHocVien(dong, ma){
   var maLopXep = elXep ? elXep.value : '';
   var tenLopXep = maLopXep ? (DsLop.filter(function(l){return l.MaLop===maLopXep;})[0]||{}).TenLop : '';
   var coTaoHP = hv.MaKhoa && hocPhiKhoa>0 && soBuoiKhoa>0;
+  var giamThem = coTaoHP ? _giamTuForm(hocPhiKhoa,'f_Giam','f_GiamDV') : 0;
+  var lyDoGiamHV = ((document.getElementById('f_LyDo')||{}).value||'').trim();
+  var phaiThuHV = hocPhiKhoa - giamThem;
 
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen}).then(function(kq){
     var maHVMoi = kq.MaHV;
@@ -2798,10 +2804,10 @@ function luuHocVien(dong, ma){
     if(coTaoHP){
       var donGia = Math.ceil(hocPhiKhoa/soBuoiKhoa);
       var thanhTien = donGia*soBuoiKhoa;
-      var giamGia = thanhTien - hocPhiKhoa; // hút phần lẻ để phải thu = đúng học phí
+      var giamGia = thanhTien - hocPhiKhoa + giamThem; // hút phần lẻ + giảm giá
       chain = chain.then(function(){ return goi('taoHocPhi', {hocPhi:{
         MaHV:maHVMoi, HoTen:hv.HoTen, MaLop:maLopXep||'', TenLop:tenLopXep||'',
-        KyThu:'Khóa '+tenKhoaChon, SoBuoi:soBuoiKhoa, DonGia:donGia, GiamGia:giamGia, DaThu:0, SoBuoiDaHoc:0
+        KyThu:'Khóa '+tenKhoaChon, SoBuoi:soBuoiKhoa, DonGia:donGia, GiamGia:giamGia, LyDoGiam:lyDoGiamHV, DaThu:0, SoBuoiDaHoc:0
       }}); });
     }
     chain.then(function(kqHP){
@@ -2809,14 +2815,15 @@ function luuHocVien(dong, ma){
       if(!dong){ // chỉ báo khi THÊM MỚI (không phải sửa)
         guiTelegramQL('👔 <b>HỌC VIÊN MỚI</b>\n👤 '+esc(hv.HoTen)+' ('+esc(hv.CoSo||'')+')'
           +(hv.TenKhoa?('\n📚 Khóa: '+esc(hv.TenKhoa)):'')
+          +(giamThem>0?('\n🏷️ Giảm giá: '+tien(giamThem)+'đ'+(lyDoGiamHV?' ('+esc(lyDoGiamHV)+')':'')):'')
           +(tenLopXep?('\n🏫 Lớp: '+esc(tenLopXep)):'')
           +(hv.SDT_PhuHuynh?('\n📞 '+esc(hv.SDT_PhuHuynh)):'')
           +'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||'')+' · 🕐 '+new Date().toLocaleString('vi-VN'));
       }
-      if(coTaoHP && kqHP && kqHP.MaHD){
-        if(confirm('✓ Đã thêm học viên '+maHVMoi+'\n✓ Đã tạo học phí: '+tien(hocPhiKhoa)+' đ\n\nThu tiền và in hóa đơn ngay bây giờ?')){
-          moThuTienNgay(maHVMoi, kqHP.MaHD, hocPhiKhoa);
-        } else bao('Đã thêm '+maHVMoi+' + học phí '+tien(hocPhiKhoa)+'đ');
+      if(coTaoHP && kqHP && kqHP.MaHD && phaiThuHV>0){
+        if(confirm('✓ Đã thêm học viên '+maHVMoi+'\n✓ Đã tạo học phí: '+tien(phaiThuHV)+' đ'+(giamThem>0?' (đã giảm '+tien(giamThem)+' đ)':'')+'\n\nThu tiền và in hóa đơn ngay bây giờ?')){
+          moThuTienNgay(maHVMoi, kqHP.MaHD, phaiThuHV);
+        } else bao('Đã thêm '+maHVMoi+' + học phí '+tien(phaiThuHV)+'đ');
       } else bao('Đã thêm '+maHVMoi);
     }).catch(function(e2){ dongModal(); taiHocVien(TrangHV); bao('Đã lưu học sinh, nhưng có bước lỗi: '+e2.message, true); });
   }).catch(function(e){
@@ -3176,8 +3183,8 @@ function _giamTuForm(gia, idSo, idDv){
   return Math.min(Math.max(0,g),gia);
 }
 function _oGiamGia(pre, giam, dv){
-  return '<div class="o"><label>Giảm giá</label><input id="'+pre+'_Giam" inputmode="numeric" value="'+(giam?Number(giam).toLocaleString('vi-VN'):'0')+'" oninput="gkFmtTien(this);'+(pre==='gk'?'gkTinhTien()':'dkTinh()')+'"></div>'
-    +'<div class="o"><label>Đơn vị giảm</label><select id="'+pre+'_GiamDV" onchange="'+(pre==='gk'?'gkTinhTien()':'dkTinh()')+'"><option value="d"'+(dv==='d'?' selected':'')+'>đồng</option><option value="%">%</option></select></div>'
+  return '<div class="o"><label>Giảm giá</label><input id="'+pre+'_Giam" inputmode="numeric" value="'+(giam?Number(giam).toLocaleString('vi-VN'):'0')+'" oninput="gkFmtTien(this);'+(pre==='gk'?'gkTinhTien()':(pre==='dk'?'dkTinh()':(pre==='f'?'hvTinhGiam()':'')))+'"></div>'
+    +'<div class="o"><label>Đơn vị giảm</label><select id="'+pre+'_GiamDV" onchange="'+(pre==='gk'?'gkTinhTien()':(pre==='dk'?'dkTinh()':(pre==='f'?'hvTinhGiam()':'')))+'"><option value="d"'+(dv==='d'?' selected':'')+'>đồng</option><option value="%">%</option></select></div>'
     +'<div class="o rong"><label>Lý do giảm (tùy chọn)</label><input id="'+pre+'_LyDo" placeholder="VD: anh chị em · đóng 2 khóa · khuyến mãi"></div>';
 }
 function suaGiamGia(maHD){
@@ -3196,6 +3203,10 @@ function luuSuaGiamGia(maHD){
   FB.setDoc(FB.doc(FB.db,'hocphi',String(hp._dong||maHD)),{GiamGia:g,PhaiThu:phai,ConNo:phai-da,LyDoGiam:document.getElementById('sg_LyDo').value.trim()},{merge:true})
     .then(function(){ dongModal(); bao('✓ Đã cập nhật giảm giá'); moChiTiet(ChiTiet.hocVien.MaHV); })
     .catch(function(e){ bao(e.message,true); });
+}
+function hvTinhGiam(){
+  var hp=soTienJS((document.getElementById('f_HocPhi')||{}).value); var out=document.getElementById('f_PhaiThu'); if(!out) return;
+  var g=_giamTuForm(hp,'f_Giam','f_GiamDV'); out.value=hp?(tien(hp-g)+' đ'+(g?' (giảm '+tien(g)+')':'')):'';
 }
 function gkFmtTien(el){ var v=el.value.replace(/[^0-9]/g,''); el.value=v?Number(v).toLocaleString('vi-VN'):''; }
 function gkTinhTien(){
