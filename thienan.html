@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v35</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v36</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -3000,14 +3000,13 @@ function veChiTiet(){
     + ht('Ngày nhập học', esc(h.NgayNhapHoc))
     + '</div>'
 
-    + '<h3 class="muc">Lớp đang theo học</h3>' + bangLopHoc(d.lopHoc)
+    + '<h3 class="muc" style="display:flex;justify-content:space-between;align-items:center">Lớp đang theo học <button class="nutNho vien" onclick="moThemVaoLopTuChiTiet()" title="Chỉ thêm lớp, không ghi học phí">+ Thêm lớp</button></h3>' + bangLopHoc(d.lopHoc)
     + '<h3 class="muc">Lịch sử điểm danh</h3>' + bangDiemDanhHV(d.diemDanh, d.ddThongKe)
     + '<h3 class="muc" style="display:flex;justify-content:space-between;align-items:center">📚 Lịch sử gia hạn & học phí <span style="display:flex;gap:6px"><button class="nutNho vien" onclick="moTaoHocPhi()" title="Chỉ dùng khi cần tạo kỳ học phí thủ công">+ Kỳ thủ công</button></span></h3>' + bangLichSuKhoa(d, t);
 
   document.getElementById('thanModal').innerHTML = html;
   document.getElementById('chanModal').innerHTML =
-      '<button class="nutPhu" onclick="moThemVaoLopTuChiTiet()">Thêm vào lớp</button>'
-    + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
+      '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
     + '<button class="nutPhu" onclick="moDoiKhoaDangHoc()" style="border-color:#b7791f;color:#8a5a00" title="Đổi khóa / lớp đang học sang khóa khác, giữ nguyên số buổi đã học">🔄 Đổi khóa / lớp</button>'
     + '<button class="nutChinh" onclick="ganKhoaTuChiTiet()" style="background:#0f7a4d">📚 Gia hạn khóa</button>'
     + (laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
@@ -3053,8 +3052,9 @@ function ganKhoaTuChiTiet(chuyen){
   var khoaMo = DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
   if(!khoaMo.length){ bao('Chưa có khóa học nào. Tạo khóa ở tab Khóa học trước.', true); return; }
   var optKhoa = '<option value="">— Chọn khóa học —</option>'+khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'"'+(k.MaKhoa===h.MaKhoa&&!chuyen?' selected':'')+' data-buoi="'+soTienJS(k.SoBuoi)+'" data-gia="'+soTienJS(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
-  var lopEm = chuyen ? DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';}) : (ChiTiet.lopHoc||[]).filter(function(l){return l.TrangThai!=='Đã nghỉ';});
-  var optLop = '<option value="">— Không gắn lớp cụ thể —</option>'+lopEm.map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'"'+(lopEm.length===1&&!chuyen?' selected':'')+'>'+esc(l.TenLop)+(l.MonHoc?' ('+esc(l.MonHoc)+')':'')+'</option>'; }).join('');
+  var _lopCu = (ChiTiet.lopHoc||[]).filter(function(l){return l.TrangThai!=='Đã nghỉ';}).map(function(l){return String(l.MaLop);});
+  var lopEm = DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';}).sort(function(a,b){ return (_lopCu.indexOf(String(b.MaLop))>-1?1:0)-(_lopCu.indexOf(String(a.MaLop))>-1?1:0); });
+  var optLop = '<option value="">— Không gắn lớp cụ thể —</option>'+lopEm.map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'"'+(_lopCu.length===1&&_lopCu[0]===String(l.MaLop)&&!chuyen?' selected':'')+'>'+(_lopCu.indexOf(String(l.MaLop))>-1?'✓ ':'')+esc(l.TenLop)+(l.MonHoc?' ('+esc(l.MonHoc)+')':'')+(l.TenGV?' · '+esc(l.TenGV):'')+'</option>'; }).join('');
   var nay=new Date(); var isoNay=nay.getFullYear()+'-'+('0'+(nay.getMonth()+1)).slice(-2)+'-'+('0'+nay.getDate()).slice(-2);
   var _tkCu=(ChiTiet.ddThongKe&&ChiTiet.ddThongKe.tenKhoaHT)||h.TenKhoa||'', _dhCu=(ChiTiet.ddThongKe&&ChiTiet.ddThongKe.coMatKhoa)||0;
   moModal((chuyen?'🔄 Chuyển lớp / đổi khóa — ':'📚 Gia hạn / Đăng ký khóa — ')+esc(h.HoTen),
@@ -3266,9 +3266,9 @@ function xacNhanGanKhoa(inHD){
   var maHDLuu='';
   goi('luuHocVien', {hocVien:hv, nguoiDung:NguoiDung.hoTen})
   .then(function(){
-    if(!window._gkChuyen || !maLop) return null;
+    if(!maLop) return null;
     var ps=[]; var homNay=new Date().toLocaleDateString('vi-VN');
-    (ChiTiet.lopHoc||[]).forEach(function(l){ if(l.TrangThai!=='Đã nghỉ' && l.MaLop!==maLop) ps.push(FB.setDoc(FB.doc(FB.db,'dangky',String(l.MaDK||l._dong)),{TrangThai:'Đã nghỉ',NgayKetThuc:homNay},{merge:true})); });
+    if(window._gkChuyen) (ChiTiet.lopHoc||[]).forEach(function(l){ if(l.TrangThai!=='Đã nghỉ' && l.MaLop!==maLop) ps.push(FB.setDoc(FB.doc(FB.db,'dangky',String(l.MaDK||l._dong)),{TrangThai:'Đã nghỉ',NgayKetThuc:homNay},{merge:true})); });
     var daCo=(ChiTiet.lopHoc||[]).some(function(l){return l.MaLop===maLop && l.TrangThai!=='Đã nghỉ';});
     if(!daCo) ps.push(goi('themVaoLop',{maLop:maLop, maHV:h.MaHV}));
     return Promise.all(ps);
