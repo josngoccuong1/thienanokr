@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v33</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v34</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -1171,7 +1171,7 @@ async function fbXemHocVien(dl){
   var tPT=0,tDT=0,tB=0,tBH=0;
   var hocPhi=hocPhiRaw.map(function(r){ var pt=soTienJS(r.PhaiThu),dt=soTienJS(r.DaThu),b=soTienJS(r.SoBuoi),dh=soTienJS(r.SoBuoiDaHoc);
     tPT+=pt;tDT+=dt;tB+=b;tBH+=dh;
-    return {_dong:r._dong,MaHD:r.MaHD,NgayLap:r.NgayLap||'',MaLop:r.MaLop,TenLop:r.TenLop,KyThu:r.KyThu,SoBuoi:b,DonGia:soTienJS(r.DonGia),ThanhTien:soTienJS(r.ThanhTien),GiamGia:soTienJS(r.GiamGia),PhaiThu:pt,DaThu:dt,ConNo:pt-dt,SoBuoiDaHoc:dh,HanDong:r.HanDong||'',TrangThai:(pt-dt)<=0?'Đã thanh toán':(dt>0?'Còn nợ':'Chưa đóng'),GhiChu:r.GhiChu}; })
+    return {_dong:r._dong,MaHD:r.MaHD,NgayLap:r.NgayLap||'',MaLop:r.MaLop,TenLop:r.TenLop,KyThu:r.KyThu,SoBuoi:b,DonGia:soTienJS(r.DonGia),ThanhTien:soTienJS(r.ThanhTien),GiamGia:soTienJS(r.GiamGia),LyDoGiam:r.LyDoGiam||'',PhaiThu:pt,DaThu:dt,ConNo:pt-dt,SoBuoiDaHoc:dh,HanDong:r.HanDong||'',TrangThai:(pt-dt)<=0?'Đã thanh toán':(dt>0?'Còn nợ':'Chưa đóng'),GhiChu:r.GhiChu}; })
     .sort(function(a,b){return String(b.MaHD).localeCompare(String(a.MaHD));});
   var phieuThu=phieuThuRaw.map(function(r){ return {MaPT:r.MaPT,NgayThu:r.NgayThu||'',MaHD:r.MaHD,SoTien:soTienJS(r.SoTien),HinhThuc:r.HinhThuc,NguoiThu:r.NguoiThu}; })
     .sort(function(a,b){return String(b.MaPT).localeCompare(String(a.MaPT));});
@@ -1403,7 +1403,7 @@ async function fbTaoHocPhi(dl){
   if(giamGia>thanhTien) throw new Error('Giảm giá không được lớn hơn thành tiền.');
   var phaiThu=thanhTien-giamGia;
   var maHD=String(hp.MaHD||'').trim() || ('HD'+Date.now().toString(36).toUpperCase());
-  var obj={MaHD:maHD,NgayLap:hp.NgayLap||new Date().toLocaleDateString('vi-VN'),MaHV:hp.MaHV,HoTen:hp.HoTen||'',MaLop:hp.MaLop||'',TenLop:hp.TenLop||'',KyThu:String(hp.KyThu).trim(),SoBuoi:soBuoi,DonGia:donGia,ThanhTien:thanhTien,GiamGia:giamGia,PhaiThu:phaiThu,DaThu:soTienJS(hp.DaThu),ConNo:phaiThu-soTienJS(hp.DaThu),SoBuoiDaHoc:soTienJS(hp.SoBuoiDaHoc),HanDong:hp.HanDong||'',TrangThai:'Đang áp dụng',GhiChu:hp.GhiChu||''};
+  var obj={MaHD:maHD,NgayLap:hp.NgayLap||new Date().toLocaleDateString('vi-VN'),MaHV:hp.MaHV,HoTen:hp.HoTen||'',MaLop:hp.MaLop||'',TenLop:hp.TenLop||'',KyThu:String(hp.KyThu).trim(),SoBuoi:soBuoi,DonGia:donGia,ThanhTien:thanhTien,GiamGia:giamGia,LyDoGiam:String(hp.LyDoGiam||''),PhaiThu:phaiThu,DaThu:soTienJS(hp.DaThu),ConNo:phaiThu-soTienJS(hp.DaThu),SoBuoiDaHoc:soTienJS(hp.SoBuoiDaHoc),HanDong:hp.HanDong||'',TrangThai:'Đang áp dụng',GhiChu:hp.GhiChu||''};
   await FB.setDoc(FB.doc(FB.db,'hocphi',maHD), obj);
   return {MaHD:maHD, phaiThu:phaiThu};
 }
@@ -3057,7 +3057,8 @@ function ganKhoaTuChiTiet(chuyen){
     +   '<div class="o rong"><label>'+(chuyen?'Lớp mới <span style="color:#b42318">*</span>':'Lớp học')+'</label><select id="gk_Lop">'+optLop+'</select></div>'
     +   '<div class="o rong"><label>Khóa học <span style="color:#b42318">*</span></label><select id="gk_Khoa" onchange="gkTinhTien()">'+optKhoa+'</select></div>'
     +   '<div class="o"><label>Số buổi</label><input id="gk_SoBuoi" readonly style="background:#f1f5f9"></div>'
-    +   '<div class="o"><label>Học phí (phải thu)</label><input id="gk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700;color:#0f7a4d"></div>'
+    +   '<div class="o"><label>Phải thu (sau giảm)</label><input id="gk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700;color:#0f7a4d"></div>'
+    +   _oGiamGia('gk',0,'d')
     +   '<div class="o rong"><label>Trạng thái học phí</label><select id="gk_TTHP" onchange="gkTinhTien()"><option value="Đã đóng đủ">Đã đóng đủ</option><option value="Đóng một phần">Đóng một phần</option><option value="Chưa đóng">Chưa đóng</option></select></div>'
     +   '<div class="o gkTien"><label>Số tiền đóng</label><input id="gk_DaThu" inputmode="numeric" oninput="gkFmtTien(this)"></div>'
     +   '<div class="o gkTien"><label>Ngày đóng</label><input type="date" id="gk_Ngay" value="'+isoNay+'"></div>'
@@ -3101,6 +3102,7 @@ function moDoiKhoaDangHoc(){
     +'<div class="luoi">'
     +'<div class="o rong"><label>Khóa mới <span style="color:#b42318">*</span></label><select id="dk_Khoa" onchange="dkTinh()">'+optKhoa+'</select></div>'
     +'<div class="o rong"><label>Đổi sang lớp (tùy chọn)</label><select id="dk_Lop">'+optLop+'</select></div>'
+    +_oGiamGia('dk',info.hp?soTienJS(info.hp.GiamGia):0,'d')
     +'<div class="o"><label>Học phí khóa mới</label><input id="dk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700"></div>'
     +'<div class="o"><label>Chênh lệch còn phải đóng</label><input id="dk_ChenhLech" readonly style="background:#f1f5f9;font-weight:700"></div>'
     +'<div class="o"><label>Thu thêm ngay (đ)</label><input id="dk_Thu" inputmode="numeric" value="0" oninput="gkFmtTien(this)"></div>'
@@ -3111,7 +3113,7 @@ function moDoiKhoaDangHoc(){
 function dkTinh(){
   var sel=document.getElementById('dk_Khoa'); if(!sel) return;
   var opt=sel.options[sel.selectedIndex]; var gia=opt?soTienJS(opt.getAttribute('data-gia')):0;
-  var hp=window._dkInfo&&window._dkInfo.hp; var da=hp?soTienJS(hp.DaThu):0; var gg=hp?soTienJS(hp.GiamGia):0;
+  var hp=window._dkInfo&&window._dkInfo.hp; var da=hp?soTienJS(hp.DaThu):0; var gg=_giamTuForm(gia,'dk_Giam','dk_GiamDV');
   var phai=Math.max(0,gia-gg);
   document.getElementById('dk_PhaiThu').value=gia?tien(phai)+' đ':'';
   var cl=phai-da; document.getElementById('dk_ChenhLech').value=gia?(cl>0?tien(cl)+' đ (cần thu thêm)':(cl<0?tien(-cl)+' đ (đã đóng dư)':'0 đ (đủ)')):'';
@@ -3129,7 +3131,8 @@ function xacNhanDoiKhoa(){
   var thu=soTienJS((document.getElementById('dk_Thu')||{}).value);
   var hinhThuc=(document.getElementById('dk_HinhThuc')||{}).value||'Tiền mặt';
   var hp=info.hp;
-  var gg=hp?soTienJS(hp.GiamGia):0, phai=Math.max(0,hocPhi-gg), da=hp?soTienJS(hp.DaThu):0;
+  var gg=_giamTuForm(hocPhi,'dk_Giam','dk_GiamDV'), phai=Math.max(0,hocPhi-gg), da=hp?soTienJS(hp.DaThu):0;
+  var lyDoDK=((document.getElementById('dk_LyDo')||{}).value||'').trim();
   if(thu>0 && thu>Math.max(0,phai-da)+1000){ loi('Số thu thêm lớn hơn phần còn phải đóng ('+tien(Math.max(0,phai-da))+' đ).'); return; }
   if(info.daHoc>soBuoi && soBuoi>0 && !confirm('Em đã học '+info.daHoc+' buổi, nhiều hơn số buổi của khóa mới ('+soBuoi+'). Khóa mới sẽ tính là đã học đủ. Tiếp tục?')){ khoaLuu(false); return; }
   khoaLuu(true);
@@ -3150,9 +3153,9 @@ function xacNhanDoiKhoa(){
   })
   .then(function(){
     if(hp){ // cập nhật kỳ học phí của khóa đang học sang khóa mới, giữ số đã thu
-      return FB.setDoc(FB.doc(FB.db,'hocphi',String(hp._dong||hp.MaHD)),{TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), ThanhTien:hocPhi, PhaiThu:phai, ConNo:phai-da},{merge:true}).then(function(){ return {MaHD:hp.MaHD}; });
+      return FB.setDoc(FB.doc(FB.db,'hocphi',String(hp._dong||hp.MaHD)),{TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), ThanhTien:hocPhi, GiamGia:gg, LyDoGiam:lyDoDK, PhaiThu:phai, ConNo:phai-da},{merge:true}).then(function(){ return {MaHD:hp.MaHD}; });
     }
-    return goi('taoHocPhi',{hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0, NgayLap:homNay}});
+    return goi('taoHocPhi',{hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:gg, LyDoGiam:lyDoDK, DaThu:0, NgayLap:homNay}});
   })
   .then(function(kq){
     maHD=(kq&&kq.MaHD)||maHD;
@@ -3167,6 +3170,33 @@ function xacNhanDoiKhoa(){
   })
   .catch(function(e){ loi(e.message); });
 }
+function _giamTuForm(gia, idSo, idDv){
+  var a=document.getElementById(idSo), b=document.getElementById(idDv); if(!a) return 0;
+  var v=soTienJS(a.value); var g=(b&&b.value==='%')?Math.round(gia*Math.min(v,100)/100):v;
+  return Math.min(Math.max(0,g),gia);
+}
+function _oGiamGia(pre, giam, dv){
+  return '<div class="o"><label>Giảm giá</label><input id="'+pre+'_Giam" inputmode="numeric" value="'+(giam?Number(giam).toLocaleString('vi-VN'):'0')+'" oninput="gkFmtTien(this);'+(pre==='gk'?'gkTinhTien()':'dkTinh()')+'"></div>'
+    +'<div class="o"><label>Đơn vị giảm</label><select id="'+pre+'_GiamDV" onchange="'+(pre==='gk'?'gkTinhTien()':'dkTinh()')+'"><option value="d"'+(dv==='d'?' selected':'')+'>đồng</option><option value="%">%</option></select></div>'
+    +'<div class="o rong"><label>Lý do giảm (tùy chọn)</label><input id="'+pre+'_LyDo" placeholder="VD: anh chị em · đóng 2 khóa · khuyến mãi"></div>';
+}
+function suaGiamGia(maHD){
+  var hp=(ChiTiet.hocPhi||[]).filter(function(x){return x.MaHD===maHD;})[0]; if(!hp) return;
+  moModal('🏷️ Giảm giá — '+esc(hp.TenLop||hp.KyThu||maHD),
+    '<div class="baoLoi an" id="loiForm"></div><div style="font-size:13px;margin-bottom:8px">Thành tiền: <b>'+tien(hp.ThanhTien||hp.PhaiThu+hp.GiamGia)+' đ</b> · Đã thu: <b>'+tien(hp.DaThu)+' đ</b></div>'
+    +'<div class="luoi">'+_oGiamGia('sg',hp.GiamGia,'d')+'</div>',
+    '', {chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="luuSuaGiamGia(\''+esc(maHD)+'\')">Lưu</button>'});
+  var e=document.getElementById('sg_LyDo'); if(e) e.value=hp.LyDoGiam||'';
+}
+function luuSuaGiamGia(maHD){
+  var hp=(ChiTiet.hocPhi||[]).filter(function(x){return x.MaHD===maHD;})[0]; if(!hp) return;
+  var thanh=soTienJS(hp.ThanhTien)||(soTienJS(hp.PhaiThu)+soTienJS(hp.GiamGia));
+  var g=_giamTuForm(thanh,'sg_Giam','sg_GiamDV'); var phai=thanh-g, da=soTienJS(hp.DaThu);
+  if(da>phai && !confirm('Số đã thu ('+tien(da)+' đ) lớn hơn phải thu sau giảm ('+tien(phai)+' đ) → sẽ dư '+tien(da-phai)+' đ. Vẫn lưu?')) return;
+  FB.setDoc(FB.doc(FB.db,'hocphi',String(hp._dong||maHD)),{GiamGia:g,PhaiThu:phai,ConNo:phai-da,LyDoGiam:document.getElementById('sg_LyDo').value.trim()},{merge:true})
+    .then(function(){ dongModal(); bao('✓ Đã cập nhật giảm giá'); moChiTiet(ChiTiet.hocVien.MaHV); })
+    .catch(function(e){ bao(e.message,true); });
+}
 function gkFmtTien(el){ var v=el.value.replace(/[^0-9]/g,''); el.value=v?Number(v).toLocaleString('vi-VN'):''; }
 function gkTinhTien(){
   var sel=document.getElementById('gk_Khoa'); if(!sel) return;
@@ -3175,11 +3205,12 @@ function gkTinhTien(){
   var gia=opt?soTienJS(opt.getAttribute('data-gia')):0;
   var eB=document.getElementById('gk_SoBuoi'), eP=document.getElementById('gk_PhaiThu'), eD=document.getElementById('gk_DaThu');
   if(eB) eB.value=buoi?buoi+' buổi':'';
-  if(eP) eP.value=gia?tien(gia)+' đ':'';
+  var giam=_giamTuForm(gia,'gk_Giam','gk_GiamDV'); var phai=gia-giam;
+  if(eP) eP.value=gia?(tien(phai)+' đ'+(giam?' (giảm '+tien(giam)+')':'')):'';
   var tt=(document.getElementById('gk_TTHP')||{}).value;
   document.querySelectorAll('.gkTien').forEach(function(x){ x.style.display = (tt==='Chưa đóng')?'none':''; });
   if(eD){
-    if(tt==='Đã đóng đủ'){ eD.value=gia?tien(gia):''; eD.readOnly=true; eD.style.background='#f1f5f9'; }
+    if(tt==='Đã đóng đủ'){ eD.value=gia?tien(phai):''; eD.readOnly=true; eD.style.background='#f1f5f9'; }
     else if(tt==='Chưa đóng'){ eD.value='0'; eD.readOnly=true; eD.style.background='#f1f5f9'; }
     else { eD.readOnly=false; eD.style.background='#fff'; if(!soTienJS(eD.value)) eD.value=''; }
   }
@@ -3193,14 +3224,15 @@ function xacNhanGanKhoa(inHD){
   if(!k){ loi('Hãy chọn khóa học.'); return; }
   if(window._gkChuyen && !((document.getElementById('gk_Lop')||{}).value)){ loi('Hãy chọn lớp mới.'); return; }
   var soBuoi = soTienJS(k.SoBuoi); var hocPhi = soTienJS(k.GiaTien);
+  var giam=_giamTuForm(hocPhi,'gk_Giam','gk_GiamDV'); var phaiGK=hocPhi-giam; var lyDoGiam=((document.getElementById('gk_LyDo')||{}).value||'').trim();
   var lopSel=document.getElementById('gk_Lop'); var maLop=lopSel?lopSel.value:''; var tenLop=(lopSel&&lopSel.options[lopSel.selectedIndex])?lopSel.options[lopSel.selectedIndex].getAttribute('data-ten'):'';
   var ttHP=(document.getElementById('gk_TTHP')||{}).value||'Chưa đóng';
   var daThu=soTienJS((document.getElementById('gk_DaThu')||{}).value);
   var ngayDong=(document.getElementById('gk_Ngay')||{}).value||'';
   var hinhThuc=(document.getElementById('gk_HinhThuc')||{}).value||'Tiền mặt';
-  if(ttHP==='Đã đóng đủ') daThu=hocPhi;
+  if(ttHP==='Đã đóng đủ') daThu=phaiGK;
   if(ttHP==='Chưa đóng') daThu=0;
-  if(ttHP==='Đóng một phần' && (daThu<=0 || daThu>=hocPhi)){ loi('Đóng một phần: số tiền phải lớn hơn 0 và nhỏ hơn học phí.'); return; }
+  if(ttHP==='Đóng một phần' && (daThu<=0 || daThu>=phaiGK)){ loi('Đóng một phần: số tiền phải lớn hơn 0 và nhỏ hơn học phí.'); return; }
   khoaLuu(true);
   // Xây hàng đợi khóa
   var cacKhoa = Array.isArray(h.CacKhoa) ? h.CacKhoa.slice() : null;
@@ -3231,7 +3263,7 @@ function xacNhanGanKhoa(inHD){
     return Promise.all(ps);
   })
   .then(function(){
-    return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:tenLop||k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0, NgayLap:(ngayDong?ngayDong.split('-').reverse().join('/'):'')}});
+    return goi('taoHocPhi', {hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:tenLop||k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:giam, LyDoGiam:lyDoGiam, DaThu:0, NgayLap:(ngayDong?ngayDong.split('-').reverse().join('/'):'')}});
   })
   .then(function(kqHP){
     maHDLuu=kqHP.MaHD;
@@ -3245,7 +3277,7 @@ function xacNhanGanKhoa(inHD){
     guiTelegramQL((window._gkChuyen?'👔 <b>CHUYỂN LỚP / ĐỔI KHÓA</b>':'👔 <b>GIA HẠN / ĐĂNG KÝ KHÓA</b>')+'\n👤 '+esc(h.HoTen)+' ('+esc(h.CoSo||'')+')'
       +'\n📚 Khóa: <b>'+esc(k.TenKhoa)+'</b> · '+soBuoi+' buổi'
       +(tenLop?('\n🏫 Lớp: '+esc(tenLop)):'')
-      +'\n💰 Học phí: '+tien(hocPhi)+'đ · '+(daThu>0?('<b>Đã thu '+tien(daThu)+'đ</b> ('+esc(hinhThuc)+')'):'<b>CHƯA THU</b>')
+      +'\n💰 Học phí: '+tien(hocPhi)+'đ'+(giam>0?(' · giảm '+tien(giam)+'đ → phải thu '+tien(phaiGK)+'đ'+(lyDoGiam?' ('+esc(lyDoGiam)+')':'')):'')+' · '+(daThu>0?('<b>Đã thu '+tien(daThu)+'đ</b> ('+esc(hinhThuc)+')'):'<b>CHƯA THU</b>')
       +'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||'')+' · 🕐 '+gioNow);
     goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
     if(inHD && kqThu && kqThu.MaPT){ inHoaDon(kqThu.MaPT); }
@@ -3436,12 +3468,13 @@ function bangLichSuKhoa(d, t){
     if(x){
       var lop=x.ConNo<=0?'hoc':(x.DaThu>0?'bao':'nghi'); tt='<span class="nhan '+lop+'">'+(x.ConNo<=0?'Đã đóng đủ':(x.DaThu>0?'Đóng một phần':'Chưa đóng'))+'</span>';
       tienCols='<td class="tien">'+tien(x.PhaiThu)+'</td><td class="tien">'+tien(x.DaThu)+'</td>';
+      act+='<button class="nutNho vien" onclick="suaGiamGia(\''+esc(x.MaHD)+'\')">Giảm giá</button> ';
       if(x.ConNo>0) act+='<button class="nutNho" onclick="moThuTien(\''+esc(x.MaHD)+'\','+x.ConNo+')">Đóng tiếp</button> ';
       if(laQuanLy()) act+='<button class="nutNho" style="background:#b42318" onclick="xoaHocPhiUI(\''+esc(String(x._dong))+'\',\''+esc(x.KyThu||'')+'\','+(x.DaThu||0)+')">Xóa</button>';
     } else { tt='<span style="color:#9ca3af;font-size:12px">Chưa ghi học phí</span>'; tienCols='<td class="tien">—</td><td class="tien">—</td>'; }
     var dong='<tr'+(it.hienTai?' style="background:#fffbea"':'')+'><td><b>'+(it.lan?('Khóa '+it.lan):'Khác')+'</b>'+(it.hienTai?'<div style="font-size:10px;color:#b7791f">đang học</div>':'')+'</td>'
       +'<td><b>'+esc(ngay)+'</b><div>'+nguon+'</div>'+phu+'</td>'
-      +'<td colspan="2"><b>'+esc(it.ten)+'</b><div style="font-size:11px;color:#6b7280">'+(it.daHoc||0)+'/'+(it.soBuoi||'?')+' buổi'+(x?' · <span class="ma">'+esc(x.MaHD)+'</span>':'')+'</div></td>'
+      +'<td colspan="2"><b>'+esc(it.ten)+'</b><div style="font-size:11px;color:#6b7280">'+(it.daHoc||0)+'/'+(it.soBuoi||'?')+' buổi'+(x?' · <span class="ma">'+esc(x.MaHD)+'</span>':'')+'</div>'+((x&&soTienJS(x.GiamGia)>0)?'<div style="font-size:11px;color:#b7791f">🏷️ Giảm '+tien(x.GiamGia)+' đ'+(x.LyDoGiam?' · '+esc(x.LyDoGiam):'')+'</div>':'')+'</td>'
       +tienCols+'<td>'+tt+(act?'<div style="margin-top:4px;white-space:nowrap">'+act+'</div>':'')+'</td></tr>';
     var ds=x?(theoHD[String(x.MaHD||'')]||[]).slice().sort(function(a,b){return String(a.MaPT).localeCompare(String(b.MaPT));}):[];
     return dong+ds.map(dongPT).join('');
