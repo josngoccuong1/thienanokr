@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v32</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v33</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -3001,7 +3001,7 @@ function veChiTiet(){
   document.getElementById('chanModal').innerHTML =
       '<button class="nutPhu" onclick="moThemVaoLopTuChiTiet()">Thêm vào lớp</button>'
     + '<button class="nutPhu" onclick="suaHoSoTuChiTiet()">Sửa hồ sơ</button>'
-    + '<button class="nutPhu" onclick="ganKhoaTuChiTiet(true)" style="border-color:#b7791f;color:#8a5a00" title="Đổi sang lớp / khóa khác giữa chừng">🔄 Chuyển lớp / khóa</button>'
+    + '<button class="nutPhu" onclick="moDoiKhoaDangHoc()" style="border-color:#b7791f;color:#8a5a00" title="Đổi khóa / lớp đang học sang khóa khác, giữ nguyên số buổi đã học">🔄 Đổi khóa / lớp</button>'
     + '<button class="nutChinh" onclick="ganKhoaTuChiTiet()" style="background:#0f7a4d">📚 Gia hạn khóa</button>'
     + (laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaHocVienUI(\''+esc(ChiTiet.hocVien.MaHV)+'\',\''+esc(ChiTiet.hocVien.HoTen).replace(/'/g,"\\\\'")+'\')">🗑️ Xóa học viên</button>':'')
     + '<button class="nutChinh" onclick="dongModal()">Đóng</button>';
@@ -3066,6 +3066,106 @@ function ganKhoaTuChiTiet(chuyen){
     + '<div style="font-size:12.5px;color:#6b7280;margin-top:8px">💡 Khóa mới sẽ nối tiếp khóa cũ. Học phí và phiếu thu được ghi tự động trong “Lịch sử học phí”.</div>',
     'xacNhanGanKhoa()', {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="xacNhanGanKhoa(false)">✓ Gia hạn</button><button class="nutChinh" style="background:#0f7a4d" onclick="xacNhanGanKhoa(true)">✓ Gia hạn & In hóa đơn</button>'});
   setTimeout(gkTinhTien, 50);
+}
+/* ---------- Đổi trực tiếp khóa đang học (giữ số buổi đã học, không chốt khóa) ---------- */
+function _khoaHienTaiInfo(){
+  var d=ChiTiet, h=d.hocVien;
+  var dd=(d.diemDanh||[]).slice().sort(function(a,b){return String(a.NgayISO||'').localeCompare(String(b.NgayISO||''));});
+  var cacKhoa=Array.isArray(h.CacKhoa)&&h.CacKhoa.length?h.CacKhoa.map(function(x){return {TenKhoa:x.TenKhoa,SoBuoi:x.SoBuoi,MaKhoa:x.MaKhoa};}):null;
+  if(!cacKhoa){
+    cacKhoa=[]; var cm=(d.ddThongKe&&d.ddThongKe.coMat)||0; var sb=soTienJS(h.SoBuoiKhoa)||0;
+    if(String(h.MaKhoa||'').trim() && sb>0){ var n=Math.max(1,Math.ceil(cm/sb)); for(var i=0;i<n;i++) cacKhoa.push({TenKhoa:h.TenKhoa,SoBuoi:sb,MaKhoa:h.MaKhoa}); }
+  }
+  var kq=_chiaKhoa(dd, cacKhoa, soTienJS(h.SoBuoiKhoa)); var cur=kq.cur; var c=kq.chunks[cur]||{coMat:0,soBuoi:0,ten:''};
+  var ten=(cacKhoa[cur]&&cacKhoa[cur].TenKhoa)||c.ten||h.TenKhoa||'';
+  var tl=ten.trim().toLowerCase();
+  var hps=(d.hocPhi||[]).slice().sort(function(a,b){return String(b.MaHD).localeCompare(String(a.MaHD));});
+  var hp=hps.filter(function(x){return String(x.TenLop||'').trim().toLowerCase()===tl;})[0]||null;
+  return {cacKhoa:cacKhoa, cur:cur, ten:ten, daHoc:c.coMat, hp:hp};
+}
+function moDoiKhoaDangHoc(){
+  var h=ChiTiet.hocVien; var info=_khoaHienTaiInfo();
+  var khoaMo=DsKhoa.filter(function(k){return k.TrangThai!=='Đóng';});
+  if(!khoaMo.length){ bao('Chưa có khóa học nào.', true); return; }
+  var optKhoa='<option value="">— Chọn khóa mới —</option>'+khoaMo.map(function(k){ return '<option value="'+esc(k.MaKhoa)+'" data-buoi="'+soTienJS(k.SoBuoi)+'" data-gia="'+soTienJS(k.GiaTien)+'">'+esc(k.TenKhoa)+(k.SoBuoi?' · '+k.SoBuoi+' buổi':'')+(k.GiaTien?' · '+tien(k.GiaTien)+'đ':'')+'</option>'; }).join('');
+  var lopHT=(ChiTiet.lopHoc||[]).filter(function(l){return l.TrangThai!=='Đã nghỉ';});
+  var optLop='<option value="">— Giữ nguyên lớp hiện tại —</option>'+DsLop.filter(function(l){return l.TrangThai!=='Đã đóng';}).map(function(l){ return '<option value="'+esc(l.MaLop)+'" data-ten="'+esc(l.TenLop)+'">'+esc(l.TenLop)+(l.TenGV?' · '+esc(l.TenGV):'')+'</option>'; }).join('');
+  var daDong=info.hp?soTienJS(info.hp.DaThu):0;
+  window._dkInfo=info;
+  moModal('🔄 Đổi khóa / lớp đang học — '+esc(h.HoTen),
+    '<div class="baoLoi an" id="loiForm"></div>'
+    +'<div style="background:#eef6ff;border:1px solid #c7dcf5;border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:13px;color:#12294d">'
+    +'Đang học: <b>'+esc(info.ten||'—')+'</b> · đã học <b>'+info.daHoc+'</b> buổi'+(lopHT.length?' · lớp: '+esc(lopHT.map(function(l){return l.TenLop;}).join(', ')):'')
+    +'<br>Đã đóng cho khóa này: <b>'+tien(daDong)+' đ</b>'+(info.hp?'':' <i>(chưa có phiếu học phí)</i>')
+    +'<br><span style="color:#48566b">Khóa mới <b>thay thế trực tiếp</b> khóa đang học — số buổi đã học và học phí đã đóng được giữ lại, không chốt khóa.</span></div>'
+    +'<div class="luoi">'
+    +'<div class="o rong"><label>Khóa mới <span style="color:#b42318">*</span></label><select id="dk_Khoa" onchange="dkTinh()">'+optKhoa+'</select></div>'
+    +'<div class="o rong"><label>Đổi sang lớp (tùy chọn)</label><select id="dk_Lop">'+optLop+'</select></div>'
+    +'<div class="o"><label>Học phí khóa mới</label><input id="dk_PhaiThu" readonly style="background:#f1f5f9;font-weight:700"></div>'
+    +'<div class="o"><label>Chênh lệch còn phải đóng</label><input id="dk_ChenhLech" readonly style="background:#f1f5f9;font-weight:700"></div>'
+    +'<div class="o"><label>Thu thêm ngay (đ)</label><input id="dk_Thu" inputmode="numeric" value="0" oninput="gkFmtTien(this)"></div>'
+    +'<div class="o"><label>Hình thức</label><select id="dk_HinhThuc"><option>Tiền mặt</option><option>Chuyển khoản</option><option>Quẹt thẻ</option></select></div>'
+    +'</div>',
+    'xacNhanDoiKhoa()', {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" onclick="xacNhanDoiKhoa()">✓ Đổi khóa</button>'});
+}
+function dkTinh(){
+  var sel=document.getElementById('dk_Khoa'); if(!sel) return;
+  var opt=sel.options[sel.selectedIndex]; var gia=opt?soTienJS(opt.getAttribute('data-gia')):0;
+  var hp=window._dkInfo&&window._dkInfo.hp; var da=hp?soTienJS(hp.DaThu):0; var gg=hp?soTienJS(hp.GiamGia):0;
+  var phai=Math.max(0,gia-gg);
+  document.getElementById('dk_PhaiThu').value=gia?tien(phai)+' đ':'';
+  var cl=phai-da; document.getElementById('dk_ChenhLech').value=gia?(cl>0?tien(cl)+' đ (cần thu thêm)':(cl<0?tien(-cl)+' đ (đã đóng dư)':'0 đ (đủ)')):'';
+}
+function xacNhanDoiKhoa(){
+  var h=ChiTiet.hocVien, info=window._dkInfo||_khoaHienTaiInfo();
+  var loiEl=document.getElementById('loiForm');
+  function loi(m){ if(loiEl){loiEl.textContent=m;loiEl.classList.remove('an');} bao(m,true); khoaLuu(false); }
+  var maKhoa=(document.getElementById('dk_Khoa')||{}).value;
+  var k=DsKhoa.filter(function(x){return x.MaKhoa===maKhoa;})[0];
+  if(!k){ loi('Hãy chọn khóa mới.'); return; }
+  var soBuoi=soTienJS(k.SoBuoi), hocPhi=soTienJS(k.GiaTien);
+  var lopSel=document.getElementById('dk_Lop'); var maLop=lopSel?lopSel.value:'';
+  var tenLop=(lopSel&&lopSel.options[lopSel.selectedIndex])?lopSel.options[lopSel.selectedIndex].getAttribute('data-ten'):'';
+  var thu=soTienJS((document.getElementById('dk_Thu')||{}).value);
+  var hinhThuc=(document.getElementById('dk_HinhThuc')||{}).value||'Tiền mặt';
+  var hp=info.hp;
+  var gg=hp?soTienJS(hp.GiamGia):0, phai=Math.max(0,hocPhi-gg), da=hp?soTienJS(hp.DaThu):0;
+  if(thu>0 && thu>Math.max(0,phai-da)+1000){ loi('Số thu thêm lớn hơn phần còn phải đóng ('+tien(Math.max(0,phai-da))+' đ).'); return; }
+  if(info.daHoc>soBuoi && soBuoi>0 && !confirm('Em đã học '+info.daHoc+' buổi, nhiều hơn số buổi của khóa mới ('+soBuoi+'). Khóa mới sẽ tính là đã học đủ. Tiếp tục?')){ khoaLuu(false); return; }
+  khoaLuu(true);
+  var cacKhoa=info.cacKhoa.slice();
+  var moi={TenKhoa:k.TenKhoa, SoBuoi:soBuoi, MaKhoa:k.MaKhoa};
+  if(cacKhoa[info.cur]) cacKhoa[info.cur]=moi; else cacKhoa.push(moi);
+  var hv={ _dong:h._dong, MaHV:h.MaHV, HoTen:h.HoTen, NgaySinh:h.NgaySinh, GioiTinh:h.GioiTinh, TenPhuHuynh:h.TenPhuHuynh, SDT_PhuHuynh:h.SDT_PhuHuynh, DiaChi:h.DiaChi, CoSo:h.CoSo, NgayNhapHoc:h.NgayNhapHoc, TrangThai:h.TrangThai, GhiChu:h.GhiChu, NgayHoc:h.NgayHoc, Lop:tenLop||h.Lop, MaKhoa:k.MaKhoa, TenKhoa:k.TenKhoa, SoBuoiKhoa:soBuoi, CacKhoa:cacKhoa };
+  var nay=new Date(); var ky='T'+(nay.getMonth()+1)+'/'+nay.getFullYear(); var homNay=nay.toLocaleDateString('vi-VN');
+  var maHD=hp?hp.MaHD:'';
+  goi('luuHocVien',{hocVien:hv, nguoiDung:NguoiDung.hoTen})
+  .then(function(){
+    if(!maLop) return null;
+    var ps=[];
+    (ChiTiet.lopHoc||[]).forEach(function(l){ if(l.TrangThai!=='Đã nghỉ' && l.MaLop!==maLop) ps.push(FB.setDoc(FB.doc(FB.db,'dangky',String(l.MaDK||l._dong)),{TrangThai:'Đã nghỉ',NgayKetThuc:homNay},{merge:true})); });
+    var daCo=(ChiTiet.lopHoc||[]).some(function(l){return l.MaLop===maLop && l.TrangThai!=='Đã nghỉ';});
+    if(!daCo) ps.push(goi('themVaoLop',{maLop:maLop, maHV:h.MaHV}));
+    return Promise.all(ps);
+  })
+  .then(function(){
+    if(hp){ // cập nhật kỳ học phí của khóa đang học sang khóa mới, giữ số đã thu
+      return FB.setDoc(FB.doc(FB.db,'hocphi',String(hp._dong||hp.MaHD)),{TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), ThanhTien:hocPhi, PhaiThu:phai, ConNo:phai-da},{merge:true}).then(function(){ return {MaHD:hp.MaHD}; });
+    }
+    return goi('taoHocPhi',{hocPhi:{MaHV:h.MaHV, HoTen:h.HoTen, KyThu:ky, MaLop:maLop, TenLop:k.TenKhoa, SoBuoi:soBuoi, DonGia:Math.round(hocPhi/(soBuoi||1)), GiamGia:0, DaThu:0, NgayLap:homNay}});
+  })
+  .then(function(kq){
+    maHD=(kq&&kq.MaHD)||maHD;
+    if(thu>0 && maHD) return goi('thuTien',{maHD:maHD, soTien:thu, hinhThuc:hinhThuc, nguoiThu:NguoiDung.hoTen, tuCanBang:true, ghiChu:'Đổi khóa sang '+k.TenKhoa});
+    return null;
+  })
+  .then(function(){
+    dongModal(); bao('✓ Đã đổi sang khóa '+k.TenKhoa+' (giữ '+info.daHoc+' buổi đã học)');
+    guiTelegramQL('👔 <b>ĐỔI KHÓA / LỚP</b>\n👤 '+esc(h.HoTen)+' ('+esc(h.CoSo||'')+')\n📚 '+esc(info.ten||'—')+' ➜ <b>'+esc(k.TenKhoa)+'</b> · đã học '+info.daHoc+' buổi'+(tenLop?('\n🏫 Lớp: '+esc(tenLop)):'')+(thu>0?('\n💰 Thu thêm '+tien(thu)+'đ'):'')+'\n👩‍💼 '+esc((NguoiDung&&NguoiDung.hoTen)||''));
+    goi('boSungHocVien').then(function(m){ MapBoSung=m; }).catch(function(){});
+    moChiTiet(h.MaHV);
+  })
+  .catch(function(e){ loi(e.message); });
 }
 function gkFmtTien(el){ var v=el.value.replace(/[^0-9]/g,''); el.value=v?Number(v).toLocaleString('vi-VN'):''; }
 function gkTinhTien(){
