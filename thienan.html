@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v38</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v39</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -434,6 +434,7 @@ main section{animation:hienLen .25s ease}
         <button class="nutPhu" onclick="dashVeThangNay()">Về tháng này</button>
         <span style="font-size:12px;color:#6b7280">Doanh thu &amp; học viên mới theo tháng đã chọn. Bấm cột trên biểu đồ để chọn nhanh tháng đó.</span>
       </div>
+      <div id="dashHomNay" style="margin-bottom:12px"></div>
       <div id="theTongQuan" class="luoiThe"></div>
       <div class="dashGrid">
         <div class="dashChinh">
@@ -1818,6 +1819,7 @@ function _bsInit(){
 function _bsLamMoiNhe(){
   if(window._timerBSn) clearTimeout(window._timerBSn);
   window._timerBSn = setTimeout(function(){
+    if(typeof veHomNay==='function') veHomNay();
     fbBoSungHocVien().then(function(m){ MapBoSung=m; var v=document.getElementById('vung-hocvien'); if(NguoiDung && v && !v.classList.contains('an') && typeof taiHocVien==='function') taiHocVien(TrangHV||1);
       var ve=document.getElementById('vung-diemdanh'); if(ve && !ve.classList.contains('an') && typeof veDsDiemDanh==='function' && document.getElementById('dsDiemDanhBox')) veDsDiemDanh();
     }).catch(function(){});
@@ -4834,6 +4836,42 @@ function napTrangChu(){
     : '<div class="trong" style="padding:12px">Không có học viên nào sắp hết khóa. 👍</div>';
   // Việc hôm nay (nếu CRM đã tải)
   napViecDashboard();
+  veHomNay();
+  if(typeof _bsInit==='function') _bsInit().then(veHomNay).catch(function(){});
+}
+// Hôm nay: ai đã đóng học phí + ai đăng ký mới (dùng dữ liệu đã có trong bộ nhớ, không đọc thêm Firebase)
+function veHomNay(){
+  var box=document.getElementById('dashHomNay'); if(!box) return;
+  var hn=_homNayISO();
+  var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
+  var thu=(_bsC&&_bsC.pt||[]).filter(function(r){
+    var iso=r.NgayThuISO||_isoTuNgay(r.NgayThu); if(iso!==hn) return false;
+    var h=hvMap[String(r.MaHV)]; return !h || dungCoSo(h.CoSo);
+  }).sort(function(a,b){ return String(b.MaPT).localeCompare(String(a.MaPT)); });
+  var tong=thu.reduce(function(t,r){ return t+soTienJS(r.SoTien); },0);
+  var moi=TatCaHV.filter(function(h){
+    if(!dungCoSo(h.CoSo)) return false;
+    var iso=_isoTuNgay(h.NgayTao)||'';
+    if(!iso) iso=_isoTuNgay(h.NgayNhapHoc)||'';
+    return iso===hn;
+  });
+  function dong(l,r,pt){ return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f3f5"><div style="min-width:0">'+l+'</div><div style="text-align:right;white-space:nowrap">'+r+'</div></div>'; }
+  var htThu = thu.length ? thu.slice(0,12).map(function(r){
+    var h=hvMap[String(r.MaHV)]||{};
+    return dong('<a href="#" onclick="moChiTiet(\''+esc(String(r.MaHV))+'\');return false" style="font-weight:600;color:#12294d">'+esc(r.HoTen||h.HoTen||r.MaHV)+'</a>'
+      +'<div style="font-size:12px;color:#6b7280">'+esc(r.HinhThuc||'')+(r.NguoiThu?' · '+esc(r.NguoiThu):'')+(r.GhiChu?' · '+esc(r.GhiChu):'')+'</div>',
+      '<b style="color:#0f7a4d">+'+tien(soTienJS(r.SoTien))+'</b> <button class="nutNho vien" onclick="inHoaDon(\''+esc(r.MaPT)+'\')">In</button>');
+  }).join('')+(thu.length>12?'<div style="font-size:12px;color:#6b7280;padding-top:6px">… và '+(thu.length-12)+' phiếu khác (bấm thẻ Doanh thu để xem đủ)</div>':'')
+    : '<div class="trong" style="padding:12px">Hôm nay chưa có ai đóng học phí.</div>';
+  var htMoi = moi.length ? moi.slice(0,12).map(function(h){
+    return dong('<a href="#" onclick="moChiTiet(\''+esc(String(h.MaHV))+'\');return false" style="font-weight:600;color:#12294d">'+esc(h.HoTen)+'</a>'
+      +'<div style="font-size:12px;color:#6b7280">'+esc(h.TenKhoa||'Chưa chọn khóa')+(h.Lop?' · '+esc(h.Lop):'')+(h.NguoiCapNhat?' · '+esc(h.NguoiCapNhat):'')+'</div>',
+      '<span style="font-size:12px;color:#6b7280">'+esc(h.SDT_PhuHuynh||'')+'</span>');
+  }).join('') : '<div class="trong" style="padding:12px">Hôm nay chưa có học viên đăng ký mới.</div>';
+  box.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">'
+    +'<div class="the" style="padding:14px;border-top:4px solid #10b981"><div class="tieuMuc" style="color:#047857;display:flex;justify-content:space-between;align-items:center"><span><span class="ic" style="color:#10b981">payments</span> Hôm nay đã thu</span><span style="font-size:15px">'+thu.length+' phiếu · <b>'+tien(tong)+' đ</b></span></div>'+htThu+'</div>'
+    +'<div class="the" style="padding:14px;border-top:4px solid #2563eb"><div class="tieuMuc" style="color:#1d4ed8;display:flex;justify-content:space-between;align-items:center"><span><span class="ic" style="color:#2563eb">person_add</span> Đăng ký mới hôm nay</span><span style="font-size:15px"><b>'+moi.length+'</b> học viên</span></div>'+htMoi+'</div>'
+    +'</div>';
 }
 function napViecDashboard(){
   var box=document.getElementById('dashViec'); if(!box) return;
