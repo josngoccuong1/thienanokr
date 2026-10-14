@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 14/10/2026 · v36</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v37</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -1098,23 +1098,6 @@ function ganListeners(){
   });
   FB.onSnapshot(FB.collection(FB.db,'lop'), function(snap){ DsLop = snap.docs.map(docToObj); });
   FB.onSnapshot(FB.collection(FB.db,'khoahoc'), function(snap){ DsKhoa = snap.docs.map(docToObj); });
-  // Realtime: có điểm danh mới → tự cập nhật số buổi đã học/còn lại (danh sách)
-  var thangNay=new Date().getFullYear()+'-'+('0'+(new Date().getMonth()+1)).slice(-2);
-  var _boLan=0;
-  FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','==',thangNay)), function(){
-    _boLan++; var lanNay=_boLan;
-    if(window._timerBS) clearTimeout(window._timerBS);
-    window._timerBS=setTimeout(function(){
-      if(lanNay!==_boLan) return;
-      goi('boSungHocVien').then(function(m){ MapBoSung=m;
-        var v=document.getElementById('vung-hocvien');
-        if(NguoiDung && v && !v.classList.contains('an')) taiHocVien(TrangHV||1);
-        // làm mới bảng điểm danh (cột buổi còn lại) nếu đang mở
-        var ve=document.getElementById('vung-diemdanh');
-        if(ve && !ve.classList.contains('an') && typeof veDsDiemDanh==='function' && document.getElementById('dsDiemDanhBox')) veDsDiemDanh();
-      }).catch(function(){});
-    }, 5000);
-  });
 }
 
 async function fbTaiBanDau(){
@@ -1804,13 +1787,49 @@ function fbBoSungHocVien(){
   }
   return _bsCho;
 }
+// Bộ nhớ đệm: đọc dangky/hocphi/phieuthu/diemdanh MỘT lần, sau đó chỉ nhận phần thay đổi (không đọc lại toàn bộ mỗi lần)
+var _bsC = {dk:[], hp:[], pt:[], dd:null, ready:null};
+function _bsInit(){
+  if(_bsC.ready) return _bsC.ready;
+  var p = new Promise(function(resolve, reject){
+    var cho = 4, xong = {};
+    function ok(k){ if(!xong[k]){ xong[k]=1; if(--cho===0) resolve(); } }
+    function lang(name, key){
+      FB.onSnapshot(FB.collection(FB.db,name), function(snap){
+        _bsC[key] = snap.docs.map(docToObj);
+        if(!xong[key]) ok(key); else _bsLamMoiNhe();
+      }, function(e){ if(!xong[key]){ xong[key]=1; reject(e); } });
+    }
+    lang('dangky','dk'); lang('hocphi','hp'); lang('phieuthu','pt');
+    // điểm danh: lần đầu nhận toàn bộ, sau đó chỉ nhận bản ghi thay đổi
+    FB.onSnapshot(FB.collection(FB.db,'diemdanh'), function(snap){
+      if(!_bsC.dd){ _bsC.dd = {}; }
+      snap.docChanges().forEach(function(c){
+        if(c.type==='removed') delete _bsC.dd[c.doc.id];
+        else { var o=c.doc.data(); _bsC.dd[c.doc.id] = {MaHV:String(o.MaHV), NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||''}; }
+      });
+      if(!xong.dd) ok('dd'); else _bsLamMoiNhe();
+    }, function(e){ if(!xong.dd){ xong.dd=1; reject(e); } });
+  });
+  p.catch(function(){ _bsC.ready=null; });
+  _bsC.ready = p;
+  return p;
+}
+function _bsLamMoiNhe(){
+  if(window._timerBSn) clearTimeout(window._timerBSn);
+  window._timerBSn = setTimeout(function(){
+    fbBoSungHocVien().then(function(m){ MapBoSung=m; var v=document.getElementById('vung-hocvien'); if(NguoiDung && v && !v.classList.contains('an') && typeof taiHocVien==='function') taiHocVien(TrangHV||1);
+      var ve=document.getElementById('vung-diemdanh'); if(ve && !ve.classList.contains('an') && typeof veDsDiemDanh==='function' && document.getElementById('dsDiemDanhBox')) veDsDiemDanh();
+    }).catch(function(){});
+  }, 2500);
+}
 async function _fbBoSungRaw(){
-  var _rs = await Promise.all([ docsCol('dangky'), docsCol('hocphi'), docsCol('phieuthu'), FB.getDocs(FB.collection(FB.db,'diemdanh')) ]);
-  var dkAll=_rs[0], hpAll=_rs[1], ptAll=_rs[2], ddAll=_rs[3];
+  await _bsInit();
+  var dkAll=_bsC.dk, hpAll=_bsC.hp, ptAll=_bsC.pt;
   var lopMap={}; dkAll.forEach(function(r){ if(r.TrangThai!=='Đã nghỉ' && !lopMap[r.MaHV]) lopMap[r.MaHV]=r.TenLop||''; });
   var hpMap={}; hpAll.forEach(function(r){ var m=r.MaHV; if(!hpMap[m]) hpMap[m]={phaiThu:0,daThu:0}; hpMap[m].phaiThu+=soTienJS(r.PhaiThu); hpMap[m].daThu+=soTienJS(r.DaThu); });
   var payDate={}; ptAll.forEach(function(r){ var m=r.MaHV; var d=String(r.NgayThu||''); if(!payDate[m]||d>payDate[m]) payDate[m]=d; });
-  var ddTheoHV={}; ddAll.docs.forEach(function(d){ var o=d.data(); var mm=String(o.MaHV); if(!ddTheoHV[mm]) ddTheoHV[mm]=[]; ddTheoHV[mm].push({NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||''}); });
+  var ddTheoHV={}; Object.keys(_bsC.dd||{}).forEach(function(id){ var o=_bsC.dd[id]; var mm=o.MaHV; if(!ddTheoHV[mm]) ddTheoHV[mm]=[]; ddTheoHV[mm].push({NgayISO:o.NgayISO, TrangThai:o.TrangThai}); });
   Object.keys(ddTheoHV).forEach(function(mm){ ddTheoHV[mm].sort(function(a,b){return a.NgayISO.localeCompare(b.NgayISO);}); });
   var khMap={}; DsKhoa.forEach(function(k){ khMap[k.MaKhoa]={GiaTien:soTienJS(k.GiaTien)}; });
   var m={};
@@ -3479,6 +3498,8 @@ function bangLichSuKhoa(d, t){
     if(x){
       var lop=x.ConNo<=0?'hoc':(x.DaThu>0?'bao':'nghi'); tt='<span class="nhan '+lop+'">'+(x.ConNo<=0?'Đã đóng đủ':(x.DaThu>0?'Đóng một phần':'Chưa đóng'))+'</span>';
       tienCols='<td class="tien">'+tien(x.PhaiThu)+'</td><td class="tien">'+tien(x.DaThu)+'</td>';
+      var dsIn=(theoHD[String(x.MaHD||'')]||[]).slice().sort(function(a,b){return String(b.MaPT).localeCompare(String(a.MaPT));});
+      if(dsIn.length) act+='<button class="nutNho vien" onclick="inHoaDon(\''+esc(dsIn[0].MaPT)+'\')" title="In hóa đơn lần đóng gần nhất">🖨️ In</button> ';
       act+='<button class="nutNho vien" onclick="suaGiamGia(\''+esc(x.MaHD)+'\')">Giảm giá</button> ';
       if(x.ConNo>0) act+='<button class="nutNho" onclick="moThuTien(\''+esc(x.MaHD)+'\','+x.ConNo+')">Đóng tiếp</button> ';
       if(laQuanLy()) act+='<button class="nutNho" style="background:#b42318" onclick="xoaHocPhiUI(\''+esc(String(x._dong))+'\',\''+esc(x.KyThu||'')+'\','+(x.DaThu||0)+')">Xóa</button>';
