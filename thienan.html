@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v40</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v41</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -4749,7 +4749,7 @@ function taiKhoaHoc(){  var tbody = document.getElementById('bangKhoa');
         + '<td>'+(k.SoBuoi||'')+'</td>'
         + '<td class="tien">'+tien(k.GiaTien)+' đ</td>'
         + '<td><span class="nhan '+lop+'">'+esc(k.TrangThai||'Đang mở')+'</span></td>'
-        + '<td>'+_soHVCuaKhoa(k.MaKhoa)+'</td>'
+        + '<td onclick="event.stopPropagation()"><a href="#" onclick="moDsHVKhoa(\''+esc(k.MaKhoa)+'\');return false" style="font-weight:700;color:#2563eb;text-decoration:underline" title="Xem danh sách học viên của khóa">'+_soHVCuaKhoa(k.MaKhoa)+'</a></td>'
         + '<td style="white-space:nowrap" onclick="event.stopPropagation()">'
         +   '<button class="nutNho vien" onclick=\'moKhoaHoc('+JSON.stringify(k).replace(/'/g,"&#39;")+')\'>Sửa</button> '
         +   '<button class="nutNho vien" onclick=\'nhanBanKhoa('+JSON.stringify(k).replace(/'/g,"&#39;")+')\' title="Tạo khóa mới từ khóa này">Nhân bản</button> '
@@ -4761,6 +4761,28 @@ function taiKhoaHoc(){  var tbody = document.getElementById('bangKhoa');
   });
 }
 function _soHVCuaKhoa(ma){ return TatCaHV.filter(function(h){ return String(h.MaKhoa||'')===String(ma) && h.TrangThai!=='Đã nghỉ'; }).length; }
+function moDsHVKhoa(ma){
+  var k=DsKhoa.filter(function(x){return x.MaKhoa===ma;})[0]||{TenKhoa:ma};
+  var tatCa=TatCaHV.filter(function(h){ return String(h.MaKhoa||'')===String(ma) && dungCoSo(h.CoSo); });
+  var dang=tatCa.filter(function(h){return h.TrangThai!=='Đã nghỉ';}), nghi=tatCa.length-dang.length;
+  dang.sort(function(a,b){ var A=MapBoSung[a.MaHV]||{}, B=MapBoSung[b.MaHV]||{}; var x=(A.ConLai===''||A.ConLai==null)?999:soTienJS(A.ConLai), y=(B.ConLai===''||B.ConLai==null)?999:soTienJS(B.ConLai); return x-y; });
+  var rows=dang.map(function(h,i){
+    var bs=MapBoSung[h.MaHV]||{};
+    var cl=(bs.ConLai===''||bs.ConLai==null)?'—':soTienJS(bs.ConLai);
+    var tt=bs.TTHocPhi||'';
+    var mauTT=tt==='Đã đóng'?'hoc':(tt==='Còn nợ'||tt==='Chưa đóng'?'nghi':'');
+    return '<tr><td>'+(i+1)+'</td><td><a href="#" onclick="dongModal();moChiTiet(\''+esc(String(h.MaHV))+'\');return false" style="font-weight:600;color:#12294d">'+esc(h.HoTen)+'</a><div class="ma">'+esc(h.MaHV)+'</div></td>'
+      +'<td>'+esc(bs.Lop||h.Lop||'—')+'</td>'
+      +'<td>'+(bs.DaHoc===''||bs.DaHoc==null?'—':bs.DaHoc)+'/'+(bs.SoBuoiHT||h.SoBuoiKhoa||'—')+'</td>'
+      +'<td'+(cl!=='—'&&cl<=3?' style="color:#b42318;font-weight:700"':'')+'>'+cl+'</td>'
+      +'<td>'+(tt?'<span class="nhan '+mauTT+'">'+esc(tt)+'</span>':'—')+'</td>'
+      +'<td>'+(h.SDT_PhuHuynh?'<a href="tel:'+esc(h.SDT_PhuHuynh)+'">'+esc(h.SDT_PhuHuynh)+'</a>':'')+'</td></tr>';
+  }).join('');
+  moModal('👥 Học viên khóa: '+esc(k.TenKhoa),
+    '<div style="font-size:13px;margin-bottom:8px"><b>'+dang.length+'</b> học viên đang theo khóa'+(nghi?' · <span style="color:#6b7280">'+nghi+' đã nghỉ (không hiện)</span>':'')+'</div>'
+    +(dang.length?'<div class="cuonBang"><table class="nho"><thead><tr><th>#</th><th>Học viên</th><th>Lớp</th><th>Đã học</th><th>Còn lại</th><th>Học phí</th><th>SĐT</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="trong" style="padding:20px">Chưa có học viên nào đang theo khóa này.</div>'),
+    '', {rong:true, chan:'<button class="nutPhu" onclick="dongModal()">Đóng</button>'});
+}
 function nhanBanKhoa(k){ var c=JSON.parse(JSON.stringify(k)); c.MaKhoa=''; c._dong=''; c.TenKhoa=(k.TenKhoa||'')+' (bản sao)'; moKhoaHoc(c); }
 function xoaKhoaHocUI(ma){
   if(!laQuanLy()){ bao('Bạn không có quyền xóa khóa học.', true); return; }
