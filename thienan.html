@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v39</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v40</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -581,9 +581,9 @@ main section{animation:hienLen .25s ease}
         <div class="cuonBang"><table>
           <thead><tr>
             <th>Mã</th><th>Tên khóa</th><th>Môn</th><th>Số buổi</th>
-            <th class="tien">Giá tiền</th><th>Trạng thái</th>
+            <th class="tien">Giá tiền</th><th>Trạng thái</th><th>Học viên</th><th>Thao tác</th>
           </tr></thead>
-          <tbody id="bangKhoa"><tr><td colspan="6" class="dangTai">Đang tải...</td></tr></tbody>
+          <tbody id="bangKhoa"><tr><td colspan="8" class="dangTai">Đang tải...</td></tr></tbody>
         </table></div>
       </div>
     </section>
@@ -1013,6 +1013,7 @@ async function goi(hanhDong, dl){
     case 'luuLop':           return await fbLuuLop(dl);
     case 'layKhoaHoc':       return await docsCol('khoahoc');
     case 'luuKhoaHoc':       return await fbLuuKhoaHoc(dl);
+    case 'xoaKhoaHoc':       return await fbXoaKhoaHoc(dl);
     case 'layDangKy':        return await fbLayDangKy(dl);
     case 'themVaoLop':       return await fbThemVaoLop(dl);
     case 'xoaDangKy':        return await fbXoaDangKy(dl);
@@ -1178,6 +1179,11 @@ async function fbLuuLop(dl){
   return { MaLop:maLop };
 }
 
+async function fbXoaKhoaHoc(dl){
+  var ma=String(dl.maKhoa||'').trim(); if(!ma) throw new Error('Thiếu mã khóa.');
+  await FB.deleteDoc(FB.doc(FB.db,'khoahoc',ma));
+  return true;
+}
 async function fbLuuKhoaHoc(dl){
   var k=dl.khoaHoc; if(!String(k.TenKhoa||'').trim()) throw new Error('Chưa nhập tên khóa học.');
   var maKhoa=String(k.MaKhoa||'').trim() || sinhMaMoi('KH', DsKhoa, 'MaKhoa');
@@ -4731,7 +4737,7 @@ function taiKhoaHoc(){  var tbody = document.getElementById('bangKhoa');
   goi('layKhoaHoc').then(function(ds){
     DsKhoa = ds;
     if(!ds.length){
-      tbody.innerHTML = '<tr><td colspan="6" class="trong">Chưa có khóa học nào. Bấm “Thêm khóa học” để tạo (VD: Piano cơ bản - 2.000.000đ).</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="trong">Chưa có khóa học nào. Bấm “Thêm khóa học” để tạo (VD: Piano cơ bản - 2.000.000đ).</td></tr>';
       return;
     }
     tbody.innerHTML = ds.map(function(k){
@@ -4742,11 +4748,29 @@ function taiKhoaHoc(){  var tbody = document.getElementById('bangKhoa');
         + '<td>'+esc(k.MonHoc)+'</td>'
         + '<td>'+(k.SoBuoi||'')+'</td>'
         + '<td class="tien">'+tien(k.GiaTien)+' đ</td>'
-        + '<td><span class="nhan '+lop+'">'+esc(k.TrangThai||'Đang mở')+'</span></td></tr>';
+        + '<td><span class="nhan '+lop+'">'+esc(k.TrangThai||'Đang mở')+'</span></td>'
+        + '<td>'+_soHVCuaKhoa(k.MaKhoa)+'</td>'
+        + '<td style="white-space:nowrap" onclick="event.stopPropagation()">'
+        +   '<button class="nutNho vien" onclick=\'moKhoaHoc('+JSON.stringify(k).replace(/'/g,"&#39;")+')\'>Sửa</button> '
+        +   '<button class="nutNho vien" onclick=\'nhanBanKhoa('+JSON.stringify(k).replace(/'/g,"&#39;")+')\' title="Tạo khóa mới từ khóa này">Nhân bản</button> '
+        +   (laQuanLy()?'<button class="nutNho" style="background:#b42318" onclick="xoaKhoaHocUI(\''+esc(k.MaKhoa)+'\')">Xóa</button>':'')
+        + '</td></tr>';
     }).join('');
   }).catch(function(e){
-    tbody.innerHTML = '<tr><td colspan="6" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
   });
+}
+function _soHVCuaKhoa(ma){ return TatCaHV.filter(function(h){ return String(h.MaKhoa||'')===String(ma) && h.TrangThai!=='Đã nghỉ'; }).length; }
+function nhanBanKhoa(k){ var c=JSON.parse(JSON.stringify(k)); c.MaKhoa=''; c._dong=''; c.TenKhoa=(k.TenKhoa||'')+' (bản sao)'; moKhoaHoc(c); }
+function xoaKhoaHocUI(ma){
+  if(!laQuanLy()){ bao('Bạn không có quyền xóa khóa học.', true); return; }
+  var k=DsKhoa.filter(function(x){return x.MaKhoa===ma;})[0]||{TenKhoa:ma};
+  var dang=_soHVCuaKhoa(ma);
+  var msg = dang>0
+    ? '⚠️ Khóa "'+k.TenKhoa+'" đang gắn cho '+dang+' học viên.\n\nXóa khóa chỉ gỡ nó khỏi danh mục: học viên, điểm danh và học phí cũ vẫn giữ nguyên (hồ sơ vẫn hiện tên khóa), nhưng sẽ không chọn được khóa này khi gia hạn nữa.\n\nNên chuyển sang "Đóng" thay vì xóa. Vẫn XÓA hẳn?'
+    : 'Xóa khóa "'+k.TenKhoa+'"? Việc này không hoàn tác được.';
+  if(!confirm(msg)) return;
+  goi('xoaKhoaHoc',{maKhoa:ma}).then(function(){ dongModal(); bao('✓ Đã xóa khóa '+k.TenKhoa); taiKhoaHoc(); }).catch(function(e){ bao(e.message,true); });
 }
 
 function moKhoaHoc(k){
@@ -4766,7 +4790,9 @@ function moKhoaHoc(k){
     + o('Trạng thái','<select id="k_TrangThai">'
         +['Đang mở','Đóng'].map(function(t){return '<option'+(k.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
     + o('Ghi chú','<textarea id="k_GhiChu" rows="2">'+esc(k.GhiChu)+'</textarea>',false,'rong')
-    + '</div>', 'luuKhoaHoc(\''+esc(k._dong||'')+'\',\''+esc(k.MaKhoa||'')+'\')');
+    + (moi?'':'<div style="font-size:12.5px;color:#6b7280;margin-top:8px;grid-column:1/-1">💡 Sửa giá / số buổi chỉ áp dụng cho học phí tạo từ nay về sau. Học phí và hồ sơ đã có giữ nguyên.</div>')
+    + '</div>', 'luuKhoaHoc(\''+esc(k._dong||'')+'\',\''+esc(k.MaKhoa||'')+'\')',
+    moi?undefined:{chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button>'+(laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaKhoaHocUI(\''+esc(k.MaKhoa)+'\')">🗑️ Xóa khóa</button>':'')+'<button class="nutChinh" id="nutLuu" onclick="luuKhoaHoc(\''+esc(k._dong||'')+'\',\''+esc(k.MaKhoa||'')+'\')">Lưu</button>'});
 }
 
 function luuKhoaHoc(dong, ma){
