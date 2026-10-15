@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v47</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v48</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -4890,7 +4890,7 @@ function napTrangChu(){
     + theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>')
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
     + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay()",'<span class="ic">today</span>','Hôm nay', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Mới: <b id="dashNgayMoi">…</b> · Gia hạn: <b id="dashNgayGH">…</b>')
+    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay()",'<span class="ic">today</span>','Hôm nay', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
     + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
@@ -5042,6 +5042,11 @@ function veHomNay(khongTai){
   var soBan=Object.keys(coMat).length;
   function dat(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
   if(_hn.loi){ var bl=document.getElementById('dashHomNay'); }
+  var hdHn={}; _hpAll.forEach(function(r){ hdHn[String(r.MaHD||r._id)]=r; });
+  var tM=0,tG=0,tK=0;
+  thu.forEach(function(r){ var st=soTienJS(r.SoTien), hd=hdHn[String(r.MaHD)];
+    if(hd){ if(moiSet[String(r.MaHV)]) tM+=st; else tG+=st; } else if(moiSet[String(r.MaHV)]) tM+=st; else tK+=st; });
+  dat('dashTienMoi',tien(tM)); dat('dashTienGH',tien(tG)); dat('dashTienKhac',tien(tK));
   dat('dashDTNgay', tien(tong)+' đ'); dat('dashNgayDD', soBan); dat('dashNgayMoi', moi.length); dat('dashNgayGH', soGH);
   function dong(l,r){ return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f3f5"><div style="min-width:0">'+l+'</div><div style="text-align:right;white-space:nowrap">'+r+'</div></div>'; }
   var htThu = thu.length ? thu.slice(0,12).map(function(r){
