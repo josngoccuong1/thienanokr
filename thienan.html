@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v41</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 15/10/2026 · v42</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -511,9 +511,9 @@ main section{animation:hienLen .25s ease}
         <div class="cuonBang"><table>
           <thead><tr>
             <th>Mã</th><th>Tên lớp</th><th>Môn</th><th class="an-mobile">Giáo viên</th>
-            <th class="an-mobile">Lịch</th><th>Trạng thái</th><th></th>
+            <th class="an-mobile">Lịch</th><th>Sĩ số</th><th>Trạng thái</th><th>Thao tác</th>
           </tr></thead>
-          <tbody id="bangLop"><tr><td colspan="7" class="dangTai">Đang tải...</td></tr></tbody>
+          <tbody id="bangLop"><tr><td colspan="8" class="dangTai">Đang tải...</td></tr></tbody>
         </table></div>
       </div>
     </section>
@@ -1011,6 +1011,7 @@ async function goi(hanhDong, dl){
     case 'xemHocVien':       return await fbXemHocVien(dl);
     case 'layLop':           return await docsCol('lop');
     case 'luuLop':           return await fbLuuLop(dl);
+    case 'xoaLop':           return await fbXoaLop(dl);
     case 'layKhoaHoc':       return await docsCol('khoahoc');
     case 'luuKhoaHoc':       return await fbLuuKhoaHoc(dl);
     case 'xoaKhoaHoc':       return await fbXoaKhoaHoc(dl);
@@ -1170,6 +1171,14 @@ async function fbXemHocVien(dl){
   };
 }
 
+async function fbXoaLop(dl){
+  var ma=String(dl.maLop||'').trim(); if(!ma) throw new Error('Thiếu mã lớp.');
+  var dk=await docsWhere('dangky','MaLop',ma);
+  var homNay=new Date().toLocaleDateString('vi-VN');
+  await Promise.all(dk.filter(function(r){return r.TrangThai!=='Đã nghỉ';}).map(function(r){ return FB.setDoc(FB.doc(FB.db,'dangky',r._dong),{TrangThai:'Đã nghỉ',NgayKetThuc:homNay},{merge:true}); }));
+  await FB.deleteDoc(FB.doc(FB.db,'lop',ma));
+  return true;
+}
 async function fbLuuLop(dl){
   var l=dl.lop; if(!String(l.TenLop||'').trim()) throw new Error('Chưa nhập tên lớp.');
   var maLop=String(l.MaLop||'').trim() || sinhMaMoi('LOP', DsLop, 'MaLop');
@@ -2869,7 +2878,7 @@ function taiLop(){
     DsLop = ds;
     var dsHien = ds.filter(function(l){ return dungCoSo(l.CoSo); });
     if(!dsHien.length){
-      tbody.innerHTML = '<tr><td colspan="7" class="trong">'+(ds.length?'Cơ sở này chưa có lớp nào.':'Chưa có lớp nào. Bấm “Thêm lớp” để tạo lớp đầu tiên.')+'</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="trong">'+(ds.length?'Cơ sở này chưa có lớp nào.':'Chưa có lớp nào. Bấm “Thêm lớp” để tạo lớp đầu tiên.')+'</td></tr>';
       return;
     }
     tbody.innerHTML = dsHien.map(function(l){
@@ -2880,14 +2889,33 @@ function taiLop(){
         + '<td>'+esc(l.MonHoc)+'</td>'
         + '<td class="an-mobile">'+esc(l.TenGV)+'</td>'
         + '<td class="an-mobile">'+esc(l.Thu)+' · '+esc(l.GioBatDau)+'-'+esc(l.GioKetThuc)+'</td>'
+        + '<td onclick="event.stopPropagation()"><a href="#" onclick="moRoster(\''+esc(l.MaLop)+'\');return false" style="font-weight:700;color:#2563eb;text-decoration:underline" title="Xem / thêm / bớt học viên của lớp">'+_soHVLop(l.MaLop)+(l.SiSoToiDa?'/'+esc(l.SiSoToiDa):'')+'</a></td>'
         + '<td><span class="nhan '+lop+'">'+esc(l.TrangThai||'Đang mở')+'</span></td>'
-        + '<td><button class="nutNho" onclick="event.stopPropagation();moRoster(\''+esc(l.MaLop)+'\')">Sĩ số</button></td></tr>';
+        + '<td style="white-space:nowrap" onclick="event.stopPropagation()">'
+        +   '<button class="nutNho vien" onclick=\'moLop('+JSON.stringify(l).replace(/'/g,"&#39;")+')\'>Sửa</button> '
+        +   '<button class="nutNho vien" onclick="moRoster(\''+esc(l.MaLop)+'\')">Học viên</button> '
+        +   '<button class="nutNho vien" onclick=\'nhanBanLop('+JSON.stringify(l).replace(/'/g,"&#39;")+')\' title="Tạo lớp mới từ lớp này">Nhân bản</button> '
+        +   (laQuanLy()?'<button class="nutNho" style="background:#b42318" onclick="xoaLopUI(\''+esc(l.MaLop)+'\')">Xóa</button>':'')
+        + '</td></tr>';
     }).join('');
+    if(typeof _bsInit==='function' && !window._lopBsDa){ window._lopBsDa=1; _bsInit().then(function(){ var v=document.getElementById('vung-lop'); if(v && !v.classList.contains('an')) taiLop(); }).catch(function(){}); }
   }).catch(function(e){
-    tbody.innerHTML = '<tr><td colspan="7" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="trong">Không tải được: '+esc(e.message)+'</td></tr>';
   });
 }
 
+function _soHVLop(ma){ return ((typeof _bsC!=='undefined' && _bsC.dk)||[]).filter(function(r){ return String(r.MaLop)===String(ma) && r.TrangThai!=='Đã nghỉ'; }).length; }
+function nhanBanLop(l){ var c=JSON.parse(JSON.stringify(l)); c.MaLop=''; c._dong=''; c.TenLop=(l.TenLop||'')+' (bản sao)'; moLop(c); }
+function xoaLopUI(ma){
+  if(!laQuanLy()){ bao('Bạn không có quyền xóa lớp.', true); return; }
+  var l=DsLop.filter(function(x){return x.MaLop===ma;})[0]||{TenLop:ma};
+  var n=_soHVLop(ma);
+  var msg = n>0
+    ? '⚠️ Lớp "'+l.TenLop+'" còn '+n+' học viên.\n\nXóa lớp sẽ đưa '+n+' học viên ra khỏi lớp (chuyển "Đã nghỉ"). Lịch sử điểm danh và học phí giữ nguyên.\n\nNếu chỉ tạm ngưng thì nên đổi trạng thái lớp sang "Đã đóng". Vẫn XÓA hẳn lớp?'
+    : 'Xóa lớp "'+l.TenLop+'"? Việc này không hoàn tác được.';
+  if(!confirm(msg)) return;
+  goi('xoaLop',{maLop:ma}).then(function(){ dongModal(); bao('✓ Đã xóa lớp '+l.TenLop); taiLop(); }).catch(function(e){ bao(e.message,true); });
+}
 function moLop(l){
   l = l || {};
   var moi = !l.MaLop;
@@ -2918,7 +2946,8 @@ function moLop(l){
       +['Đang mở','Đã đóng'].map(function(t){return '<option'+(l.TrangThai===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>')
   + o('Ghi chú','<textarea id="f_GhiChu" rows="2">'+esc(l.GhiChu)+'</textarea>',false,'rong')
   + '</div>',
-    'luuLop(\'' + esc(l._dong||'') + '\',\'' + esc(l.MaLop||'') + '\')');
+    'luuLop(\'' + esc(l._dong||'') + '\',\'' + esc(l.MaLop||'') + '\')',
+    moi?undefined:{chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button>'+(laQuanLy()?'<button class="nutPhu" style="border-color:#b42318;color:#b42318" onclick="xoaLopUI(\''+esc(l.MaLop)+'\')">🗑️ Xóa lớp</button>':'')+'<button class="nutChinh" id="nutLuu" onclick="luuLop(\''+esc(l._dong||'')+'\',\''+esc(l.MaLop||'')+'\')">Lưu</button>'});
 }
 
 function luuLop(dong, ma){
@@ -3805,7 +3834,7 @@ function taiRoster(){
       + active.map(function(r){
           return '<tr><td class="ma">'+esc(r.MaHV)+'</td><td><strong>'+esc(r.HoTen)+'</strong></td>'
             + '<td>'+esc(r.NgayBatDau)+'</td>'
-            + '<td><button class="nutXoa" onclick="xoaKhoiLop('+r._dong+')">Xóa</button></td></tr>';
+            + '<td><button class="nutXoa" onclick="xoaKhoiLop(\''+esc(String(r._dong))+'\')">Xóa</button></td></tr>';
         }).join('')
       + '</tbody></table></div>';
   }).catch(function(e){
