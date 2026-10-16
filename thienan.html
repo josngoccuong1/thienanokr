@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v51</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v53</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -4890,7 +4890,7 @@ function napTrangChu(){
     + theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>')
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
     + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn · giá trị buổi học <b id="dashGTBuoi">0</b> đ<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
+    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Giá trị buổi học: <b id="dashGTBuoi">0</b> đ<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
     + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
@@ -4992,12 +4992,11 @@ function inBaoCaoNgay(){
   setTimeout(function(){ window.print(); },150);
 }
 // Giá trị buổi học = số buổi có mặt × (học phí khóa ÷ số buổi khóa) của từng bạn — KHÔNG phải tiền thực thu
-function _giaBuoiHV(h){
+function _giaBuoiHV(h){ // giống cách mục Điểm danh theo giáo viên tính: học phí khóa ÷ số buổi của khóa, làm tròn mỗi lượt
   if(!h) return 0; var kh=(DsKhoa||[]).filter(function(k){ return k.MaKhoa===h.MaKhoa; })[0]||null;
-  var bs=(typeof MapBoSung!=='undefined' && MapBoSung[h.MaHV])||{};
-  var gia=kh?soTienJS(kh.GiaTien):soTienJS(bs.HocPhi);
-  var sb=soTienJS(h.SoBuoiKhoa)||(kh?soTienJS(kh.SoBuoi):0)||soTienJS(bs.SoBuoiHT);
-  return (gia>0&&sb>0)?gia/sb:0;
+  var gia=kh?soTienJS(kh.GiaTien):0, sb=kh?soTienJS(kh.SoBuoi):0;
+  if(!(gia>0&&sb>0)){ var bs=(typeof MapBoSung!=='undefined' && MapBoSung[h.MaHV])||{}; gia=soTienJS(bs.HocPhi); sb=soTienJS(h.SoBuoiKhoa)||soTienJS(bs.SoBuoiHT); }
+  return (gia>0&&sb>0)?Math.round(gia/sb):0;
 }
 function _giaTriBuoi(dsDD, hvMap, trongCS){
   var tong=0, thieu=0;
