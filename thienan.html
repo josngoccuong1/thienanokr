@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v49</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v50</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -4890,7 +4890,7 @@ function napTrangChu(){
     + theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>')
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
     + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay()",'<span class="ic">today</span>','Hôm nay', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
+    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
     + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
@@ -4990,9 +4990,12 @@ function inBaoCaoNgay(){
   document.getElementById('vungIn').innerHTML='<div style="font-family:Arial,sans-serif;padding:10px"><h2 style="margin:0 0 4px">Học viện Âm nhạc Thiên Ân</h2><h3 style="margin:0 0 10px">'+esc(window._bcNgayTieuDe||'')+'</h3>'+window._bcNgayHtml.replace(/<button[^>]*>.*?<\/button>/g,'')+'</div>';
   setTimeout(function(){ window.print(); },150);
 }
+var _hnChon=''; function _hnNgay(){ return _hnChon||_homNayISO(); }
+function _hnLui(n){ var d=new Date(_hnNgay()+'T00:00:00'); d.setDate(d.getDate()+n); var m=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); return m>_homNayISO()?_homNayISO():m; }
+function hnDoiNgay(v){ _hnChon=(v&&v!==_homNayISO())?v:''; _hn.ngay=''; veHomNay(); }
 var _hn={ptF:[],hpF:[],ddF:[],ngay:'',pt:[],pt2:[],dd:[],hp:[],unsub:[],loi:''};
 function _hnKhoiDong(){
-  var hn=_homNayISO(); if(_hn.ngay===hn) return;
+  var hn=_hnNgay(); if(_hn.ngay===hn) return;
   _hn.unsub.forEach(function(f){ try{f();}catch(e){} }); _hn.unsub=[];
   if(typeof _bsInit==='function') _bsInit().then(function(){ veHomNay(); }).catch(function(e){ _hn.loi2=e.message; });
   _hn.ngay=hn; _hn.ptF=[]; _hn.hpF=[]; _hn.ddF=[]; _hn.tai=0; _hn.pt=[]; _hn.pt2=[]; _hn.dd=[]; _hn.hp=[]; _hn.loi='';
@@ -5007,7 +5010,7 @@ function _hnKhoiDong(){
 // Hôm nay: doanh thu, điểm danh, đăng ký mới, gia hạn (truy vấn riêng theo ngày, cập nhật trực tiếp)
 // Tải trực tiếp (cùng cách báo cáo doanh thu đang dùng): phiếu thu cả bộ, học phí cả bộ, điểm danh theo ngày
 async function _hnTai(){
-  var hn=_homNayISO();
+  var hn=_hnNgay();
   if(_hn.dangTai && Date.now()-_hn.dangTai<15000) return; _hn.dangTai=Date.now();
   try{
     var r=await Promise.all([docsCol('phieuthu'), docsCol('hocphi'), docsWhere('diemdanh','NgayISO',hn)]);
@@ -5021,7 +5024,8 @@ function veHomNay(khongTai){
   var box=document.getElementById('dashHomNay'); if(!box) return;
   _hnKhoiDong();
   if(khongTai!==true && (!_hn.tai||Date.now()-_hn.tai>60000)){ _hn.tai=Date.now(); _hnTai(); }
-  var hn=_homNayISO();
+  var hn=_hnNgay();
+  var homNay=(hn===_homNayISO()); var nhanNgay=homNay?'Hôm nay':hn.split('-').reverse().join('/');
   var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
   function trongCS(ma){ var h=hvMap[String(ma)]; return !h || dungCoSo(h.CoSo); }
   var _bc=_bsC||{}; var _ptB=(_bc.pt||[]).filter(function(r){ return (r.NgayThuISO||_isoTuNgay(r.NgayThu))===hn; });
@@ -5055,16 +5059,18 @@ function veHomNay(khongTai){
       +'<div style="font-size:12px;color:#6b7280">'+esc(r.HinhThuc||'')+(r.NguoiThu?' · '+esc(r.NguoiThu):'')+(r.GhiChu?' · '+esc(r.GhiChu):'')+'</div>',
       '<b style="color:#0f7a4d">+'+tien(soTienJS(r.SoTien))+'</b> <button class="nutNho vien" onclick="inHoaDon(\''+esc(r.MaPT)+'\')">In</button>');
   }).join('')+(thu.length>12?'<div style="font-size:12px;color:#6b7280;padding-top:6px">… và '+(thu.length-12)+' phiếu khác (bấm thẻ Hôm nay để xem đủ)</div>':'')
-    : '<div class="trong" style="padding:12px">'+(_hn.loi?('Không tải được ('+esc(_hn.loi)+')'):'Hôm nay chưa có ai đóng học phí.')+'</div>';
+    : '<div class="trong" style="padding:12px">'+(_hn.loi?('Không tải được ('+esc(_hn.loi)+')'):(homNay?'Hôm nay':'Ngày này')+' chưa có ai đóng học phí.')+'</div>';
   var dsMG=moi.map(function(h){ return {t:'moi',h:h}; }).concat(Object.keys(ghSet).map(function(ma){ return {t:'gh',h:hvMap[ma]||{MaHV:ma,HoTen:ma}}; }));
   var htMoi = dsMG.length ? dsMG.slice(0,14).map(function(x){
     var h=x.h;
     return dong('<a href="#" onclick="moChiTiet(\''+esc(String(h.MaHV))+'\');return false" style="font-weight:600;color:#12294d">'+esc(h.HoTen)+'</a>'
       +'<div style="font-size:12px;color:#6b7280">'+esc(h.TenKhoa||'Chưa chọn khóa')+(h.Lop?' · '+esc(h.Lop):'')+'</div>',
       '<span class="nhan '+(x.t==='moi'?'hoc':'bao')+'">'+(x.t==='moi'?'Đăng ký mới':'Gia hạn')+'</span>');
-  }).join('') : '<div class="trong" style="padding:12px">Hôm nay chưa có đăng ký mới hoặc gia hạn.</div>';
-  box.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">'
-    +'<div class="the" style="padding:14px;border-top:4px solid #10b981"><div class="tieuMuc" style="color:#047857;display:flex;justify-content:space-between;align-items:center"><span><span class="ic" style="color:#10b981">payments</span> Hôm nay đã thu</span><span style="font-size:15px">'+thu.length+' phiếu · <b>'+tien(tong)+' đ</b></span></div>'+htThu+'</div>'
+  }).join('') : '<div class="trong" style="padding:12px">Chưa có đăng ký mới hoặc gia hạn.</div>';
+  dat('dashHnNhan', homNay?'Hôm nay':'Ngày '+nhanNgay);
+  box.innerHTML='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px"><b>📅 Xem ngày:</b> <input type="date" value="'+hn+'" max="'+_homNayISO()+'" onchange="hnDoiNgay(this.value)" style="padding:7px 10px;border:1px solid #d5dbe3;border-radius:8px;font-size:14px"> <button class="nutPhu" onclick="hnDoiNgay(\'\')">Hôm nay</button> <button class="nutPhu" onclick="hnDoiNgay(_hnLui(-1))">‹ Hôm qua</button>'+(homNay?'':' <button class="nutPhu" onclick="hnDoiNgay(_hnLui(1))">Ngày sau ›</button>')+'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">'
+    +'<div class="the" style="padding:14px;border-top:4px solid #10b981"><div class="tieuMuc" style="color:#047857;display:flex;justify-content:space-between;align-items:center"><span><span class="ic" style="color:#10b981">payments</span> Đã thu '+(homNay?'hôm nay':nhanNgay)+'</span><span style="font-size:15px">'+thu.length+' phiếu · <b>'+tien(tong)+' đ</b></span></div>'+htThu+'</div>'
     +'<div class="the" style="padding:14px;border-top:4px solid #2563eb"><div class="tieuMuc" style="color:#1d4ed8;display:flex;justify-content:space-between;align-items:center"><span><span class="ic" style="color:#2563eb">person_add</span> Đăng ký mới / gia hạn</span><span style="font-size:15px"><b>'+moi.length+'</b> mới · <b>'+soGH+'</b> gia hạn</span></div>'+htMoi+'</div>'
     +'</div>';
 }
