@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v50</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 16/10/2026 · v51</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -4890,7 +4890,7 @@ function napTrangChu(){
     + theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>')
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
     + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
+    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn · giá trị buổi học <b id="dashGTBuoi">0</b> đ<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
     + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
@@ -4955,6 +4955,7 @@ async function veBaoCaoNgay(iso){
     if(r.TrangThai==='Có mặt'){ dd.coMat++; coMatSet[String(r.MaHV)]=1; } else if(r.TrangThai==='Vắng') dd.vang++; else if(r.TrangThai==='Có phép') dd.coPhep++;
     if(r.TenLop) lopSet[r.TenLop]=1; hvSet[r.MaHV]=1; });
   var soLop=Object.keys(lopSet).length;
+  var gtbR=_giaTriBuoi(ddRaw,hvMap,trongCS);
   function tile(mau,nhan,so,phu){ return '<div style="flex:1;min-width:150px;border-radius:10px;padding:10px 12px;background:'+mau+';color:#fff"><div style="font-size:12px;opacity:.9">'+nhan+'</div><div style="font-size:20px;font-weight:800">'+so+'</div><div style="font-size:12px;opacity:.9">'+phu+'</div></div>'; }
   function bang(tieuDe, hang){ return hang.length ? '<h3 class="muc">'+tieuDe+'</h3><div class="the cuonBang"><table class="nho"><tbody>'+hang.join('')+'</tbody></table></div>' : ''; }
   var htHT=Object.keys(theoHT).map(function(k){ return '<tr><td>'+esc(k)+'</td><td class="tien"><b>'+tien(theoHT[k])+'</b></td></tr>'; });
@@ -4966,7 +4967,7 @@ async function veBaoCaoNgay(iso){
     +tile('linear-gradient(135deg,#10b981,#059669)','💰 Doanh thu',tien(tong)+' đ',pt.length+' phiếu thu')
     +tile('linear-gradient(135deg,#2563eb,#1d4ed8)','🆕 HV đăng ký mới',moi.length+' bạn','đăng ký trong ngày')
     +tile('linear-gradient(135deg,#f59e0b,#d97706)','📚 Khóa mới / gia hạn',hp.length+' khóa','phải thu '+tien(hpPhai)+' · nợ '+tien(hpNo))
-    +tile('linear-gradient(135deg,#7c3aed,#6d28d9)','✅ Điểm danh',Object.keys(coMatSet).length+' bạn','lượt: có mặt '+dd.coMat+' · vắng '+dd.vang+' · phép '+dd.coPhep+(soLop?' · '+soLop+' lớp':''))
+    +tile('linear-gradient(135deg,#7c3aed,#6d28d9)','✅ Điểm danh',Object.keys(coMatSet).length+' bạn','giá trị buổi học '+tien(gtbR.tong)+' đ · lượt: có mặt '+dd.coMat+' · vắng '+dd.vang+' · phép '+dd.coPhep+(soLop?' · '+soLop+' lớp':''))
     +'</div>'
     +bang('Doanh thu theo hình thức',htHT)+bang('Doanh thu theo người thu',htNg)
     +(htPT.length?'<h3 class="muc">Chi tiết phiếu thu</h3><div class="the cuonBang"><table class="nho"><thead><tr><th>Học viên</th><th>Hình thức</th><th class="tien">Số tiền</th><th></th></tr></thead><tbody>'+htPT.join('')+'</tbody></table></div>':'<div class="trong" style="padding:14px">Ngày này không có phiếu thu.</div>')
@@ -4977,7 +4978,7 @@ async function veBaoCaoNgay(iso){
     '💰 Doanh thu: '+tien(tong)+' đ ('+pt.length+' phiếu)'].concat(Object.keys(theoHT).map(function(k){ return '   • '+k+': '+tien(theoHT[k])+' đ'; }),
     ['🆕 HV đăng ký mới: '+moi.length].concat(moi.map(function(h){ return '   • '+h.HoTen+(h.TenKhoa?' — '+h.TenKhoa:''); })),
     ['📚 Khóa mới/gia hạn: '+hp.length+' (phải thu '+tien(hpPhai)+' đ, còn nợ '+tien(hpNo)+' đ)'],
-    ['✅ Điểm danh: '+Object.keys(coMatSet).length+' bạn có mặt (lượt: có mặt '+dd.coMat+' · vắng '+dd.vang+' · có phép '+dd.coPhep+(soLop?' · '+soLop+' lớp':'')+')']);
+    ['✅ Điểm danh: '+Object.keys(coMatSet).length+' bạn có mặt · giá trị buổi học '+tien(gtbR.tong)+' đ (lượt: có mặt '+dd.coMat+' · vắng '+dd.vang+' · có phép '+dd.coPhep+(soLop?' · '+soLop+' lớp':'')+')']);
   window._bcNgayText=L.join('\n'); window._bcNgayHtml=box.innerHTML; window._bcNgayTieuDe='Báo cáo ngày '+ngayVN;
 }
 function saoChepBaoCaoNgay(){
@@ -4989,6 +4990,19 @@ function inBaoCaoNgay(){
   if(!window._bcNgayHtml){ bao('Chưa có dữ liệu',true); return; }
   document.getElementById('vungIn').innerHTML='<div style="font-family:Arial,sans-serif;padding:10px"><h2 style="margin:0 0 4px">Học viện Âm nhạc Thiên Ân</h2><h3 style="margin:0 0 10px">'+esc(window._bcNgayTieuDe||'')+'</h3>'+window._bcNgayHtml.replace(/<button[^>]*>.*?<\/button>/g,'')+'</div>';
   setTimeout(function(){ window.print(); },150);
+}
+// Giá trị buổi học = số buổi có mặt × (học phí khóa ÷ số buổi khóa) của từng bạn — KHÔNG phải tiền thực thu
+function _giaBuoiHV(h){
+  if(!h) return 0; var kh=(DsKhoa||[]).filter(function(k){ return k.MaKhoa===h.MaKhoa; })[0]||null;
+  var bs=(typeof MapBoSung!=='undefined' && MapBoSung[h.MaHV])||{};
+  var gia=kh?soTienJS(kh.GiaTien):soTienJS(bs.HocPhi);
+  var sb=soTienJS(h.SoBuoiKhoa)||(kh?soTienJS(kh.SoBuoi):0)||soTienJS(bs.SoBuoiHT);
+  return (gia>0&&sb>0)?gia/sb:0;
+}
+function _giaTriBuoi(dsDD, hvMap, trongCS){
+  var tong=0, thieu=0;
+  dsDD.forEach(function(r){ if(r.TrangThai!=='Có mặt'||!trongCS(r.MaHV)) return; var g=_giaBuoiHV(hvMap[String(r.MaHV)]); if(g>0) tong+=g; else thieu++; });
+  return {tong:Math.round(tong), thieu:thieu};
 }
 var _hnChon=''; function _hnNgay(){ return _hnChon||_homNayISO(); }
 function _hnLui(n){ var d=new Date(_hnNgay()+'T00:00:00'); d.setDate(d.getDate()+n); var m=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); return m>_homNayISO()?_homNayISO():m; }
@@ -5050,6 +5064,7 @@ function veHomNay(khongTai){
   var tM=0,tG=0,tK=0;
   thu.forEach(function(r){ var st=soTienJS(r.SoTien), hd=hdHn[String(r.MaHD)];
     if(hd){ if(moiSet[String(r.MaHV)]) tM+=st; else tG+=st; } else if(moiSet[String(r.MaHV)]) tM+=st; else tK+=st; });
+  var gtb=_giaTriBuoi(_ddAll,hvMap,trongCS); dat('dashGTBuoi',tien(gtb.tong));
   dat('dashTienMoi',tien(tM)); dat('dashTienGH',tien(tG)); dat('dashTienKhac',tien(tK));
   dat('dashDTNgay', tien(tong)+' đ'); dat('dashNgayDD', soBan); dat('dashNgayMoi', moi.length); dat('dashNgayGH', soGH);
   function dong(l,r){ return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f3f5"><div style="min-width:0">'+l+'</div><div style="text-align:right;white-space:nowrap">'+r+'</div></div>'; }
