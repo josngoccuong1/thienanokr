@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 19/10/2026 · v57</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 19/10/2026 · v58</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -6675,13 +6675,56 @@ function qtVePlanOKR(theTuan,mau){
       +(ks.length?'<div style="display:grid;grid-template-columns:'+COL+';gap:8px;padding:4px 10px;background:'+c+'26;color:'+c+';font-size:10.5px;font-weight:800;letter-spacing:.4px"><span>KPI / VIỆC</span><span>TARGET / NGƯỜI</span><span>THÁNG</span><span>TRẠNG THÁI</span><span>TIẾN ĐỘ / KẾT QUẢ</span><span></span></div>':'')
       +(body||'<div style="padding:10px;color:#9aa3b2;font-size:12px;text-align:center">OKR này chưa có KPI (thêm ở mục OKR).</div>')+'</div></div></div>';
   });
-  if(chua.length){
-    h+='<div style="border:2px dashed #E74C3C99;border-radius:12px;background:#FFFAFA;margin-bottom:10px;overflow:hidden"><div style="background:#E74C3C;color:#fff;padding:6px 14px;font-weight:800;font-size:13px">⚠️ Việc chưa gắn KPI của OKR ('+chua.length+') — chọn KPI ở ô bên phải để đồng bộ</div>'
+  if(chua.length||ad){
+    h+='<div style="border:2px dashed #E74C3C99;border-radius:12px;background:#FFFAFA;margin-bottom:10px;overflow:hidden"><div style="background:'+(chua.length?'#E74C3C':'#6b7a99')+';color:#fff;padding:6px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="flex:1;min-width:200px">'+(chua.length?'⚠️ ':'')+'Việc chưa gắn KPI của OKR ('+chua.length+')'+(chua.length?' — chọn KPI ở ô bên phải để đồng bộ':' — nhập các việc dự kiến, gắn KPI sau')+'</span>'+(ad?'<button class="nutNho" style="background:#fff;color:#b42318;font-weight:800" onclick="qtMoNhapNhieu()">📝 Nhập nhiều việc</button>':'')+'</div>'
       +chua.map(function(x){ var idq=esc(String(x.id));
         return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 14px;border-top:1px solid #f1d4d0"><span style="flex:1;min-width:160px;font-size:12.5px;font-weight:600">'+esc(x.title||'')+' <span style="font-weight:400;color:#8a94a6;font-size:11px">· '+esc(x.month||'')+(x.owner?' · 👤 '+esc(x.owner):'')+'</span></span>'
           +(ad?'<select style="width:auto;max-width:300px;font-size:12px;padding:2px 6px" onchange="qtGanKPI(\''+idq+'\',this.value)">'+qtOptKpiOkr('').replace('Không gắn KPI OKR','Chọn KPI của OKR…')+'</select><button class="nutNho vien" style="padding:2px 6px" onclick="qtMoPlan(\''+idq+'\')">✏️</button>':'')+'</div>'; }).join('')+'</div>';
   }
   return h;
+}
+
+/* ---------- NHẬP NHIỀU VIỆC DỰ KIẾN CÙNG LÚC ---------- */
+function qtMoNhapNhieu(){
+  if(!qtCoQuyen()) return;
+  var th=qtDsThang(); var mac=(QT.kieu==='thang')?QT.ky.thang:qtThangHienTai();
+  var optTh=th.filter(function(m){ var x=/T(\d+)\/(\d+)/.exec(m); return x&&+x[2]>=qtNamHienTai()-1&&+x[2]<=qtNamHienTai()+1; }).map(function(m){ return '<option'+(m===mac?' selected':'')+'>'+m+'</option>'; }).join('');
+  var optNhom='<option value="">— Không gắn nhóm chiến dịch —</option>'+QT.nhom.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.icon||'🎯')+' '+esc(x.title)+'</option>'; }).join('');
+  moModal('📝 Nhập nhiều việc dự kiến',
+    '<div class="baoLoi an" id="loiForm"></div>'
+    +'<div style="font-size:13px;line-height:1.55;margin-bottom:8px">Mỗi <b>dòng là một việc</b>. Có thể dán từ Excel, Zalo, ghi chú. Chỉ cần tên việc; nếu muốn thêm thông tin, cách nhau bằng dấu <b>|</b>:<br><code style="background:#f3f5f9;padding:2px 6px;border-radius:5px;font-size:12px">Tên việc | Tháng | Người phụ trách | Chi phí | Kết quả mong đợi</code><br><span style="color:#6b7280;font-size:12px">Tháng gõ <b>10</b>, <b>T11</b> hay <b>12/2026</b> đều được. Dòng thiếu thông tin sẽ dùng giá trị mặc định bên dưới.</span></div>'
+    +'<div class="o"><label>Danh sách việc</label><textarea id="qtNN" rows="10" oninput="qtNNDem()" placeholder="Gọi 30 phụ huynh sắp hết khóa | 10 | Quản lý cơ sở\nQuay 5 video test đàn Piano điện | 11 | Marketing | 2 triệu\nĐặt bánh và quà cho buổi hòa nhạc | 12 | Thầy Cương | 5 triệu" style="width:100%;font-size:13.5px;line-height:1.5"></textarea><div id="qtNNDem" style="font-size:12px;color:#6b7280;margin-top:4px">0 việc</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +o('Tháng mặc định','<select id="qtNNThang">'+optTh+'</select>')
+    +o('Người phụ trách mặc định','<input id="qtNNOwner" placeholder="VD: Quản lý cơ sở">')
+    +o('Nhóm chiến dịch (không bắt buộc)','<select id="qtNNNhom">'+optNhom+'</select>')
+    +o('Trạng thái','<select id="qtNNTT">'+QT_TRANGTHAI.map(function(x){ return '<option>'+x+'</option>'; }).join('')+'</select>')
+    +'</div><div style="font-size:12px;color:#6b7280">Các việc này vào mục <b>Việc chưa gắn KPI</b>; sau đó chọn KPI cho từng việc ở ô bên phải.</div>',
+    'qtLuuNhapNhieu()',{rong:true});
+}
+function _qtThangTuChuoi(v,mac){
+  v=String(v||'').trim(); if(!v) return mac;
+  var m=/^T?(\d{1,2})(?:\s*[\/\-]\s*(\d{4}))?$/i.exec(v); if(!m) return mac;
+  var th=+m[1]; if(th<1||th>12) return mac; return 'T'+th+'/'+(m[2]||qtNamHienTai());
+}
+function qtNNPhan(){
+  var mac=document.getElementById('qtNNThang').value, ow=document.getElementById('qtNNOwner').value.trim();
+  return String((document.getElementById('qtNN')||{}).value||'').split(/\r?\n/).map(function(l){ return l.replace(/^\s*(?:[-•*•]|\d+[\.\)])\s+/,'').trim(); }).filter(Boolean).map(function(l){
+    var c=l.indexOf('|')>=0?l.split('|'):l.split('\t'); c=c.map(function(x){ return x.trim(); });
+    return {title:c[0],month:_qtThangTuChuoi(c[1],mac),owner:c[2]||ow,cost:c[3]||'',expected:c[4]||''};
+  }).filter(function(x){ return x.title; });
+}
+function qtNNDem(){ var e=document.getElementById('qtNNDem'); if(e) e.textContent=qtNNPhan().length+' việc'; }
+async function qtLuuNhapNhieu(){
+  var ds=qtNNPhan(); if(!ds.length){ bao('Chưa có dòng nào',true); return; }
+  var nhom=document.getElementById('qtNNNhom').value, tt=document.getElementById('qtNNTT').value, t0=Date.now();
+  khoaLuu(true);
+  try{
+    var ps=ds.map(function(x,i){ return {id:t0+i,title:x.title,month:x.month,owner:x.owner,okrObj:nhom,okrKr:'',kpiOkr:'',expected:x.expected,target:0,actual:0,cost:x.cost,status:tt,action:'',weeks:{}}; });
+    await Promise.all(ps.map(qtGhiPlan));
+    ps.forEach(function(p){ QT.plans.push(p); });
+    dongModal(); bao('Đã thêm '+ps.length+' việc vào mục chưa gắn KPI.'); qtVe();
+  }catch(e){ khoaLuu(false); bao(e.message,true); }
 }
 function qtTimPlan(id){ return QT.plans.filter(function(p){return String(p.id)===String(id);})[0]; }
 function qtTuan(id,key){
