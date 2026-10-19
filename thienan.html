@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 19/10/2026 · v58</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 19/10/2026 · v60</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -6328,6 +6328,123 @@ async function qtNapPhuongAnQ4(){
   }catch(e){ bao('Lỗi nạp: '+e.message,true); }
 }
 
+
+/* ---------- VIỆC CỤ THỂ CHO TỪNG KPI CỦA OKR (Q4/2026) ---------- */
+function qtDuLieuViecKPI(){
+  var A='Thầy Cương', Q='Quản lý cơ sở', M='Marketing', TV='Tư vấn', GV='GV các bộ môn', KT='Kế toán';
+  // mỗi việc: [tháng(0=T10,1=T11,2=T12), tên việc có hạn, người phụ trách, target số lượng, kết quả cần đạt, cách làm từng bước]
+  var R=[
+   {k:function(t){return t==='ban hang';}, ten:'OKR1 · Bán hàng', v:[
+    [0,'Xuất danh sách học viên từ app, lọc 200 phụ huynh có khả năng mua đàn (hạn 24/10)',TV,0,'File 200 khách: tên, con học môn gì, đã có đàn chưa, mức nóng / ấm / lạnh','1) Mở mục Học viên, xuất danh sách đang học. 2) Ưu tiên nhà có con học trên 6 tháng, chưa có đàn hoặc đàn cũ. 3) Nhắn Zalo 1 câu hỏi nhu cầu. 4) Gắn nóng / ấm / lạnh vào cột cuối.'],
+    [0,'Tập kịch bản tư vấn đàn 15 phút cho người tư vấn của 2 cơ sở, đóng vai 3 tình huống (hạn 28/10)',Q,0,'Mỗi người tư vấn trả lời trôi chảy: chọn đàn theo ngân sách, so Piano cơ và Piano điện, quà tặng kèm','Tình huống 1: phụ huynh chê đắt. 2: phân vân Piano cơ hay điện. 3: muốn mua online rẻ hơn. Mỗi người tập 2 lượt.'],
+    [0,'Gọi 40 khách nóng và ấm, hẹn lịch xem đàn tại cơ sở (hạn 31/10)',TV,10,'10 khách có lịch hẹn xem đàn cụ thể (ngày giờ)','Gọi buổi tối 18h–20h. Mỗi cuộc ≤ 5 phút, chốt luôn ngày giờ hẹn. Ghi kết quả từng cuộc.'],
+    [1,'Black Friday 27/11: nhắn Zalo 200 khách + đăng bài ưu đãi từ 20/11, đặt lịch xem đàn 20–29/11',M,15,'15 khách đến xem hoặc thử đàn trong tuần Black Friday','20/11 đăng bài + nhắn đợt 1. 24/11 nhắc đợt 2. 27/11 nhắn khung giờ vàng. Mỗi khách đến xem được tặng quà nhỏ.'],
+    [1,'Mở giờ thử đàn mỗi Thứ Bảy tại cơ sở: 7/11, 14/11, 21/11, 28/11',TV,15,'4 buổi, 15 khách thử đàn có để lại số điện thoại','Chuẩn bị 3 mẫu để sẵn sàng thử. Mời khách bằng Zalo trước 3 ngày. Mỗi buổi có 1 người tư vấn trực.'],
+    [2,'Gói quà Noel (hạn 1/12) và gọi lại khách đã xem đàn chưa chốt (1–12/12)',TV,10,'10 đơn chốt từ khách đã xem đàn','Gọi lại sau 3 ngày và 7 ngày kể từ lần xem. Báo hạn quà tặng đến hết 24/12.'],
+    [2,'Chốt đơn tồn trước 31/12; lập danh sách khách hẹn đầu tháng 1/2027 (hạn 31/12)',TV,10,'10 đơn chốt + danh sách khách hẹn sang tháng 1','Họp nhanh 15 phút mỗi thứ Hai để rà lại từng khách nóng chưa chốt.']]},
+   {k:function(t){return t==='dao tao';}, ten:'OKR1 · Đào tạo', v:[
+    [0,'Lọc danh sách khách học thử 3 tháng qua chưa đăng ký và gọi lần 1 (hạn 25/10)',TV,8,'8 khách chốt đăng ký','Gọi buổi tối. Hỏi con có thích buổi thử không, hỏi lý do chưa đăng ký, đưa ưu đãi còn hiệu lực.'],
+    [0,'Gọi lần 2 sau 3 ngày và lần 3 sau 7 ngày, ghi kết quả vào app (hạn 31/10)',TV,7,'7 khách chốt thêm','Mỗi khách gọi tối đa 3 lần; sau lần 3 chuyển sang danh sách nhắn tin tháng sau.'],
+    [1,'Mở 2 buổi học thử tập trung cuối tuần 8/11 và 22/11 (Piano, Guitar, Thanh nhạc), mời 20 gia đình mỗi buổi',Q,12,'2 buổi, 12 khách chốt đăng ký','Mời trước 5 ngày, nhắc lại trước 1 ngày. Mỗi lớp thử 30 phút, cuối buổi tư vấn gói học tại chỗ.'],
+    [2,'Ưu đãi nhập học đầu năm 2027: giữ chỗ lớp tháng 1, đặt cọc trước 31/12 (hạn 31/12)',TV,13,'13 khách đặt cọc giữ chỗ','Chốt mức ưu đãi trước 1/12. Báo cho khách còn bao nhiêu chỗ để tạo quyết định sớm.']]},
+   {k:function(t){return t.indexOf('nhuong quyen')>=0;}, ten:'OKR1 · Nhượng quyền / đại lý', v:[
+    [0,'Chốt mô hình nhượng quyền trên 1 trang A4: phí, tỷ lệ doanh thu, vốn đầu tư ban đầu, phần Thiên Ân hỗ trợ (hạn 31/10)',A,0,'1 trang A4 mô hình được Thầy duyệt','Tính ra điểm hòa vốn cho đối tác: số học viên cần có mỗi tháng.'],
+    [1,'Hoàn thiện hồ sơ: SOP vận hành, giáo trình, bảng chi phí, hợp đồng mẫu; nhờ luật sư xem (hạn 20/11)',A,0,'Bộ hồ sơ nhượng quyền hoàn chỉnh','Gom SOP đã viết ở OKR2, thêm bảng chi phí và hợp đồng mẫu.'],
+    [1,'Gặp 3 ứng viên (BNI, phụ huynh, giáo viên cũ) và đưa tham quan 2 cơ sở (hạn 30/11)',A,0,'3 buổi gặp, chọn 1 ứng viên nghiêm túc','Mỗi buổi gặp mang theo hồ sơ và bảng điểm hòa vốn.'],
+    [2,'Đàm phán và ký thỏa thuận nguyên tắc với 1 đối tác (hạn 25/12)',A,1,'1 thỏa thuận nguyên tắc / hợp đồng đại lý ký xong','Chốt địa điểm, ngày khai trương dự kiến, người chịu trách nhiệm hai bên.']]},
+   {k:function(t){return t.indexOf('mo rong')>=0&&t.indexOf('bni')>=0;}, ten:'OKR1 · Kết nối BNI – Nhà trường – B2B', v:[
+    [0,'Lập danh sách 20 đơn vị: 8 trường mầm non – tiểu học, 6 trung tâm kỹ năng – ngoại ngữ, 6 doanh nghiệp (hạn 28/10)',M,0,'Danh sách 20 đơn vị kèm người liên hệ','Mỗi đơn vị ghi: người quyết định, số điện thoại, cách tiếp cận (qua ai).'],
+    [0,'Soạn hồ sơ năng lực 1 file PDF và 2 gói hợp tác: CLB âm nhạc trong trường, ưu đãi học phí cho nhân viên (hạn 31/10)',M,0,'1 PDF hồ sơ + 2 gói hợp tác có giá','Nêu rõ số học viên, chứng chỉ AMEB và ABRSM, các hoạt động biểu diễn.'],
+    [1,'Gặp trực tiếp 8 đơn vị, mỗi tuần 2 cuộc (2/11–28/11)',A,2,'8 cuộc gặp, 2 đơn vị đồng ý thử','Sau mỗi cuộc gặp gửi lại hồ sơ trong ngày và hẹn lịch phản hồi.'],
+    [2,'Ký hợp tác với 4 đơn vị và tổ chức buổi giới thiệu đầu tiên (hạn 31/12)',A,4,'4 đơn vị ký hợp tác','Ưu tiên đơn vị đã đồng ý thử ở tháng 11.']]},
+   {k:function(t){return t.indexOf('dashboard')>=0;}, ten:'OKR2 · Dashboard quản trị', v:[
+    [0,'Chốt 15 chỉ số Dashboard và người chịu trách nhiệm từng chỉ số (hạn 25/10)',A,0,'Danh sách 15 chỉ số được duyệt','Gợi ý: doanh thu hôm nay và tháng, học viên đang học, đăng ký mới, gia hạn, tỷ lệ gia hạn, công nợ, sắp hết khóa, học vượt buổi, điểm danh, lead, chi phí quảng cáo, doanh thu bán đàn, tồn kho đàn, số buổi dạy theo giáo viên, tỷ lệ nghỉ học.'],
+    [0,'Rà dữ liệu app: xử lý danh sách học vượt buổi, bấm “Làm tròn tiền lệch”, cập nhật khóa còn thiếu (hạn 31/10)',Q,0,'Danh sách học vượt buổi về 0, tiền khớp hóa đơn','Mở Cần chú ý → Học vượt buổi, gọi từng học viên: chưa đóng, còn nợ hay cần cập nhật khóa.'],
+    [1,'Giao ban 8h thứ Hai hằng tuần bằng Dashboard: 2/11, 9/11, 16/11, 23/11, 30/11',A,0,'5 buổi giao ban, mỗi buổi chốt 3 việc ưu tiên','30 phút: xem số tuần trước, chốt 3 việc, giao người và hạn.'],
+    [1,'Cho 20 gia đình dùng thử app học sinh từ 2/11 đến 20/11, hỏi 5 câu phản hồi',Q,1,'20 gia đình dùng thử, danh sách lỗi cần sửa','Chọn 10 gia đình mỗi cơ sở. Hỏi: dễ đăng nhập không, xem được lịch học không, xem được điểm danh không, cần thêm gì, có gặp lỗi không.'],
+    [2,'Sửa lỗi theo phản hồi, hướng dẫn phụ huynh cài app (hạn 15/12); tổng kết Dashboard Q4 (hạn 31/12)',A,1,'2 app chạy ổn định, tổng kết 1 trang','Tổng kết ghi: số người dùng, lỗi đã sửa, việc để sang 2027.']]},
+   {k:function(t){return t.indexOf('ra soat')>=0;}, ten:'OKR2 · Chuẩn hóa quy trình vận hành', v:[
+    [0,'Chốt 10 SOP ưu tiên: học thử, đăng ký, gia hạn, thu học phí, công nợ, điểm danh, bù buổi, nghỉ học, bán đàn, chăm sóc phụ huynh (hạn 24/10)',A,0,'Danh mục 10 SOP và thứ tự viết','Mỗi SOP 1 trang: ai làm, làm khi nào, các bước, mẫu biểu, cách kiểm tra.'],
+    [0,'Viết SOP Học thử và SOP Gia hạn, tập huấn 2 cơ sở; kiểm tra 10 lần (hạn 31/10)',Q,10,'2 SOP ban hành, 10 lần kiểm tra có checklist','Tập huấn 30 phút. Kiểm tra bằng checklist ngẫu nhiên.'],
+    [1,'Viết SOP Thu học phí – công nợ và SOP Điểm danh – bù buổi (hạn 10/11); kiểm tra 40 lần trong tháng 11',Q,40,'2 SOP ban hành, 40 lần kiểm tra','Mỗi tuần kiểm tra 10 lần, chia đều 2 cơ sở.'],
+    [2,'Kiểm tra tuân thủ SOP 40 lần, họp rà lỗi lặp lại và sửa SOP (hạn 28/12)',Q,40,'40 lần kiểm tra, danh sách lỗi lặp lại và cách sửa','Lỗi nào lặp lại từ 3 lần thì sửa quy trình, không chỉ nhắc nhân sự.']]},
+   {k:function(t){return t.indexOf('kiem soat chat luong')>=0;}, ten:'OKR2 · Kiểm soát chất lượng đào tạo', v:[
+    [0,'Làm phiếu dự giờ 1 trang (5 tiêu chí: đúng giờ, giáo án, tương tác, đúng trình độ, phản hồi phụ huynh) và lịch dự giờ 2 cơ sở (hạn 24/10)',Q,0,'Phiếu dự giờ + lịch dự giờ cả quý','Mỗi tiêu chí chấm 1–5 điểm, có ô ghi góp ý.'],
+    [0,'Dự giờ và kiểm tra lớp 20 lượt từ 20/10 đến 31/10',Q,20,'20 phiếu dự giờ','Chia đều 2 cơ sở và các môn.'],
+    [1,'Dự giờ và kiểm tra 40 lượt (10 lượt mỗi tuần); phản hồi giáo viên trong ngày',Q,40,'40 phiếu, mỗi giáo viên được phản hồi','Góp ý riêng với giáo viên, không góp ý trước học viên.'],
+    [1,'Gọi khảo sát 50 phụ huynh, 10 phụ huynh mỗi ngày trong 5 ngày (hạn 15/11)',TV,0,'50 phiếu khảo sát và danh sách việc cần sửa','4 câu hỏi: hài lòng chất lượng, giáo viên đúng giờ, con tiến bộ chưa, có giới thiệu bạn bè không.'],
+    [2,'Dự giờ 40 lượt và lập bảng điểm từng giáo viên (hạn 28/12)',Q,40,'40 phiếu + bảng điểm giáo viên','Bảng điểm dùng cho việc công nhận GV đạt chuẩn ở OKR3.']]},
+   {k:function(t){return t.indexOf('hop mon')>=0;}, ten:'OKR3 · Họp môn', v:[
+    [0,'Họp môn tháng 10 (hạn 30/10): nội quy – văn hóa Thiên Ân, góp ý thẳng thắn trong cuộc họp, chốt tiết mục hòa nhạc',GV,1,'1 buổi họp, có biên bản và danh sách việc','Chương trình 60 phút: 10 phút nội quy, 15 phút giáo viên nêu khó khăn, 20 phút chốt tiết mục, 15 phút giao việc.'],
+    [1,'Họp môn tháng 11 (hạn 27/11): rà học viên cần hỗ trợ, chia sẻ cách dạy hiệu quả, tiến độ tập dợt',GV,1,'1 buổi họp, có biên bản','Mỗi giáo viên chia sẻ 1 cách dạy đã hiệu quả (3 phút).'],
+    [2,'Họp môn tháng 12 (hạn 26/12): tổng kết năm, khen thưởng, kế hoạch 2027',A,1,'1 buổi họp, có biên bản','Công bố giáo viên đạt chuẩn và kế hoạch đào tạo 2027.']]},
+   {k:function(t){return t.indexOf('hoan thanh')>=0;}, ten:'OKR3 · GV hoàn thành chuyên môn', v:[
+    [0,'Lập thang chấm 5 nhóm (kỹ thuật, đọc nhạc, sư phạm trẻ nhỏ, giáo án, giao tiếp phụ huynh), mỗi nhóm 10 điểm, theo khung AMEB / ABRSM (hạn 24/10)',A,0,'Thang chấm 1 trang','Mô tả rõ mức 5 điểm và mức 9 điểm của từng nhóm.'],
+    [0,'Dự giờ và chấm 6 GV Piano, góp ý riêng 20 phút mỗi người (hạn 31/10)',A,0,'6 bảng điểm','Góp ý hai điểm mạnh và hai điểm cần nâng.'],
+    [1,'Lập lộ trình cá nhân: mỗi GV 2 mục yếu cần nâng, cách luyện, mốc kiểm tra (hạn 7/11)',A,0,'6 lộ trình cá nhân','Mỗi mốc kiểm tra cách nhau 2 tuần.'],
+    [1,'Tập huấn 3 buổi tối Thứ Bảy, mỗi buổi 2 giờ: 14/11, 21/11, 28/11 (tư thế và ngón, đọc nhạc, dạy trẻ nhỏ)',A,0,'3 buổi, 6 GV tham gia đủ','Mỗi buổi 1 chủ đề, có bài tập về nhà.'],
+    [2,'Kiểm tra lại 6 GV từ 7/12 đến 15/12 và xác nhận hoàn thành lộ trình',A,6,'6 GV hoàn thành lộ trình','Chấm lại bằng thang chấm cũ để thấy tiến bộ.']]},
+   {k:function(t){return t.indexOf('dat chuan')>=0;}, ten:'OKR3 · GV đạt chuẩn chất lượng', v:[
+    [0,'Ban hành 6 tiêu chuẩn GV đạt chuẩn và ký cam kết (hạn 30/10)',A,0,'6 tiêu chuẩn ban hành, 6 GV ký cam kết','Gợi ý: điểm chuyên môn từ 8/10, điểm danh đúng 100%, phản hồi phụ huynh trong 24 giờ, tỷ lệ gia hạn lớp từ 80%, tuân thủ nội quy, dự đủ họp môn.'],
+    [1,'Chấm điểm 6 GV theo tiêu chuẩn: lấy số liệu điểm danh và gia hạn từ app, cộng điểm dự giờ (hạn 30/11)',Q,0,'Bảng chấm điểm 6 GV','Số liệu lấy từ báo cáo điểm danh theo giáo viên.'],
+    [2,'Họp công nhận GV đạt chuẩn, khen thưởng và công bố kế hoạch 2027 (hạn 20/12)',A,6,'6 GV đạt chuẩn được công nhận','GV chưa đạt thì giao kế hoạch kèm riêng đến hết quý 1/2027.']]},
+   {k:function(t){return t.indexOf('ceo')>=0;}, ten:'OKR4 · Thời gian dạy của CEO', v:[
+    [0,'Thống kê số giờ Thầy đang dạy mỗi tuần theo từng lớp (mục Điểm danh) và chọn lớp bàn giao (hạn 25/10)',A,0,'Bảng giờ dạy theo lớp, danh sách lớp bàn giao','Chọn lớp cơ bản và lớp đông trước, giữ lại lớp nâng cao.'],
+    [1,'Bàn giao ít nhất 30% giờ dạy: báo phụ huynh trước 1 tuần, Thầy dự 2 buổi đầu cùng giáo viên mới (hạn 15/11)',A,0,'≥ 30% giờ dạy đã bàn giao, không có học viên bỏ','Dùng GV đạt chuẩn ở OKR3 nhận lớp.'],
+    [2,'Từ 1/12 chỉ còn dạy tối đa 2 ngày mỗi tuần; chỉ giữ lớp nâng cao và lớp VIP (hạn 1/12)',A,0,'Lịch dạy ≤ 2 ngày mỗi tuần','Kiểm tra lại cuối tháng 12 bằng báo cáo điểm danh.']]},
+   {k:function(t){return t.indexOf('thoi gian')>=0&&t.indexOf('bni')>=0;}, ten:'OKR4 · Kết nối & BNI', v:[
+    [0,'Khóa lịch cố định: họp chapter hằng tuần và 2 buổi 1-1 mỗi tuần (hạn 22/10)',A,0,'Lịch BNI cả quý nằm trong lịch tuần','Đặt nhắc lịch lặp hằng tuần, không nhận lịch khác trùng.'],
+    [1,'Chuẩn bị pitch 60 giây theo 4 tuần: Piano trẻ em, Piano điện, nhượng quyền, hòa nhạc cuối năm (hạn 1/11)',A,0,'4 bản pitch dùng theo từng tuần','Mỗi pitch có 1 con số cụ thể và 1 lời đề nghị rõ ràng.'],
+    [1,'Mỗi tuần 3 lần kết nối (1 họp chapter, 2 buổi 1-1 hoặc gặp khách), ghi vào bảng referral (2/11–27/11)',A,0,'12 lần kết nối trong tháng 11','Mỗi 1-1 ghi: tặng gì, nhận lại gì.'],
+    [2,'Báo cáo BNI 2026: referral cho và nhận, doanh thu từ BNI, kế hoạch 2027 (hạn 20/12)',A,0,'Báo cáo 1 trang','Tính doanh thu từ BNI trên tổng thời gian đã bỏ ra.']]},
+   {k:function(t){return t.indexOf('thoi gian')>=0&&t.indexOf('quan tri')>=0;}, ten:'OKR4 · Thời gian quản trị – chiến lược', v:[
+    [0,'Khóa lịch 14 giờ mỗi tuần (2 giờ mỗi ngày, sáng) cho quản trị và chiến lược, bắt đầu từ 26/10',A,0,'Lịch tuần có khung giờ khóa','Báo nhân sự: khung giờ này chỉ chen việc khẩn cấp.'],
+    [1,'Giao ban tuần theo OKR vào thứ Hai; họp tài chính tháng vào 5/11 và 5/12',A,0,'4 buổi giao ban mỗi tháng, 2 buổi họp tài chính','Họp tài chính: doanh thu, chi phí, công nợ, dòng tiền 30 ngày tới.'],
+    [2,'Họp chiến lược cuối năm 2 ngày: tổng kết 2026, OKR 2027, kế hoạch cơ sở mới và nhượng quyền (hạn 28/12)',A,0,'Bộ OKR 2027 bản nháp','Chuẩn bị số liệu cả năm từ app trước 20/12.']]},
+   {k:function(t){return t.indexOf('doanh thu')>=0&&t.indexOf('hoc phi')>=0;}, ten:'OKR5 · Doanh thu học phí', v:[
+    [0,'Chốt doanh thu học phí tháng 10 theo từng cơ sở bằng báo cáo trên app (hạn 2/11)',KT,0,'Báo cáo doanh thu T10 theo cơ sở','Đối chiếu tổng phiếu thu với báo cáo ngày.'],
+    [1,'Chốt mức ưu đãi gói đóng 6 tháng và 12 tháng (hạn 5/11); triển khai 10/11–30/11',A,0,'Số học viên đóng khóa dài tăng so với T10','Mỗi gia hạn đều được tư vấn gói dài trước.'],
+    [1,'Rà các lớp dưới 3 học viên, ghép lớp hoặc mở lớp nhóm (hạn 15/11)',Q,0,'Danh sách lớp thiếu và cách xử lý từng lớp','Ghép lớp cùng trình độ, cùng khung giờ.'],
+    [1,'Chốt doanh thu học phí tháng 11 và so với T10 (hạn 2/12)',KT,0,'Báo cáo doanh thu T11, lớp nào giảm','Lớp giảm thì xem ngay số buổi nghỉ.'],
+    [2,'Chốt doanh thu học phí tháng 12 và cả quý (hạn 31/12)',KT,0,'Báo cáo doanh thu Q4 theo cơ sở','Gửi Thầy trước họp chiến lược cuối năm.']]},
+   {k:function(t){return t.indexOf('doanh thu')>=0&&t.indexOf('piano')>=0&&t.indexOf('guitar')>=0;}, ten:'OKR5 · Doanh thu bán piano/guitar', v:[
+    [0,'Kiểm kê tồn kho đàn 2 nơi, ghi giá vốn, giá bán, biên lợi nhuận từng mẫu (hạn 25/10)',KT,0,'Bảng tồn kho + biên lợi nhuận','Đánh dấu mẫu tồn quá 90 ngày để đẩy trong Black Friday.'],
+    [1,'Báo cáo bán đàn mỗi thứ Hai: 2/11, 9/11, 16/11, 23/11, 30/11 (số đơn, doanh thu, tồn kho)',TV,0,'5 báo cáo tuần','Báo cáo 1 trang gửi Thầy trước 9h sáng thứ Hai.'],
+    [1,'Đẩy hàng tồn lâu bằng ưu đãi và combo quà tặng trong Black Friday (20/11–29/11)',TV,0,'Giảm số cây đàn tồn quá 90 ngày','Mẫu tồn lâu đặt lên đầu bảng ưu đãi.'],
+    [2,'Chốt doanh thu bán đàn năm 2026 và lập kế hoạch nhập hàng trước Tết Nguyên đán 2027 (hạn 28/12)',A,0,'Báo cáo bán đàn Q4 + kế hoạch nhập hàng','Tính số cây cần nhập từ doanh số T11 và T12.']]}
+  ];
+  return R;
+}
+async function qtNapViecKPI(){
+  if(!qtCoQuyen()) return;
+  try{ await qtNapTatCa(); }catch(e){ bao('Lỗi tải dữ liệu: '+e.message,true); return; }
+  var R=qtDuLieuViecKPI(), T=['T10/2026','T11/2026','T12/2026'], coPlan={}, ds=[], kpNho=[], khop={};
+  QT.plans.forEach(function(x){ coPlan[x.id]=1; });
+  QT.obj.forEach(function(o){ (o.krs||[]).forEach(function(k){
+    var t=boDauJS(k.text).trim(), r=null;
+    for(var i=0;i<R.length;i++){ if(!khop[i]&&R[i].k(t)){ r=i; break; } }
+    if(r==null) return; khop[r]=1;
+    R[r].v.forEach(function(x,j){
+      var id='Q4W_'+String(k.id)+'_'+(j+1);
+      if(coPlan[id]) return;
+      ds.push({id:id,title:x[1],month:T[x[0]],owner:x[2],okrObj:'',okrKr:'',kpiOkr:k.id,target:x[3]||0,actual:'',expected:x[4]||'',cost:'',action:x[5]||'',status:'Chưa bắt đầu',weeks:{}});
+    });
+    kpNho.push(R[r].ten);
+  }); });
+  if(!ds.length){ bao('Không có việc mới để nạp (đã nạp rồi, hoặc không tìm thấy KPI phù hợp).',true); return; }
+  if(!confirm('Nạp '+ds.length+' việc cụ thể (có hạn ngày, số lượng, cách làm) (T10, T11, T12/2026) vào '+kpNho.length+' KPI:\n\n• '+kpNho.join('\n• ')+'\n\nMỗi việc được gắn thẳng vào KPI tương ứng. Việc đã có sẽ không bị ghi đè. Các con số là đề xuất, Thầy chỉnh lại theo thực tế.')) return;
+  khoaLuu(true);
+  try{
+    var cu=QT.plans.filter(function(x){ return /^Q4V_/.test(String(x.id))&&x.status==='Chưa bắt đầu'&&(x.actual===''||x.actual==null||Number(x.actual)===0); });
+    await Promise.all(cu.map(function(x){ return FB.deleteDoc(FB.doc(FB.db,'ql_plans',String(x.id))); }));
+    QT.plans=QT.plans.filter(function(x){ return cu.indexOf(x)<0; });
+    await Promise.all(ds.map(qtGhiPlan));
+    ds.forEach(function(x){ QT.plans.push(x); });
+    bao('Đã nạp '+ds.length+' việc vào '+kpNho.length+' KPI.'); qtVe(true);
+  }catch(e){ bao('Lỗi nạp: '+e.message,true); }
+  khoaLuu(false);
+}
+
 /* ====================== OKR ====================== */
 var QT_META_MAC_DINH={tieude:'MỤC TIÊU 6 THÁNG',chung:'Tăng doanh số, tuyển đủ GV, CEO rút khỏi giảng dạy trực tiếp, hệ thống vận hành',congty:'TNHH Giáo Dục & Thương Mại Thiên Ân',ceo:'Đỗ Ngọc Cương',ky:'6 tháng cuối năm 2026 (01/07 – 31/12/2026)'};
 var QT_MAU_HANG=['#F9D5D3','#FFE9A8','#CDEFD0','#C9D9F3'], QT_MAU_KPI=['#F5D0CE','#FBD9B0','#B5E27A','#C5D6F2'];
@@ -6414,7 +6531,7 @@ function qtVeOKR(){
     +qtRing(gs,'#D4AF37',52)
     +'<div style="flex:1;min-width:180px"><div style="color:#D4AF37;font-size:17px;font-weight:800;letter-spacing:.6px">'+esc(M.tieude)+'</div>'
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">'+qtThanhKy()+''
-    +(ad?'<button class="nutNho" style="background:#D4AF37;color:#1a1a2e" onclick="qtMoMuc(-1)">➕ Thêm OKR</button><button class="nutNho vien" onclick="qtNapPhuongAnQ4()" title="Nạp phương án bán hàng + tuyển sinh Q4/2026">📥 Nạp phương án Q4/2026</button><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa tiêu đề / kỳ</button>':'')+'</div></div>'
+    +(ad?'<button class="nutNho" style="background:#D4AF37;color:#1a1a2e" onclick="qtMoMuc(-1)">➕ Thêm OKR</button><button class="nutNho vien" onclick="qtNapPhuongAnQ4()" title="Nạp phương án bán hàng + tuyển sinh Q4/2026">📥 Nạp phương án Q4/2026</button><button class="nutNho vien" onclick="qtNapViecKPI()" title="Nạp việc cụ thể cho từng KPI của OKR">📋 Nạp việc cho từng KPI</button><button class="nutNho vien" onclick="qtMoMeta()">✏️ Sửa tiêu đề / kỳ</button>':'')+'</div></div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+chip(QT.obj.length,'OKR','#7FB2FF')+chip(kr.length,'KPI','#9BE7C4')+chip(dat+'/'+kr.length,'KPI đạt ≥80%','#FFD36B')+chip(QT.plans.length,'Việc chiến dịch','#F5A3C7')+'</div></div></div>';
   if(!QT.obj.length) return h+'<div class="the" style="padding:30px;text-align:center;color:#6b7280">Chưa có OKR nào.'+(ad?' Bấm <b>➕ Thêm OKR</b> để tạo OKR tổng quát của Thầy.':'')+'</div>';
   // Thanh chọn OKR
@@ -6608,7 +6725,7 @@ function qtVePlan(){
       +(tg>0?'<div style="display:flex;align-items:center;gap:8px;margin-top:5px"><div style="background:#EEF1F7;border-radius:4px;height:5px;flex:1"><div style="width:'+pc+'%;height:100%;background:'+st.mau+';border-radius:4px"></div></div><span style="font-size:12px;font-weight:800;color:'+st.mau+';white-space:nowrap">'+(Number(p.actual)||0)+'/'+tg+' ('+pc+'%)</span></div>':'')
       +theTuan(p)+'</div>';
   }
-  var h='<div style="margin-bottom:8px">'+qtThanhKy()+'</div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">'+(ad?'<button class="nutNho nutXanh" onclick="qtMoPlan(null)">➕ Thêm việc / chiến dịch</button> <button class="nutNho vien" onclick="qtNapPhuongAnQ4()" title="Nạp phương án bán hàng + tuyển sinh Q4/2026">📥 Nạp phương án Q4/2026</button>':'')
+  var h='<div style="margin-bottom:8px">'+qtThanhKy()+'</div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">'+(ad?'<button class="nutNho nutXanh" onclick="qtMoPlan(null)">➕ Thêm việc / chiến dịch</button> <button class="nutNho vien" onclick="qtNapPhuongAnQ4()" title="Nạp phương án bán hàng + tuyển sinh Q4/2026">📥 Nạp phương án Q4/2026</button><button class="nutNho vien" onclick="qtNapViecKPI()" title="Nạp việc cụ thể cho từng KPI của OKR">📋 Nạp việc cho từng KPI</button>':'')
     +'<span style="display:inline-flex;border:1px solid #cdd6e6;border-radius:8px;overflow:hidden">'+[['okr','🎯 Theo OKR'],['nhom','🗂 Theo nhóm']].map(function(x){ var on=QT.xem===x[0]; return '<button onclick="QT.xem=\''+x[0]+'\';qtVe()" style="width:auto;border:0;padding:3px 11px;font-size:11.5px;font-weight:800;cursor:pointer;background:'+(on?'#1f3a6e':'#fff')+';color:'+(on?'#fff':'#55606f')+'">'+x[1]+'</button>'; }).join('')+'</span>'
     +'<span style="background:#E8F8F0;color:#27AE60;padding:3px 10px;border-radius:20px;font-weight:700;font-size:11.5px">'+xong+'/'+tong+' hoàn thành</span></div>'
 ;
@@ -6647,7 +6764,7 @@ function qtVePlanOKR(theTuan,mau){
     +tile(daGan,'Đã gắn KPI','#6B4E9B','#F1EDF7')+tile(chua.length,'Chưa gắn KPI',chua.length?'#B42318':'#0F7A4D',chua.length?'#FDECEA':'#E8F4EE')+'</div>';
   var hang=function(x,c){
     var tg=Number(x.target)||0, ac=Number(x.actual)||0, pc=tg>0?Math.min(Math.round(ac/tg*100),100):0, st=qtTT(pc), idq=esc(String(x.id)), ms=mau[x.status]||'#9aa3b2';
-    var chiTiet=(x.expected?'<div style="font-size:12px;color:#55606f;margin-bottom:4px">✅ <b>KQ mong đợi:</b> '+esc(x.expected)+'</div>':'')+(x.cost?'<div style="font-size:12px;color:#55606f;margin-bottom:4px">💰 Chi phí: '+esc(x.cost)+'</div>':'')+theTuan(x);
+    var chiTiet=(x.expected?'<div style="font-size:12px;color:#55606f;margin-bottom:4px">✅ <b>KQ mong đợi:</b> '+esc(x.expected)+'</div>':'')+(x.action?'<div style="font-size:12px;color:#55606f;margin-bottom:4px">🛠 <b>Cách làm:</b> '+esc(x.action)+'</div>':'')+(x.cost?'<div style="font-size:12px;color:#55606f;margin-bottom:4px">💰 Chi phí: '+esc(x.cost)+'</div>':'')+theTuan(x);
     return '<details style="border-top:1px solid #eef1f6"><summary style="list-style:none;cursor:pointer;display:grid;grid-template-columns:'+COL+';gap:8px;align-items:center;padding:4px 10px 4px 22px;border-left:4px solid '+c+'55;font-size:12.5px">'
       +'<span style="font-weight:600;color:#1a2540">▸ '+esc(x.title||'(chưa đặt tên)')+'</span>'
       +'<span style="color:#6b7280;font-size:11.5px">👤 '+esc(x.owner||'-')+'</span>'
