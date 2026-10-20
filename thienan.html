@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v66</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v67</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -6461,7 +6461,7 @@ var NS_KY_HIEU=[['X',1,'Đi làm đủ ngày'],['X/2',0.5,'Làm nửa ngày'],['
 var NS_HESO={}; NS_KY_HIEU.forEach(function(k){ NS_HESO[k[0]]=k[1]; });
 var NS_CFG_MAC_DINH={tenCongTy:'CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN',diaChi:'Số 424 đường Bà Triệu, Phường Hạc Thành, Tỉnh Thanh Hoá',ngayCongChuan:26,theoNgayCong:false,lamTron:1000,bhxh:0.08,bhyt:0.015,bhtn:0.01,boPhan:['I. BP DẠY HỌC','II. BP QUẢN LÝ'],giamDoc:'Đỗ Ngọc Cương',keToanTruong:'',thuQuy:'',nguoiLap:'',nguoiChamCong:'',nguoiNhanLuong:''};
 var NS_THU=['CN','T2','T3','T4','T5','T6','T7'];
-(function(){ try{ var s=document.createElement('style'); s.textContent='.nsT{border-collapse:collapse;font-size:14px;width:100%}.nsT th,.nsT td{border:1px solid #d5dbe7;padding:10px 12px;line-height:1.35}.nsT th{background:#eef2f9;color:#12294d;font-weight:800;text-align:center}.nsT td.so{text-align:right;white-space:nowrap}.nsT tr.tong td{background:#f6f1de;font-weight:800}.nsT tr.nhom td{background:#eef2f9;font-weight:700}.nsCC{width:40px;height:34px;text-align:center;font-size:14px;font-weight:600;padding:3px 0;border:1px solid #cdd5e4;border-radius:4px;text-transform:uppercase}.nsCCt th,.nsCCt td{padding:4px 3px}.nsCCt td.cn,.nsCCt th.cn{background:#fde8e8}.nsMini{width:110px;font-size:14px;padding:7px 8px;text-align:right}'; document.head.appendChild(s); }catch(e){} })();
+(function(){ try{ var s=document.createElement('style'); s.textContent='.nsT{border-collapse:collapse;font-size:12px;width:100%}.nsT th,.nsT td{border:1px solid #d5dbe7;padding:11px 3px;line-height:1.35}.nsT th{background:#eef2f9;color:#12294d;font-weight:800;text-align:center}.nsT td.so{text-align:right;white-space:nowrap}.nsT tr.tong td{background:#f6f1de;font-weight:800}.nsT tr.nhom td{background:#eef2f9;font-weight:700}.nsCC{width:100%;max-width:36px;min-width:0;box-sizing:border-box;height:36px;text-align:center;font-size:12px;font-weight:600;padding:3px 0;border:1px solid #cdd5e4;border-radius:4px;text-transform:uppercase}.nsCCt{table-layout:fixed}.nsCCt th,.nsCCt td{padding:5px 1px}.nsCCt td.ten{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nsCCt td.cn,.nsCCt th.cn{background:#fde8e8}.nsMini{width:100%;max-width:70px;box-sizing:border-box;font-size:12px;padding:7px 4px;text-align:right}'; document.head.appendChild(s); }catch(e){} })();
 
 function nsKey(n,t){ return n+'_'+('0'+t).slice(-2); }
 function nsSo(v){ return (typeof soTienJS==='function')?soTienJS(v):(Number(v)||0); }
@@ -6659,13 +6659,13 @@ function nsVeCC(){
   var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+nsChonKy()
     +'<button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho nutXanh" onclick="nsMoDienCC()">⚡ Điền nhanh</button><button class="nutNho vien" onclick="nsMo(\'nv\')">👥 Thêm / bớt nhân sự</button><button class="nutNho vien" onclick="nsMoLeCC()">🎌 Nghỉ lễ / ngày chung</button><button class="nutNho vien" onclick="nsMoDanCC()">📥 Dán từ Excel</button><button class="nutNho vien" onclick="nsInCC()">🖨 In bảng chấm công</button><span id="nsTrangThai" style="font-size:12px;color:#0f7a4d"></span></div>';
   if(!ds.length) return h+'<div class="the trong" style="padding:20px">Tháng '+t+'/'+n+' chưa có nhân sự nào có lương. Vào mục Nhân sự để thêm hoặc nhập lương cho tháng này.</div>';
-  h+='<div class="the" style="overflow-x:auto;padding:8px"><table class="nsT nsCCt"><tr><th rowspan="2">Stt</th><th rowspan="2" style="min-width:200px">Họ và tên</th><th rowspan="2">Chức vụ</th>';
+  h+='<div class="the" style="overflow-x:auto;padding:8px"><table class="nsT nsCCt"><colgroup><col style="width:30px"><col style="width:15%"><col style="width:9%">'+new Array(N+1).join('<col>')+'<col style="width:40px"></colgroup><tr><th rowspan="2">Stt</th><th rowspan="2">Họ và tên</th><th rowspan="2">Chức vụ</th>';
   for(var d=1;d<=N;d++){ var cn=new Date(n,t-1,d).getDay()===0; h+='<th class="'+(cn?'cn':'')+'">'+d+'</th>'; }
   h+='<th rowspan="2">Tổng</th></tr><tr>';
   for(d=1;d<=N;d++){ var w=new Date(n,t-1,d).getDay(); h+='<th class="'+(w===0?'cn':'')+'" style="font-size:10.5px">'+NS_THU[w]+'</th>'; }
   h+='</tr>';
   ds.forEach(function(v,i){
-    h+='<tr><td style="text-align:center">'+(i+1)+'</td><td style="white-space:nowrap"><b>'+esc(v.hoTen)+'</b></td><td style="white-space:nowrap;font-size:11.5px">'+esc(v.chucVu||'')+'</td>';
+    h+='<tr><td style="text-align:center">'+(i+1)+'</td><td class="ten" title="'+esc(v.hoTen)+'"><b>'+esc(v.hoTen)+'</b></td><td style="font-size:11px;line-height:1.2">'+esc(v.chucVu||'')+'</td>';
     for(var d=1;d<=N;d++){ var cn=new Date(n,t-1,d).getDay()===0, val=(rows[v.id]&&rows[v.id][d])||''; h+='<td class="'+(cn?'cn':'')+'"><input class="nsCC" data-nv="'+esc(v.id)+'" data-d="'+d+'" value="'+esc(val)+'" maxlength="3" onchange="nsCCNhap(this)"></td>'; }
     h+='<td class="so" id="nsTongNV_'+esc(v.id)+'" style="font-weight:800;text-align:center">0</td></tr>';
   });
@@ -6796,21 +6796,22 @@ function nsNhomBP(rows){
   var ds=(NS.cfg.boPhan||[]).slice(); rows.forEach(function(r){ if(ds.indexOf(r.boPhan)<0) ds.push(r.boPhan); });
   return ds.map(function(b){ return {ten:b||'Chưa phân bộ phận',rows:rows.filter(function(r){return r.boPhan===b;})}; }).filter(function(g){ return g.rows.length; });
 }
-function nsHangLuong(r,i,edit,chot){
+function nsHangLuong(r,i,edit,chot,hien){ hien=hien||[1,1,1,1,1];
   var f=function(x){ return x?tien(x):'-'; };
-  var nc=edit&&!chot?'<input class="nsMini" style="width:70px'+(r.ghiDe?';background:#fef3c7':'')+'" value="'+esc(r.ngayCong)+'" title="'+(r.ghiDe?'Đã sửa tay':'Tự lấy từ bảng chấm công')+'" onchange="nsSuaLuong(\'ngayCong\',\''+esc(r.id)+'\',this.value)">':esc(r.ngayCong);
+  var nc=edit&&!chot?'<input class="nsMini" style="max-width:46px'+(r.ghiDe?';background:#fef3c7':'')+'" value="'+esc(r.ngayCong)+'" title="'+(r.ghiDe?'Đã sửa tay':'Tự lấy từ bảng chấm công')+'" onchange="nsSuaLuong(\'ngayCong\',\''+esc(r.id)+'\',this.value)">':esc(r.ngayCong);
   var th=edit&&!chot?'<input class="nsMini" value="'+esc(r.thue||'')+'" onchange="nsSuaLuong(\'thue\',\''+esc(r.id)+'\',this.value)" placeholder="0">':f(r.thue);
-  return '<tr><td style="text-align:center">'+(i+1)+'</td><td style="white-space:nowrap"><b>'+esc(r.ten)+'</b></td><td style="font-size:11.5px">'+esc(r.chucVu)+'</td><td class="so">'+nc+'</td><td class="so">'+tien(r.luongCB)+'</td>'+r.pc.map(function(x){return '<td class="so">'+f(x)+'</td>';}).join('')+'<td class="so"><b>'+tien(r.luongTT)+'</b></td><td class="so">'+f(r.bhxh)+'</td><td class="so">'+f(r.bhyt)+'</td><td class="so">'+f(r.bhtn)+'</td><td class="so">'+th+'</td><td class="so">'+f(r.cong)+'</td><td class="so"><b>'+tien(r.thucLinh)+'</b></td></tr>';
+  return '<tr><td style="text-align:center">'+(i+1)+'</td><td><b>'+esc(r.ten)+'</b></td><td style="font-size:11.5px">'+esc(r.chucVu)+'</td><td class="so">'+nc+'</td><td class="so">'+tien(r.luongCB)+'</td>'+r.pc.map(function(x,k){return hien[k]?'<td class="so">'+f(x)+'</td>':'';}).join('')+'<td class="so"><b>'+tien(r.luongTT)+'</b></td><td class="so">'+f(r.bhxh)+'</td><td class="so">'+f(r.bhyt)+'</td><td class="so">'+f(r.bhtn)+'</td><td class="so">'+th+'</td><td class="so">'+f(r.cong)+'</td><td class="so"><b>'+tien(r.thucLinh)+'</b></td></tr>';
 }
-function nsHangTong(ten,s,cls){
+function nsHangTong(ten,s,cls,hien){ hien=hien||[1,1,1,1,1];
   var f=function(x){ return x?tien(x):'-'; };
-  return '<tr class="'+cls+'"><td colspan="3" style="white-space:nowrap">'+esc(ten)+'</td><td class="so">'+s.ngayCong+'</td><td class="so">'+tien(s.luongCB)+'</td>'+s.pc.map(function(x){return '<td class="so">'+f(x)+'</td>';}).join('')+'<td class="so">'+tien(s.luongTT)+'</td><td class="so">'+f(s.bhxh)+'</td><td class="so">'+f(s.bhyt)+'</td><td class="so">'+f(s.bhtn)+'</td><td class="so">'+f(s.thue)+'</td><td class="so">'+f(s.cong)+'</td><td class="so">'+tien(s.thucLinh)+'</td></tr>';
+  return '<tr class="'+cls+'"><td colspan="3" style="white-space:nowrap">'+esc(ten)+'</td><td class="so">'+s.ngayCong+'</td><td class="so">'+tien(s.luongCB)+'</td>'+s.pc.map(function(x,k){return hien[k]?'<td class="so">'+f(x)+'</td>':'';}).join('')+'<td class="so">'+tien(s.luongTT)+'</td><td class="so">'+f(s.bhxh)+'</td><td class="so">'+f(s.bhyt)+'</td><td class="so">'+f(s.bhtn)+'</td><td class="so">'+f(s.thue)+'</td><td class="so">'+f(s.cong)+'</td><td class="so">'+tien(s.thucLinh)+'</td></tr>';
 }
-function nsTieuDeLuong(){ var c=NS.cfg; return '<tr><th rowspan="2">STT</th><th rowspan="2">Họ và tên</th><th rowspan="2">Chức vụ</th><th rowspan="2">Ngày công</th><th rowspan="2">Lương cơ bản</th><th rowspan="2">PC nhà ở</th><th rowspan="2">PC xăng xe</th><th rowspan="2">PC điện thoại</th><th rowspan="2">PC nuôi con nhỏ</th><th rowspan="2">PC ăn trưa</th><th rowspan="2">Lương thực tế</th><th colspan="5">Các khoản khấu trừ vào lương</th><th rowspan="2">Thực lĩnh</th></tr><tr><th>BHXH ('+(c.bhxh*100)+'%)</th><th>BHYT ('+(c.bhyt*100)+'%)</th><th>BHTN ('+(c.bhtn*100)+'%)</th><th>Thuế TNCN</th><th>Cộng</th></tr>'; }
+function nsTieuDeLuong(hien){ hien=hien||[1,1,1,1,1]; var c=NS.cfg, pcT=['PC nhà ở','PC xăng xe','PC điện thoại','PC nuôi con nhỏ','PC ăn trưa'].map(function(x,k){ return hien[k]?'<th rowspan="2">'+x+'</th>':''; }).join(''); return '<tr><th rowspan="2">STT</th><th rowspan="2">Họ và tên</th><th rowspan="2">Chức vụ</th><th rowspan="2">Ngày công</th><th rowspan="2">Lương cơ bản</th>'+pcT+'<th rowspan="2">Lương thực tế</th><th colspan="5">Các khoản khấu trừ vào lương</th><th rowspan="2">Thực lĩnh</th></tr><tr><th>BHXH ('+(c.bhxh*100)+'%)</th><th>BHYT ('+(c.bhyt*100)+'%)</th><th>BHTN ('+(c.bhtn*100)+'%)</th><th>Thuế TNCN</th><th>Cộng</th></tr>'; }
 function nsBangLuongHtml(rows,edit,chot){
-  var h='<table class="nsT">'+nsTieuDeLuong(), stt=0;
-  nsNhomBP(rows).forEach(function(g){ h+=nsHangTong('Cộng '+g.ten,nsTongHop(g.rows),'nhom'); g.rows.forEach(function(r){ h+=nsHangLuong(r,stt++,edit,chot); }); });
-  return h+nsHangTong('TỔNG CỘNG',nsTongHop(rows),'tong')+'</table>';
+  var tp=nsTongHop(rows), hien=tp.pc.map(function(x){ return x?1:0; });
+  var h='<table class="nsT">'+nsTieuDeLuong(hien), stt=0;
+  nsNhomBP(rows).forEach(function(g){ h+=nsHangTong('Cộng '+g.ten,nsTongHop(g.rows),'nhom',hien); g.rows.forEach(function(r){ h+=nsHangLuong(r,stt++,edit,chot,hien); }); });
+  return h+nsHangTong('TỔNG CỘNG',tp,'tong',hien)+'</table>';
 }
 function nsVeLuong(){
   var n=NS.nam,t=NS.thang,k=nsKey(n,t),L=NS.lg[k]||{},chot=!!(L.chot&&L.dong),rows=nsDongThang(n,t),s=nsTongHop(rows);
