@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v61</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v62</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -6525,7 +6525,7 @@ function nsDoiKy(d){ NS.namXem=false; NS.thang+=d; if(NS.thang<1){NS.thang=12;NS
 
 /* ---------- NHÂN SỰ ---------- */
 function nsVeNV(){
-  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho vien" onclick="nsMoDanNV()">📥 Dán danh sách từ Excel</button><span style="font-size:12px;color:#6b7280">Để trống lương của tháng nào thì người đó không xuất hiện ở tháng đó (người mới vào, người đã nghỉ).</span></div>';
+  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho vien" onclick="nsMoDanNV()">📥 Dán danh sách từ Excel</button><button class="nutNho vien" onclick="document.getElementById(\'nsFileJson\').click()">📂 Nạp từ file dữ liệu (.json)</button><input type="file" id="nsFileJson" accept=".json,application/json" style="display:none" onchange="nsNhapJson(this)"><span style="font-size:12px;color:#6b7280">Để trống lương của tháng nào thì người đó không xuất hiện ở tháng đó (người mới vào, người đã nghỉ).</span></div>';
   if(!NS.nv.length) return h+'<div class="the trong" style="padding:20px">Chưa có nhân sự. Bấm "Thêm nhân sự" hoặc "Dán danh sách từ Excel" (copy vùng A16:V.. của sheet Thiết lập trong file bảng lương).</div>';
   h+='<div class="the" style="overflow-x:auto"><table class="nsT"><tr><th>STT</th><th>Họ và tên</th><th>Chức vụ</th><th>Bộ phận</th><th>Đóng BH</th><th>Phụ cấp/tháng</th><th>Lương tháng '+NS.thang+'</th><th>Ghi chú</th><th></th></tr>';
   NS.nv.forEach(function(n,i){
@@ -6594,6 +6594,27 @@ async function nsLuuDanNV(){
   }catch(e){ khoaLuu(false); bao(e.message,true); }
 }
 
+
+function nsNhapJson(inp){
+  var f=inp.files&&inp.files[0]; inp.value=''; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=async function(){
+    try{
+      var d=JSON.parse(rd.result); if(d.loai!=='thienan_nhansu') throw new Error('Đây không phải file dữ liệu Nhân sự & Lương của Thiên Ân');
+      var nv=d.nhanvien||[], cc=d.chamcong||{}, pc=d.phieuchi||[];
+      if(!confirm('Nạp '+nv.length+' nhân sự, chấm công '+Object.keys(cc).length+' tháng, '+pc.length+' phiếu chi?\nNhân sự và phiếu trùng mã sẽ được cập nhật.')) return;
+      var ps=[];
+      nv.forEach(function(x){ ps.push(FB.setDoc(FB.doc(FB.db,'ns_nhanvien',x.id),x)); });
+      Object.keys(cc).forEach(function(k){ ps.push(FB.setDoc(FB.doc(FB.db,'ns_chamcong',k),cc[k])); });
+      pc.forEach(function(x){ ps.push(FB.setDoc(FB.doc(FB.db,'ns_phieuchi',x.id),x)); });
+      var cf=Object.assign({},NS.cfg||NS_CFG_MAC_DINH); Object.keys(d.cauhinh||{}).forEach(function(k){ if(d.cauhinh[k]&&!cf[k]) cf[k]=d.cauhinh[k]; });
+      ps.push(FB.setDoc(FB.doc(FB.db,'ns_cauhinh','main'),cf));
+      await Promise.all(ps); await nsNap();
+      NS.nam=2026; NS.thang=10; NS.namXem=false; bao('Đã nạp dữ liệu. Đang mở bảng lương tháng 10/2026.'); nsMo('luong');
+    }catch(e){ bao('Lỗi nạp file: '+e.message,true); }
+  };
+  rd.readAsText(f,'utf-8');
+}
 /* ---------- CHẤM CÔNG ---------- */
 function nsNvTrongThang(n,t){ return NS.nv.filter(function(x){ return nsLuongThang(x,t)>0; }); }
 function nsNgayCong(id,n,t){
