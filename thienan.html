@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v64</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/10/2026 · v66</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -6461,7 +6461,7 @@ var NS_KY_HIEU=[['X',1,'Đi làm đủ ngày'],['X/2',0.5,'Làm nửa ngày'],['
 var NS_HESO={}; NS_KY_HIEU.forEach(function(k){ NS_HESO[k[0]]=k[1]; });
 var NS_CFG_MAC_DINH={tenCongTy:'CÔNG TY TNHH GIÁO DỤC VÀ THƯƠNG MẠI THIÊN ÂN',diaChi:'Số 424 đường Bà Triệu, Phường Hạc Thành, Tỉnh Thanh Hoá',ngayCongChuan:26,theoNgayCong:false,lamTron:1000,bhxh:0.08,bhyt:0.015,bhtn:0.01,boPhan:['I. BP DẠY HỌC','II. BP QUẢN LÝ'],giamDoc:'Đỗ Ngọc Cương',keToanTruong:'',thuQuy:'',nguoiLap:'',nguoiChamCong:'',nguoiNhanLuong:''};
 var NS_THU=['CN','T2','T3','T4','T5','T6','T7'];
-(function(){ try{ var s=document.createElement('style'); s.textContent='.nsT{border-collapse:collapse;font-size:12.5px;width:100%}.nsT th,.nsT td{border:1px solid #d5dbe7;padding:4px 6px}.nsT th{background:#eef2f9;color:#12294d;font-weight:800;text-align:center}.nsT td.so{text-align:right;white-space:nowrap}.nsT tr.tong td{background:#f6f1de;font-weight:800}.nsT tr.nhom td{background:#eef2f9;font-weight:700}.nsCC{width:30px;text-align:center;font-size:12px;padding:3px 0;border:1px solid #cdd5e4;border-radius:4px;text-transform:uppercase}.nsCCt th,.nsCCt td{padding:2px 2px}.nsCCt td.cn,.nsCCt th.cn{background:#fde8e8}.nsMini{width:84px;font-size:12px;padding:3px 5px;text-align:right}'; document.head.appendChild(s); }catch(e){} })();
+(function(){ try{ var s=document.createElement('style'); s.textContent='.nsT{border-collapse:collapse;font-size:14px;width:100%}.nsT th,.nsT td{border:1px solid #d5dbe7;padding:10px 12px;line-height:1.35}.nsT th{background:#eef2f9;color:#12294d;font-weight:800;text-align:center}.nsT td.so{text-align:right;white-space:nowrap}.nsT tr.tong td{background:#f6f1de;font-weight:800}.nsT tr.nhom td{background:#eef2f9;font-weight:700}.nsCC{width:40px;height:34px;text-align:center;font-size:14px;font-weight:600;padding:3px 0;border:1px solid #cdd5e4;border-radius:4px;text-transform:uppercase}.nsCCt th,.nsCCt td{padding:4px 3px}.nsCCt td.cn,.nsCCt th.cn{background:#fde8e8}.nsMini{width:110px;font-size:14px;padding:7px 8px;text-align:right}'; document.head.appendChild(s); }catch(e){} })();
 
 function nsKey(n,t){ return n+'_'+('0'+t).slice(-2); }
 function nsSo(v){ return (typeof soTienJS==='function')?soTienJS(v):(Number(v)||0); }
@@ -6525,12 +6525,12 @@ function nsDoiKy(d){ NS.namXem=false; NS.thang+=d; if(NS.thang<1){NS.thang=12;NS
 
 /* ---------- NHÂN SỰ ---------- */
 function nsVeNV(){
-  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho vien" onclick="nsMoDanNV()">📥 Dán danh sách từ Excel</button><button class="nutNho vien" onclick="document.getElementById(\'nsFileJson\').click()">📂 Nạp từ file dữ liệu (.json)</button><input type="file" id="nsFileJson" accept=".json,application/json" style="display:none" onchange="nsNhapJson(this)"><span style="font-size:12px;color:#6b7280">Để trống lương của tháng nào thì người đó không xuất hiện ở tháng đó (người mới vào, người đã nghỉ).</span></div>';
+  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho vien" onclick="nsMoDanNV()">📥 Dán danh sách từ Excel</button><button class="nutNho vien" onclick="document.getElementById(\'nsFileJson\').click()">📂 Nạp từ file dữ liệu (.json)</button><input type="file" id="nsFileJson" accept=".json,application/json" style="display:none" onchange="nsNhapJson(this)"><span style="font-size:12px;color:#6b7280">Muốn thêm người mới: bấm "Thêm nhân sự". Người nghỉ việc: bấm "⏹ Nghỉ từ T..." (các tháng đã làm vẫn giữ). Người quay lại: bấm "▶ Vào từ T...". Đổi tháng ở mục Chấm công hoặc Bảng lương để áp dụng cho tháng khác.</span><span style="font-size:12px;color:#6b7280">Tháng đang chọn: T'+NS.thang+'/'+NS.nam+'</span></div>';
   if(!NS.nv.length) return h+'<div class="the trong" style="padding:20px">Chưa có nhân sự. Bấm "Thêm nhân sự" hoặc "Dán danh sách từ Excel" (copy vùng A16:V.. của sheet Thiết lập trong file bảng lương).</div>';
   h+='<div class="the" style="overflow-x:auto"><table class="nsT"><tr><th>STT</th><th>Họ và tên</th><th>Chức vụ</th><th>Bộ phận</th><th>Đóng BH</th><th>Phụ cấp/tháng</th><th>Lương tháng '+NS.thang+'</th><th>Ghi chú</th><th></th></tr>';
   NS.nv.forEach(function(n,i){
     var pc=n.pc||{}, tpc=(Number(pc.nhaO)||0)+(Number(pc.xangXe)||0)+(Number(pc.dienThoai)||0)+(Number(pc.nuoiCon)||0)+(Number(pc.anTrua)||0), l=nsLuongThang(n,NS.thang);
-    h+='<tr><td style="text-align:center">'+(i+1)+'</td><td><b>'+esc(n.hoTen)+'</b></td><td>'+esc(n.chucVu||'')+'</td><td>'+esc(n.boPhan||'')+'</td><td style="text-align:center">'+(n.coBH===false?'Không':'Có')+'</td><td class="so">'+(tpc?tien(tpc):'-')+'</td><td class="so">'+(l?tien(l):'<span style="color:#aab3c2">không có</span>')+'</td><td style="font-size:12px;color:#6b7280">'+esc(n.ghiChu||'')+'</td><td style="white-space:nowrap"><button class="nutNho vien" onclick="nsSuaNV(\''+esc(n.id)+'\')">✏️</button> <button class="nutNho vien" style="color:#b42318" onclick="nsXoaNV(\''+esc(n.id)+'\')">🗑</button></td></tr>';
+    h+='<tr><td style="text-align:center">'+(i+1)+'</td><td><b>'+esc(n.hoTen)+'</b></td><td>'+esc(n.chucVu||'')+'</td><td>'+esc(n.boPhan||'')+'</td><td style="text-align:center">'+(n.coBH===false?'Không':'Có')+'</td><td class="so">'+(tpc?tien(tpc):'-')+'</td><td class="so">'+(l?tien(l):'<span style="color:#aab3c2">không có</span>')+'</td><td style="font-size:12px;color:#6b7280">'+esc(n.ghiChu||'')+'</td><td style="white-space:nowrap">'+(l?'<button class="nutNho vien" onclick="nsNghiTu(\''+esc(n.id)+'\')" title="Người này nghỉ làm từ tháng '+NS.thang+'">⏹ Nghỉ từ T'+NS.thang+'</button> ':'<button class="nutNho vien" onclick="nsVaoTu(\''+esc(n.id)+'\')" title="Cho người này vào bảng lương từ tháng '+NS.thang+'">▶ Vào từ T'+NS.thang+'</button> ')+'<button class="nutNho vien" onclick="nsSuaNV(\''+esc(n.id)+'\')">✏️</button> <button class="nutNho vien" onclick="nsMoNghi(\''+esc(n.id)+'\')" title="Cho nghỉ việc từ một tháng">⏹ Nghỉ việc</button> <button class="nutNho vien" style="color:#b42318" onclick="nsXoaNV(\''+esc(n.id)+'\')" title="Xóa hẳn khỏi hệ thống">🗑</button></td></tr>';
   });
   return h+'</table></div>';
 }
@@ -6564,6 +6564,24 @@ async function nsXoaNV(id){
   var n=NS.nv.filter(function(x){return x.id===id;})[0]; if(!n) return;
   if(!confirm('Xóa nhân sự "'+n.hoTen+'"?\nCác bảng lương đã chốt vẫn giữ nguyên số liệu cũ. Các tháng chưa chốt sẽ không còn người này.')) return;
   try{ await FB.deleteDoc(FB.doc(FB.db,'ns_nhanvien',id)); NS.nv=NS.nv.filter(function(x){return x.id!==id;}); bao('Đã xóa'); nsVe(); }catch(e){ bao(e.message,true); }
+}
+
+async function nsLuuNVQuick(n){ await FB.setDoc(FB.doc(FB.db,'ns_nhanvien',n.id),n); nsVe(); }
+function nsNghiTu(id){
+  var n=NS.nv.filter(function(x){return x.id===id;})[0]; if(!n) return;
+  if(!confirm('Cho "'+n.hoTen+'" nghỉ làm từ tháng '+NS.thang+'/'+NS.nam+'?\nCác tháng trước đó vẫn giữ nguyên. Từ tháng này trở đi người này không còn trong chấm công và bảng lương.')) return;
+  for(var m=NS.thang;m<=12;m++) delete n.luong[m];
+  n.ghiChu=(n.ghiChu?n.ghiChu+'; ':'')+'Nghỉ từ T'+NS.thang+'/'+NS.nam;
+  nsLuuNVQuick(n).then(function(){ bao('Đã cho nghỉ từ T'+NS.thang); }).catch(function(e){ bao(e.message,true); });
+}
+function nsVaoTu(id){
+  var n=NS.nv.filter(function(x){return x.id===id;})[0]; if(!n) return;
+  var gan=0; for(var m=1;m<=12;m++) if(n.luong[m]) gan=n.luong[m];
+  var v=prompt('Lương cơ bản mỗi tháng (VNĐ) của "'+n.hoTen+'" từ tháng '+NS.thang+' đến tháng 12:',gan||''); if(v===null) return;
+  var l=nsSo(v); if(!(l>0)){ bao('Lương phải lớn hơn 0',true); return; }
+  for(var k=NS.thang;k<=12;k++) n.luong[k]=l;
+  n.ghiChu=(n.ghiChu?n.ghiChu+'; ':'')+'Vào làm từ T'+NS.thang+'/'+NS.nam;
+  nsLuuNVQuick(n).then(function(){ bao('Đã thêm vào bảng lương từ T'+NS.thang); }).catch(function(e){ bao(e.message,true); });
 }
 function nsMoDanNV(){
   moModal('📥 Dán danh sách nhân sự từ Excel',
@@ -6615,6 +6633,21 @@ function nsNhapJson(inp){
   };
   rd.readAsText(f,'utf-8');
 }
+
+function nsMoNghi(id){
+  var n=NS.nv.filter(function(x){return x.id===id;})[0]; if(!n) return; NS._nghi=id;
+  var ms=''; for(var m=1;m<=12;m++) ms+='<option value="'+m+'"'+(m===NS.thang?' selected':'')+'>Tháng '+m+'</option>';
+  moModal('⏹ Cho nghỉ việc: '+esc(n.hoTen),
+    '<div style="font-size:13px;line-height:1.6;margin-bottom:10px">Từ tháng được chọn trở đi, người này <b>không còn xuất hiện</b> trong chấm công và bảng lương. Các tháng trước và các bảng lương đã chốt giữ nguyên. Muốn cho đi làm lại, vào Sửa nhân sự và nhập lại lương.</div>'
+    +o('Nghỉ từ tháng (năm '+NS.nam+')','<select id="nsNghiTu">'+ms+'</select>'),'nsLuuNghi()');
+}
+async function nsLuuNghi(){
+  var n=NS.nv.filter(function(x){return x.id===NS._nghi;})[0]; if(!n) return; var m=+document.getElementById('nsNghiTu').value;
+  for(var k=m;k<=12;k++) delete n.luong[k];
+  n.ghiChu=(n.ghiChu?n.ghiChu+'; ':'')+'Nghỉ việc từ T'+m+'/'+NS.nam;
+  khoaLuu(true);
+  try{ await FB.setDoc(FB.doc(FB.db,'ns_nhanvien',n.id),n); dongModal(); bao('Đã cho nghỉ từ tháng '+m); nsVe(); }catch(e){ khoaLuu(false); bao(e.message,true); }
+}
 /* ---------- CHẤM CÔNG ---------- */
 function nsNvTrongThang(n,t){ return NS.nv.filter(function(x){ return nsLuongThang(x,t)>0; }); }
 function nsNgayCong(id,n,t){
@@ -6624,9 +6657,9 @@ function nsNgayCong(id,n,t){
 function nsVeCC(){
   var n=NS.nam,t=NS.thang,N=nsNgayTrongThang(n,t),ds=nsNvTrongThang(null,t),k=nsKey(n,t),rows=(NS.cc[k]&&NS.cc[k].rows)||{};
   var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+nsChonKy()
-    +'<button class="nutNho nutXanh" onclick="nsMoDienCC()">⚡ Điền nhanh</button><button class="nutNho vien" onclick="nsMoLeCC()">🎌 Nghỉ lễ / ngày chung</button><button class="nutNho vien" onclick="nsMoDanCC()">📥 Dán từ Excel</button><button class="nutNho vien" onclick="nsInCC()">🖨 In bảng chấm công</button><span id="nsTrangThai" style="font-size:12px;color:#0f7a4d"></span></div>';
+    +'<button class="nutNho nutXanh" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho nutXanh" onclick="nsMoDienCC()">⚡ Điền nhanh</button><button class="nutNho vien" onclick="nsMo(\'nv\')">👥 Thêm / bớt nhân sự</button><button class="nutNho vien" onclick="nsMoLeCC()">🎌 Nghỉ lễ / ngày chung</button><button class="nutNho vien" onclick="nsMoDanCC()">📥 Dán từ Excel</button><button class="nutNho vien" onclick="nsInCC()">🖨 In bảng chấm công</button><span id="nsTrangThai" style="font-size:12px;color:#0f7a4d"></span></div>';
   if(!ds.length) return h+'<div class="the trong" style="padding:20px">Tháng '+t+'/'+n+' chưa có nhân sự nào có lương. Vào mục Nhân sự để thêm hoặc nhập lương cho tháng này.</div>';
-  h+='<div class="the" style="overflow-x:auto;padding:8px"><table class="nsT nsCCt"><tr><th rowspan="2">Stt</th><th rowspan="2" style="min-width:140px">Họ và tên</th><th rowspan="2">Chức vụ</th>';
+  h+='<div class="the" style="overflow-x:auto;padding:8px"><table class="nsT nsCCt"><tr><th rowspan="2">Stt</th><th rowspan="2" style="min-width:200px">Họ và tên</th><th rowspan="2">Chức vụ</th>';
   for(var d=1;d<=N;d++){ var cn=new Date(n,t-1,d).getDay()===0; h+='<th class="'+(cn?'cn':'')+'">'+d+'</th>'; }
   h+='<th rowspan="2">Tổng</th></tr><tr>';
   for(d=1;d<=N;d++){ var w=new Date(n,t-1,d).getDay(); h+='<th class="'+(w===0?'cn':'')+'" style="font-size:10.5px">'+NS_THU[w]+'</th>'; }
@@ -6713,10 +6746,10 @@ function nsInCC(){
   var n=NS.nam,t=NS.thang,N=nsNgayTrongThang(n,t),ds=nsNvTrongThang(null,t),c=NS.cfg,rows=(NS.cc[nsKey(n,t)]&&NS.cc[nsKey(n,t)].rows)||{};
   var tongNgay={}, tongAll=0; ds.forEach(function(v){ var r=rows[v.id]||{}; Object.keys(r).forEach(function(d){ tongNgay[d]=(tongNgay[d]||0)+(NS_HESO[r[d]]||0); }); tongAll+=nsNgayCong(v.id,n,t); });
   var gray='background:#e6e6e6', soDong=Math.max(20,ds.length);
-  var h='<style>@page{size:A4 landscape;margin:8mm 10mm}.nsIn{font-family:"Times New Roman",Times,serif;color:#000;font-size:11px}.nsIn{padding:0 2px 2px 0}.nsIn table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;border-top:1px solid #000;border-left:1px solid #000}.nsIn td,.nsIn th{border-right:1px solid #000;border-bottom:1px solid #000;padding:0 1px;text-align:center;height:18px;line-height:1.1;overflow:hidden;font-size:11px}.nsIn th{font-weight:700}.nsIn td.l{text-align:left;padding-left:4px;white-space:nowrap}</style><div class="nsIn">'
+  var h='<style>@page{size:A4 landscape;margin:8mm 10mm}.nsIn{font-family:"Times New Roman",Times,serif;color:#000;font-size:11px}.nsIn{width:272mm;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nsIn table{border-collapse:separate;border-spacing:0;width:calc(100% + 1px);margin:0 -1px -1px 0;table-layout:fixed}.nsIn .nsKhung{border:2px solid #000;overflow:hidden;box-sizing:border-box}.nsIn td,.nsIn th{border-right:1px solid #000;border-bottom:1px solid #000;padding:0 1px;text-align:center;height:5mm;line-height:1.1;overflow:hidden;font-size:11px}.nsIn th{font-weight:700}.nsIn td.l{text-align:left;padding-left:4px;white-space:nowrap}</style><div class="nsIn">'
    +'<div style="text-align:center;font-size:13px;font-weight:700">'+esc(c.tenCongTy)+'</div><div style="text-align:center;font-style:italic;font-size:11px">'+esc(c.diaChi)+'</div>'
-   +'<div style="text-align:center;font-size:20px;font-weight:700;margin-top:10px">BẢNG CHẤM CÔNG</div><div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:8px">Tháng '+('0'+t).slice(-2)+' năm '+n+'</div>'
-   +'<table><colgroup><col style="width:3.2%"><col style="width:13%"><col style="width:11%">'+new Array(N+1).join('<col>')+'<col style="width:4.2%"></colgroup>'
+   +'<div style="text-align:center;font-size:20px;font-weight:700;margin-top:6px">BẢNG CHẤM CÔNG</div><div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:5px">Tháng '+('0'+t).slice(-2)+' năm '+n+'</div>'
+   +'<div class="nsKhung"><table><colgroup><col style="width:3.2%"><col style="width:13%"><col style="width:11%">'+new Array(N+1).join('<col>')+'<col style="width:4.2%"></colgroup>'
    +'<tr><th rowspan="3">Stt</th><th rowspan="3">Họ và tên</th><th rowspan="3">Chức vụ</th><th colspan="'+N+'">Ngày trong tháng</th><th rowspan="3">Tổng<br>cộng</th></tr><tr>';
   var d;
   for(d=1;d<=N;d++) h+='<th style="'+(new Date(n,t-1,d).getDay()===0?gray:'')+'">'+d+'</th>';
@@ -6731,9 +6764,9 @@ function nsInCC(){
   }
   h+='<tr><td colspan="3" style="font-weight:700">TỔNG</td>';
   for(d=1;d<=N;d++){ var cn2=new Date(n,t-1,d).getDay()===0; h+='<td style="font-size:10px;font-weight:700;'+(cn2?gray:'')+'">'+(tongNgay[d]||'')+'</td>'; }
-  h+='<td style="font-weight:700">'+tongAll+'</td></tr></table>'
+  h+='<td style="font-weight:700">'+tongAll+'</td></tr></table></div>'
    +'<div style="font-style:italic;font-size:9.5px;margin-top:6px;line-height:1.4">Ký hiệu: '+NS_KY_HIEU.map(function(x){ return '<b>'+x[0]+'</b> = '+x[2]; }).join(' | ')+'</div>'
-   +'<div style="display:flex;justify-content:space-between;margin:12px 90px 0;font-size:13px"><div style="text-align:center"><br><b>Người chấm công</b><br><br><br><br><br><b>'+esc(c.nguoiChamCong||'')+'</b></div><div style="text-align:center"><i>Thanh Hóa, ngày '+N+' tháng '+('0'+t).slice(-2)+' năm '+n+'</i><br><b>Giám đốc</b><br><br><br><br><br><b>'+esc(c.giamDoc||'')+'</b></div></div></div>';
+   +'<div style="display:flex;justify-content:space-between;margin:8px 90px 0;font-size:13px"><div style="text-align:center"><div>&nbsp;</div><b>Người chấm công</b><div style="height:15mm"></div><b>'+esc(c.nguoiChamCong||'')+'</b></div><div style="text-align:center"><i>Thanh Hóa, ngày '+N+' tháng '+('0'+t).slice(-2)+' năm '+n+'</i><br><b>Giám đốc</b><div style="height:15mm"></div><b>'+esc(c.giamDoc||'')+'</b></div></div></div>';
   nsIn(h);
 }
 function nsIn(html){
@@ -6765,7 +6798,7 @@ function nsNhomBP(rows){
 }
 function nsHangLuong(r,i,edit,chot){
   var f=function(x){ return x?tien(x):'-'; };
-  var nc=edit&&!chot?'<input class="nsMini" style="width:56px'+(r.ghiDe?';background:#fef3c7':'')+'" value="'+esc(r.ngayCong)+'" title="'+(r.ghiDe?'Đã sửa tay':'Tự lấy từ bảng chấm công')+'" onchange="nsSuaLuong(\'ngayCong\',\''+esc(r.id)+'\',this.value)">':esc(r.ngayCong);
+  var nc=edit&&!chot?'<input class="nsMini" style="width:70px'+(r.ghiDe?';background:#fef3c7':'')+'" value="'+esc(r.ngayCong)+'" title="'+(r.ghiDe?'Đã sửa tay':'Tự lấy từ bảng chấm công')+'" onchange="nsSuaLuong(\'ngayCong\',\''+esc(r.id)+'\',this.value)">':esc(r.ngayCong);
   var th=edit&&!chot?'<input class="nsMini" value="'+esc(r.thue||'')+'" onchange="nsSuaLuong(\'thue\',\''+esc(r.id)+'\',this.value)" placeholder="0">':f(r.thue);
   return '<tr><td style="text-align:center">'+(i+1)+'</td><td style="white-space:nowrap"><b>'+esc(r.ten)+'</b></td><td style="font-size:11.5px">'+esc(r.chucVu)+'</td><td class="so">'+nc+'</td><td class="so">'+tien(r.luongCB)+'</td>'+r.pc.map(function(x){return '<td class="so">'+f(x)+'</td>';}).join('')+'<td class="so"><b>'+tien(r.luongTT)+'</b></td><td class="so">'+f(r.bhxh)+'</td><td class="so">'+f(r.bhyt)+'</td><td class="so">'+f(r.bhtn)+'</td><td class="so">'+th+'</td><td class="so">'+f(r.cong)+'</td><td class="so"><b>'+tien(r.thucLinh)+'</b></td></tr>';
 }
@@ -6783,7 +6816,7 @@ function nsVeLuong(){
   var n=NS.nam,t=NS.thang,k=nsKey(n,t),L=NS.lg[k]||{},chot=!!(L.chot&&L.dong),rows=nsDongThang(n,t),s=nsTongHop(rows);
   var h='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'+nsChonKy()
     +(chot?'<span style="background:#e8f4ee;color:#0f7a4d;border-radius:20px;padding:3px 12px;font-weight:800;font-size:12px">🔒 Đã chốt '+esc((L.chotLuc||'').slice(0,10))+'</span><button class="nutNho vien" onclick="nsChotLuong(false)">🔓 Mở chốt</button>':'<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:3px 12px;font-weight:800;font-size:12px">✏️ Đang tính</span><button class="nutNho nutXanh" onclick="nsChotLuong(true)">🔒 Chốt lương</button>')
-    +'<button class="nutNho vien" onclick="nsInLuong()">🖨 In</button><button class="nutNho vien" onclick="nsCsvLuong()">⬇ Tải Excel</button><button class="nutNho vien" onclick="nsLapPhieuLuong()">🧾 Lập phiếu chi lương</button><button class="nutNho vien" onclick="NS.namXem=true;nsVe()">📊 Tổng hợp năm</button></div>';
+    +'<button class="nutNho vien" onclick="nsSuaNV(null)">➕ Thêm nhân sự</button><button class="nutNho vien" onclick="nsInLuong()">🖨 In</button><button class="nutNho vien" onclick="nsCsvLuong()">⬇ Tải Excel</button><button class="nutNho vien" onclick="nsLapPhieuLuong()">🧾 Lập phiếu chi lương</button><button class="nutNho vien" onclick="NS.namXem=true;nsVe()">📊 Tổng hợp năm</button><button class="nutNho vien" onclick="nsMo(\'nv\')">👥 Thêm / bớt nhân sự</button></div>';
   if(!rows.length) return h+'<div class="the trong" style="padding:20px">Tháng '+t+'/'+n+' chưa có nhân sự nào có lương. Vào mục Nhân sự để thêm hoặc nhập lương.</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
     +[['Số người',rows.length,'#1D3F70'],['Lương thực tế',tien(s.luongTT),'#B7791F'],['Khấu trừ',tien(s.cong),'#B42318'],['Thực lĩnh',tien(s.thucLinh),'#0F7A4D']].map(function(x){ return '<div style="flex:1;min-width:140px;background:#fff;border:1px solid '+x[2]+'44;border-left:4px solid '+x[2]+';border-radius:9px;padding:6px 12px"><div style="font-size:18px;font-weight:800;color:'+x[2]+'">'+x[1]+'</div><div style="font-size:11px;color:#55606f;font-weight:700">'+x[0]+'</div></div>'; }).join('')+'</div>';
@@ -6806,10 +6839,10 @@ function nsInLuong(){
   var n=NS.nam,t=NS.thang,c=NS.cfg,rows=nsDongThang(n,t); if(!rows.length){ bao('Không có dữ liệu',true); return; }
   var last=nsNgayTrongThang(n,t), f=function(x){ return x?tien(x):'-'; }, soDong=Math.max(20,rows.length);
   var W=[3,10,7.5,4.5,6.5,4.2,4.2,4.2,4.2,4.2,6.5,5,5,4.5,4.5,5,6.5,6], col='<colgroup>'+W.map(function(w){ return '<col style="width:'+w+'%">'; }).join('')+'</colgroup>';
-  var h='<style>@page{size:A4 landscape;margin:8mm 10mm}.nsIn{font-family:"Times New Roman",Times,serif;color:#000;font-size:10px;padding:0 2px 2px 0}.nsIn table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;border-top:1px solid #000;border-left:1px solid #000}.nsIn td,.nsIn th{border-right:1px solid #000;border-bottom:1px solid #000;padding:0 2px;height:16px;line-height:1.1;overflow:hidden;font-size:10px;text-align:center}.nsIn th{font-weight:700;background:#dce6f4;white-space:normal;word-break:normal;overflow:visible;font-size:9.5px;line-height:1.15}.nsIn td.so{text-align:right}.nsIn td.l{text-align:left;white-space:nowrap}.nsIn tr.nhom td{background:#dce6f4;font-weight:700;font-style:italic}.nsIn tr.tong td{background:#d9ead3;font-weight:700}.nsIn tr.chu td{font-style:italic;font-size:9px;height:13px;color:#444}</style><div class="nsIn">'
-   +'<div style="display:flex;justify-content:space-between"><div><b style="font-size:12px">'+esc(c.tenCongTy)+'</b><br><i>'+esc(c.diaChi)+'</i></div><div style="text-align:center;font-size:9.5px"><i>Mẫu số: 02-LĐTL<br>(Ban hành theo Thông tư 133/2016/TT-BTC ngày 26/08/2016 của Bộ Tài Chính)</i></div></div>'
-   +'<div style="text-align:center;font-size:19px;font-weight:700;margin-top:6px">BẢNG THANH TOÁN TIỀN LƯƠNG</div><div style="text-align:center;font-size:12px;font-weight:700">Tháng '+('0'+t).slice(-2)+' năm '+n+'</div><div style="text-align:right;font-style:italic;font-size:10px;margin-bottom:3px">Đơn vị tính: Việt Nam Đồng</div>'
-   +'<table>'+col+'<tr><th rowspan="3">STT</th><th rowspan="3">Họ và tên</th><th rowspan="3">Chức vụ</th><th rowspan="3">Ngày công</th><th rowspan="3">Lương cơ bản</th><th rowspan="3">PC nhà ở</th><th rowspan="3">PC xăng xe</th><th rowspan="3">PC điện thoại</th><th rowspan="3">PC nuôi con nhỏ</th><th rowspan="3">Phụ cấp ăn trưa</th><th rowspan="3">Lương thực tế</th><th colspan="5">Các khoản phải khấu trừ vào lương</th><th rowspan="3">Số tiền thực lĩnh</th><th rowspan="3">Ký nhận</th></tr>'
+  var h='<style>@page{size:A4 landscape;margin:8mm 10mm}.nsIn{font-family:"Times New Roman",Times,serif;color:#000;font-size:10px;width:272mm;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}.nsIn table{border-collapse:separate;border-spacing:0;width:calc(100% + 1px);margin:0 -1px -1px 0;table-layout:fixed}.nsIn .nsKhung{border:2px solid #000;overflow:hidden;box-sizing:border-box}.nsIn td,.nsIn th{border-right:1px solid #000;border-bottom:1px solid #000;padding:0 2px;height:4.8mm;line-height:1.1;overflow:hidden;font-size:10px;text-align:center}.nsIn th{font-weight:700;background:#dce6f4;white-space:normal;word-break:normal;overflow:visible;font-size:9.5px;line-height:1.15}.nsIn td.so{text-align:right}.nsIn td.l{text-align:left;white-space:nowrap}.nsIn tr.nhom td{background:#dce6f4;font-weight:700;font-style:italic}.nsIn tr.tong td{background:#d9ead3;font-weight:700}.nsIn tr.chu td{font-style:italic;font-size:9px;height:13px;color:#444}</style><div class="nsIn">'
+   +'<div style="text-align:center"><b style="font-size:13px">'+esc(c.tenCongTy)+'</b><br><i style="font-size:11px">'+esc(c.diaChi)+'</i></div><div style="text-align:right;font-size:9px;margin-top:2px"><i>Mẫu số: 02-LĐTL (Ban hành theo Thông tư 133/2016/TT-BTC ngày 26/08/2016 của Bộ Tài Chính)</i></div>'
+   +'<div style="text-align:center;font-size:19px;font-weight:700;margin-top:4px">BẢNG THANH TOÁN TIỀN LƯƠNG</div><div style="text-align:center;font-size:12px;font-weight:700">Tháng '+('0'+t).slice(-2)+' năm '+n+'</div><div style="text-align:right;font-style:italic;font-size:10px;margin-bottom:3px">Đơn vị tính: Việt Nam Đồng</div>'
+   +'<div class="nsKhung"><table>'+col+'<tr><th rowspan="3">STT</th><th rowspan="3">Họ và tên</th><th rowspan="3">Chức vụ</th><th rowspan="3">Ngày công</th><th rowspan="3">Lương cơ bản</th><th rowspan="3">PC nhà ở</th><th rowspan="3">PC xăng xe</th><th rowspan="3">PC điện thoại</th><th rowspan="3">PC nuôi con nhỏ</th><th rowspan="3">Phụ cấp ăn trưa</th><th rowspan="3">Lương thực tế</th><th colspan="5">Các khoản phải khấu trừ vào lương</th><th rowspan="3">Số tiền thực lĩnh</th><th rowspan="3">Ký nhận</th></tr>'
    +'<tr><th rowspan="2">BHXH ('+(c.bhxh*100)+'%)</th><th rowspan="2">BHYT ('+(c.bhyt*100)+'%)</th><th rowspan="2">BHTN ('+(c.bhtn*100)+'%)</th><th rowspan="2">Thuế TNCN</th><th rowspan="2">Cộng</th></tr><tr></tr>'
    +'<tr class="chu">'+'ABCDEFGHIJKLMNOPQR'.split('').map(function(x){ return '<td>'+x+'</td>'; }).join('')+'</tr>';
   for(var i=0;i<soDong;i++){
@@ -6819,8 +6852,8 @@ function nsInLuong(){
   }
   var dong=function(ten,sm,cls){ return '<tr class="'+cls+'"><td colspan="3" style="text-align:left;padding-left:4px">'+esc(ten)+'</td><td>'+sm.ngayCong+'</td><td class="so">'+f(sm.luongCB)+'</td>'+sm.pc.map(function(x){ return '<td class="so">'+f(x)+'</td>'; }).join('')+'<td class="so">'+f(sm.luongTT)+'</td><td class="so">'+f(sm.bhxh)+'</td><td class="so">'+f(sm.bhyt)+'</td><td class="so">'+f(sm.bhtn)+'</td><td class="so">'+f(sm.thue)+'</td><td class="so">'+f(sm.cong)+'</td><td class="so">'+f(sm.thucLinh)+'</td><td></td></tr>'; };
   nsNhomBP(rows).forEach(function(g){ h+=dong('Cộng '+g.ten,nsTongHop(g.rows),'nhom'); });
-  h+=dong('TỔNG CỘNG',nsTongHop(rows),'tong')+'</table>'
-   +'<div style="display:flex;justify-content:space-between;margin:10px 110px 0;font-size:12px"><div style="text-align:center"><br><b>Người lập</b><br><br><br><br><br><b>'+esc(c.nguoiLap||'')+'</b></div><div style="text-align:center"><i>Thanh Hóa, ngày '+last+' tháng '+('0'+t).slice(-2)+' năm '+n+'</i><br><b>Giám đốc</b><br><br><br><br><br><b>'+esc(c.giamDoc||'')+'</b></div></div></div>';
+  h+=dong('TỔNG CỘNG',nsTongHop(rows),'tong')+'</table></div>'
+   +'<div style="display:flex;justify-content:space-between;margin:6px 110px 0;font-size:12px"><div style="text-align:center"><br><b>Người lập</b><div style="height:15mm"></div><b>'+esc(c.nguoiLap||'')+'</b></div><div style="text-align:center"><i>Thanh Hóa, ngày '+last+' tháng '+('0'+t).slice(-2)+' năm '+n+'</i><br><b>Giám đốc</b><div style="height:15mm"></div><b>'+esc(c.giamDoc||'')+'</b></div></div></div>';
   nsIn(h);
 }
 function nsTaiCsv(ten,dong){
