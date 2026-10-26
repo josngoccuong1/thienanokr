@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 24/10/2026 · v69</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 26/10/2026 · v70</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -527,6 +527,7 @@ main section{animation:hienLen .25s ease}
 
       <div class="the" style="padding:14px;margin-bottom:16px;border:2px solid #a7f3d0;background:#f0fdf4">
         <div style="font-weight:700;color:#0f7a4d;margin-bottom:8px">✅ ĐIỂM DANH NHANH — gõ tên rồi bấm Có mặt/Vắng</div>
+        <div id="ddBanner" style="display:none"></div>
         <input type="search" id="ddTimTen" placeholder="Gõ tên học sinh để ĐIỂM DANH ngay..." oninput="ddTimTheoTen()">
         <div id="ddKetQuaTen" style="margin-top:10px"></div>
       </div>
@@ -4605,7 +4606,41 @@ function ngayDangChon(){
   var p = v.split('-'); return p[2]+'/'+p[1]+'/'+p[0];
 }
 
+/* ---------- Điểm danh nhanh: CHỈ cho điểm danh bạn khác khi đã báo THÀNH CÔNG ---------- */
+var _ddDangLuu=false, _ddGanDay=[], _ddThuLaiFn=null;
+function ddBanner(loai,html){
+  var b=document.getElementById('ddBanner'); if(!b) return;
+  var c={cho:['#eff6ff','#1d4ed8','#93c5fd'],ok:['#dcfce7','#166534','#4ade80'],loi:['#fee2e2','#b91c1c','#f87171']}[loai];
+  b.style.cssText='display:block;margin:0 0 10px;padding:14px 16px;border-radius:10px;font-size:17px;font-weight:800;line-height:1.5;background:'+c[0]+';color:'+c[1]+';border:2px solid '+c[2];
+  b.innerHTML=html;
+  try{ b.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){}
+}
+function ddKhoaNhap(on){
+  var i=document.getElementById('ddTimTen'); if(!i) return;
+  i.disabled=!!on; i.placeholder=on?'⏳ Chờ báo ✅ ĐÃ LƯU rồi mới điểm danh bạn khác...':'Gõ tên học sinh để ĐIỂM DANH ngay...';
+}
+function ddMoKhoa(){ _ddDangLuu=false; _ddThuLaiFn=null; ddKhoaNhap(false); var b=document.getElementById('ddBanner'); if(b) b.style.display='none'; var i=document.getElementById('ddTimTen'); if(i) i.focus(); }
+function ddThuLai(){ var f=_ddThuLaiFn; if(f) f(); }
+function ddLuuXacNhan(ten,tt,taoPromise,thuLai){
+  _ddDangLuu=true; _ddThuLaiFn=thuLai||null; ddKhoaNhap(true);
+  ddBanner('cho','⏳ ĐANG LƯU: '+esc(ten)+' — '+esc(tt)+'<div style="font-size:13px;font-weight:600">Chờ báo ✅ rồi mới điểm danh bạn khác. Đừng đóng trang.</div>');
+  var timeout=new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('Quá 20 giây chưa nhận được xác nhận (mạng yếu?)')); },20000); });
+  return Promise.race([taoPromise(),timeout]).then(function(kq){
+    _ddDangLuu=false; _ddThuLaiFn=null; ddKhoaNhap(false);
+    _ddGanDay.unshift({ten:ten,tt:tt,gio:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}); _ddGanDay=_ddGanDay.slice(0,5);
+    ddBanner('ok','✅ ĐÃ LƯU THÀNH CÔNG: '+esc(ten)+' — '+esc(tt)
+      +'<div style="font-size:13px;font-weight:600;margin-top:4px">Gần đây: '+_ddGanDay.map(function(x){ return esc(x.ten)+' ('+esc(x.tt)+' '+x.gio+')'; }).join(' · ')+'</div>');
+    var i=document.getElementById('ddTimTen'); if(i){ i.value=''; i.focus(); } var kqBox=document.getElementById('ddKetQuaTen'); if(kqBox) kqBox.innerHTML='';
+    return kq;
+  }).catch(function(e){
+    _ddDangLuu=false; ddKhoaNhap(true); // giữ KHÓA cho tới khi lưu được hoặc chủ động bỏ qua
+    ddBanner('loi','❌ CHƯA LƯU ĐƯỢC: '+esc(ten)+' — '+esc(tt)+'<div style="font-size:13px;font-weight:600;margin:4px 0 8px">'+esc(e.message||'Lỗi')+'. Em này CHƯA được điểm danh.</div>'
+      +'<button class="nutChinh" onclick="ddThuLai()">🔁 Thử lại</button> <button class="nutPhu" onclick="ddMoKhoa()">Bỏ qua (tự ghi lại sau)</button>');
+    throw e;
+  });
+}
 function ddTimTheoTen(){
+  if(_ddDangLuu) return;
   var tk = boDauJS(document.getElementById('ddTimTen').value);
   var box = document.getElementById('ddKetQuaTen');
   if(!tk.trim()){ box.innerHTML=''; return; }
@@ -4674,8 +4709,9 @@ function themCaHoc(maHV, maLop, hoTen){
     if(caMoi>2){
       if(!confirm('⚠️ '+hoTen+' hôm nay đã điểm danh '+soCaHienCo+' ca.\nĐây sẽ là CA THỨ '+caMoi+' — bất thường (thường tối đa 2 ca/ngày).\n\nBạn có chắc muốn thêm ca này không?')) return;
     }
-    goi('luuDiemDanh', {maLop:maLop, ngay:ngayISO, nguoiDiemDanh:NguoiDung.hoTen, soCa:caMoi,
-      danhSach:[{maHV:maHV, hoTen:hoTen, trangThai:'Có mặt', ghiChu:'Ca '+caMoi}]})
+    if(_ddDangLuu){ bao('⏳ Đang lưu em trước, chờ báo ✅ đã.', true); return; }
+    ddLuuXacNhan(hoTen, 'Có mặt (ca '+caMoi+')', function(){ return goi('luuDiemDanh', {maLop:maLop, ngay:ngayISO, nguoiDiemDanh:NguoiDung.hoTen, soCa:caMoi,
+      danhSach:[{maHV:maHV, hoTen:hoTen, trangThai:'Có mặt', ghiChu:'Ca '+caMoi}]}); }, function(){ themCaHoc(maHV,maLop,hoTen); })
     .then(function(){
       bao('✓ '+hoTen+' · Có mặt (ca '+caMoi+')');
       var gioNow=new Date().toLocaleString('vi-VN');
@@ -4698,19 +4734,20 @@ function diemDanhMotHS(btn, maHV, maLop, tt){
   var hv = TatCaHV.filter(function(h){return h.MaHV===maHV;})[0] || {HoTen:''};
   var ngay = document.getElementById('ddNgay').value;
   if(!ngay){ bao('Chưa chọn ngày', true); return; }
+  if(_ddDangLuu){ bao('⏳ Đang lưu em trước, chờ báo ✅ đã.', true); return; }
   // CHẶN nếu hết khóa mà chưa đăng ký khóa mới (chỉ chặn "Có mặt" — buổi tính tiền)
   if(tt==='Có mặt'){
     var kt=coTheDiemDanh(maHV);
     if(!kt.ok){
       var oke=confirm('⛔ '+hv.HoTen+' đang báo HẾT KHÓA'+(kt.soBuoi?' ('+kt.soBuoi+'/'+kt.soBuoi+' buổi)':'')+'.\n\n• Nếu ĐÃ gia hạn khóa mới rồi → bấm OK để vẫn điểm danh.\n• Nếu CHƯA → bấm Cancel để đi gia hạn.');
       if(!oke){
-        if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.display='block'; xn.style.color='#b42318'; xn.innerHTML='⛔ Hết khóa — <a href="#" onclick="moChiTiet(\''+esc(maHV)+'\');return false;" style="color:#1b3c6b;font-weight:700">bấm để gia hạn</a>'; } }
+        if(btn&&btn.parentNode){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.display='block'; xn.style.color='#b42318'; xn.innerHTML='⛔ Hết khóa — <a href="#" onclick="moChiTiet(\''+esc(maHV)+'\');return false;" style="color:#1b3c6b;font-weight:700">bấm để gia hạn</a>'; } }
         return;
       }
     }
   }
   // Đổi màu nút ngay lập tức cho thấy đã chọn
-  if(btn){
+  if(btn && btn.parentNode){
     var box=btn.parentNode;
     box.querySelectorAll('.ttBtn').forEach(function(b){ b.classList.remove('active','hoc','nghi','bao'); });
     var mau = tt==='Có mặt'?'hoc':(tt==='Vắng'?'nghi':'bao');
@@ -4718,8 +4755,8 @@ function diemDanhMotHS(btn, maHV, maLop, tt){
     var xn=box.querySelector('.ddXacNhan');
     if(xn){ xn.style.display='block'; xn.style.color='#0f7a4d'; xn.textContent='⏳ Đang lưu...'; }
   }
-  goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen,
-    danhSach:[{maHV:maHV, hoTen:hv.HoTen, trangThai:tt, ghiChu:''}]})
+  ddLuuXacNhan(hv.HoTen, tt, function(){ return goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen,
+    danhSach:[{maHV:maHV, hoTen:hv.HoTen, trangThai:tt, ghiChu:''}]}); }, function(){ diemDanhMotHS(btn,maHV,maLop,tt); })
   .then(function(kq){
     bao('✓ '+hv.HoTen+' · '+tt);
     var nhanLop = (hv.Lop||hv.TenKhoa||'');
@@ -4729,11 +4766,11 @@ function diemDanhMotHS(btn, maHV, maLop, tt){
       +(nhanLop?('\n📚 '+nhanLop):'')
       +'\n👩‍🏫 GV: '+((NguoiDung&&NguoiDung.hoTen)||'')
       +'\n🕐 '+gioNow);
-    if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#0f7a4d'; xn.textContent='✓ Đã ghi: '+tt+' — ngày '+kq.ngay; } }
+    if(btn&&btn.parentNode){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#0f7a4d'; xn.textContent='✓ Đã ghi: '+tt+' — ngày '+kq.ngay; } }
     napDsDiemDanh();
   })
   .catch(function(e){
-    if(btn){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#b42318'; xn.textContent='✗ Lỗi: '+e.message; } }
+    if(btn&&btn.parentNode){ var xn=btn.parentNode.querySelector('.ddXacNhan'); if(xn){ xn.style.color='#b42318'; xn.textContent='✗ Lỗi: '+e.message; } }
     bao(e.message, true);
   });
 }
@@ -4808,10 +4845,12 @@ function luuDiemDanh(){
   if(btn){ btn.disabled=true; btn.textContent='Đang lưu...'; }
   goi('luuDiemDanh', {maLop:maLop, ngay:ngay, nguoiDiemDanh:NguoiDung.hoTen, danhSach:dsGui})
   .then(function(kq){
-    bao('Đã lưu điểm danh '+kq.soLuong+' học viên · '+kq.ngay+(hetKhoa.length?(' (bỏ qua '+hetKhoa.length+' em hết khóa)'):'')); napDsDiemDanh();
-    if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; }
+    bao('✅ ĐÃ LƯU THÀNH CÔNG '+kq.soLuong+' học viên · '+kq.ngay+(hetKhoa.length?(' (bỏ qua '+hetKhoa.length+' em hết khóa)'):'')); napDsDiemDanh();
+    ddBanner('ok','✅ ĐÃ LƯU THÀNH CÔNG điểm danh '+kq.soLuong+' học viên · '+esc(kq.ngay));
+    if(btn){ btn.disabled=false; btn.textContent='✅ Đã lưu thành công'; setTimeout(function(){ btn.textContent='Lưu điểm danh'; },3000); }
   }).catch(function(e){
-    bao(e.message, true);
+    bao('❌ CHƯA LƯU ĐƯỢC: '+e.message, true);
+    ddBanner('loi','❌ CHƯA LƯU ĐƯỢC điểm danh cả lớp: '+esc(e.message)+'<div style="font-size:13px;font-weight:600">Bấm "Lưu điểm danh" lại. Chưa ai trong lớp được ghi.</div>');
     if(btn){ btn.disabled=false; btn.textContent='Lưu điểm danh'; }
   });
 }
