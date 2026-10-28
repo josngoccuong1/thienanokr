@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 26/10/2026 · v70</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 28/10/2026 · v71</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -599,6 +599,10 @@ main section{animation:hienLen .25s ease}
 
     <!-- TAB BÁO CÁO -->
     <section id="vung-baocao" class="an">
+      <div class="the" id="bcCardMucTieu" style="padding:16px;margin-bottom:16px;border:2px solid #fed7aa">
+        <div style="font-weight:800;color:#c2410c;margin-bottom:10px;font-size:16px"><span class="ic">flag</span> 🎯 DOANH THU &amp; MỤC TIÊU — hôm nay · tháng · quý · năm</div>
+        <div id="dtmtBox"></div>
+      </div>
       <div class="the" style="padding:16px;margin-bottom:16px">
         <div style="font-weight:600;color:#12294d;margin-bottom:10px"><span class="ic">groups</span> Tình trạng học viên</div>
         <div id="oTinhTrang" style="margin-bottom:14px"></div>
@@ -2538,6 +2542,7 @@ var MENU_DINH_NGHIA = [
   ]},
   {id:'saphetkhoa', icon:'hourglass_top', ten:'Sắp hết khóa', mau:'#d97706', onclick:"doiTab('saphetkhoa')"},
   {id:'baocao', icon:'monitoring', ten:'Báo cáo', mau:'#16a34a', onclick:"navToggle(this,event)||doiTab('baocao')", con:[
+    {id:'baocao_muctieu', icon:'flag', ten:'🎯 Doanh thu & Mục tiêu', onclick:"bcSub('muctieu')"},
     {id:'baocao_doanhthu', icon:'payments', ten:'Doanh thu & tăng trưởng HS', onclick:"bcSub('doanhthu')"},
     {id:'baocao_doanhthuthang', icon:'calendar_month', ten:'Doanh thu theo tháng', onclick:"bcSub('doanhthu')"},
     {id:'baocao_quy', icon:'bar_chart', ten:'Theo quý', onclick:"bcSub('doanhthu')"},
@@ -5400,6 +5405,7 @@ function napThangBaoCao(){
     var n = new Date();
     el.value = n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
   }
+  dtmtNap();
   var en = document.getElementById('bcNam');
   if(en && !en.value){ en.value = new Date().getFullYear(); baoCaoDoanhThu(); }
   var etn = document.getElementById('bcThangNgay');
@@ -5470,6 +5476,83 @@ function baoCaoDoanhThuNgay(){  var thang = document.getElementById('bcThangNgay
   }).catch(function(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; });
 }
 
+/* ===== DOANH THU & MỤC TIÊU: hôm nay / tháng / quý / năm so với mục tiêu ===== */
+var DTMT={nam:new Date().getFullYear(), hp:{}, hpTruoc:{}, mt:{}, khac:{}, khacTruoc:{}, homNay:0};
+function _dtmtPct(a,b){ return b>0?Math.round(a/b*100):null; }
+function _dtmtThanh(p,mau){ var w=Math.max(0,Math.min(100,p||0)); return '<div style="height:8px;background:#e5e7eb;border-radius:6px;overflow:hidden;margin:6px 0"><div style="height:8px;width:'+w+'%;background:'+(mau||'#16a34a')+'"></div></div>'; }
+async function dtmtNap(nam){
+  var box=document.getElementById('dtmtBox'); if(!box) return;
+  if(nam) DTMT.nam=parseInt(nam,10);
+  box.innerHTML='<div class="dangTai" style="padding:16px">Đang tính doanh thu...</div>';
+  try{
+    var n=DTMT.nam, hn=_isoNgay(new Date()), pt=await docsCol('phieuthu'), mapCS={};
+    (TatCaHV||[]).forEach(function(h){ mapCS[h.MaHV]=h.CoSo||''; });
+    var hp={}, hpT={}; for(var i=1;i<=12;i++){ hp[i]=0; hpT[i]=0; } DTMT.homNay=0;
+    pt.forEach(function(r){ if(!dungCoSo(mapCS[r.MaHV])) return;
+      var t=r.ThangThu||_thangCuaNgay(r.NgayThuISO)||_thangCuaNgay(r.NgayThu); if(!t) return;
+      var st=soTienJS(r.SoTien), y=parseInt(t.slice(0,4),10), m=parseInt(t.slice(5,7),10);
+      if(y===n) hp[m]+=st; else if(y===n-1) hpT[m]+=st;
+      if(String(r.NgayThuISO||'')===hn) DTMT.homNay+=st; });
+    DTMT.hp=hp; DTMT.hpTruoc=hpT;
+    var d=await FB.getDoc(FB.doc(FB.db,'caidat','dt_muctieu_'+n)), o=d.exists()?d.data():{};
+    DTMT.mt=o.mt||{}; DTMT.khac=o.khac||{};
+    try{ var d2=await FB.getDoc(FB.doc(FB.db,'caidat','dt_muctieu_'+(n-1))); DTMT.khacTruoc=d2.exists()?(d2.data().khac||{}):{}; }catch(e){ DTMT.khacTruoc={}; }
+    dtmtVe();
+  }catch(e){ box.innerHTML='<div class="baoLoi">'+esc(e.message)+'</div>'; }
+}
+function _dtmtTong(m){ return (DTMT.hp[m]||0)+soTienJS(DTMT.khac[m]); }
+function _dtmtTongTruoc(m){ return (DTMT.hpTruoc[m]||0)+soTienJS(DTMT.khacTruoc[m]); }
+function _dtmtKhoang(a,b,f){ var s=0; for(var m=a;m<=b;m++) s+=f(m); return s; }
+function dtmtVe(){
+  var box=document.getElementById('dtmtBox'); if(!box) return;
+  var now=new Date(), n=DTMT.nam, laNamNay=(n===now.getFullYear()), m0=laNamNay?now.getMonth()+1:12, q0=Math.ceil(m0/3);
+  var mt=function(m){ return soTienJS(DTMT.mt[m]); }, admin=laAdmin();
+  var T=function(m){ return _dtmtTong(m); };
+  var tile=function(tieuDe,thuc,muc,truoc,phu){
+    var p=_dtmtPct(thuc,muc), tg=truoc>0?Math.round((thuc-truoc)/truoc*100):null;
+    return '<div class="the" style="padding:14px"><div style="font-size:12.5px;color:#6b7280;font-weight:700">'+tieuDe+'</div>'
+     +'<div style="font-size:24px;font-weight:800;color:#12294d;margin:2px 0">'+tien(thuc)+' đ</div>'
+     +(muc>0?_dtmtThanh(p,p>=100?'#16a34a':(p>=60?'#f59e0b':'#ef4444'))+'<div style="font-size:13px">Mục tiêu <b>'+tien(muc)+'</b> · đạt <b style="color:'+(p>=100?'#16a34a':'#b45309')+'">'+p+'%</b>'+(muc>thuc?' · còn thiếu <b>'+tien(muc-thuc)+'</b>':' · ✅ vượt '+tien(thuc-muc))+'</div>'
+        :'<div style="font-size:13px;color:#9aa4b2;margin-top:6px">Chưa đặt mục tiêu</div>')
+     +(truoc>0?'<div style="font-size:12px;color:#6b7280;margin-top:4px">So cùng kỳ '+(n-1)+': '+(tg>=0?'▲ +':'▼ ')+tg+'%</div>':'')
+     +(phu?'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+phu+'</div>':'')+'</div>'; };
+  var qa=(q0-1)*3+1, qb=q0*3;
+  var h='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span style="font-size:13px;color:#6b7280">Năm</span>'
+   +'<input type="number" id="dtmtNam" value="'+n+'" style="width:90px" onchange="dtmtNap(this.value)">'
+   +(admin?'<button class="nutNho" onclick="dtmtChiaDeu()">🎯 Đặt mục tiêu cả năm (chia đều)</button>':'')
+   +'<button class="nutNho" onclick="dtmtNap()">🔄 Làm mới</button></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:14px">'
+   +(laNamNay?'<div class="the" style="padding:14px"><div style="font-size:12.5px;color:#6b7280;font-weight:700">HÔM NAY ('+_isoNgay(now).split('-').reverse().slice(0,2).join('/')+')</div><div style="font-size:24px;font-weight:800;color:#12294d;margin:2px 0">'+tien(DTMT.homNay)+' đ</div><div style="font-size:12px;color:#6b7280">Tổng phiếu thu trong ngày</div></div>':'')
+   +tile('THÁNG '+m0+'/'+n,T(m0),mt(m0),_dtmtTongTruoc(m0))
+   +tile('QUÝ '+q0+'/'+n+' (T'+qa+'–T'+qb+')',_dtmtKhoang(qa,qb,T),_dtmtKhoang(qa,qb,mt),_dtmtKhoang(qa,qb,_dtmtTongTruoc))
+   +tile('CẢ NĂM '+n,_dtmtKhoang(1,12,T),_dtmtKhoang(1,12,mt),_dtmtKhoang(1,12,_dtmtTongTruoc),laNamNay?'Tính đến hết T'+m0+': '+tien(_dtmtKhoang(1,m0,T))+' đ':'')
+   +'</div>';
+  var inp=function(k,m,v,ph){ return admin?'<input class="nsMini" style="max-width:130px;width:100%;box-sizing:border-box;text-align:right" value="'+(v?tien(v):'')+'" placeholder="'+ph+'" onchange="dtmtLuu(\''+k+'\','+m+',this.value)">':(v?tien(v):'—'); };
+  var hang=function(m){ var th=T(m), mu=mt(m), p=_dtmtPct(th,mu);
+    return '<tr'+(laNamNay&&m===m0?' style="background:#fff7ed"':'')+'><td><b>Tháng '+m+'</b></td><td class="tien">'+(DTMT.hp[m]?tien(DTMT.hp[m]):'—')+'</td><td class="tien">'+inp('khac',m,soTienJS(DTMT.khac[m]),'nhập tay')+'</td><td class="tien"><b>'+(th?tien(th):'—')+'</b></td><td class="tien">'+inp('mt',m,mu,'đặt mục tiêu')+'</td><td class="tien">'+(p===null?'—':'<b style="color:'+(p>=100?'#16a34a':(p>=60?'#b45309':'#b91c1c'))+'">'+p+'%</b>')+'</td><td class="tien">'+(mu>th?tien(mu-th):(mu?'✅':'—'))+'</td></tr>'; };
+  var sub=function(ten,a,b,css){ var hpS=_dtmtKhoang(a,b,function(m){return DTMT.hp[m]||0;}), kS=_dtmtKhoang(a,b,function(m){return soTienJS(DTMT.khac[m]);}), th=hpS+kS, mu=_dtmtKhoang(a,b,mt), p=_dtmtPct(th,mu);
+    return '<tr style="'+css+'font-weight:800"><td>'+ten+'</td><td class="tien">'+tien(hpS)+'</td><td class="tien">'+tien(kS)+'</td><td class="tien">'+tien(th)+'</td><td class="tien">'+(mu?tien(mu):'—')+'</td><td class="tien">'+(p===null?'—':p+'%')+'</td><td class="tien">'+(mu>th?tien(mu-th):(mu?'✅':'—'))+'</td></tr>'; };
+  h+='<div class="cuonBang"><table class="nho"><thead><tr><th>Kỳ</th><th class="tien">Học phí (từ phiếu thu)</th><th class="tien">Bán đàn &amp; khác (nhập tay)</th><th class="tien">Tổng thực đạt</th><th class="tien">Mục tiêu</th><th class="tien">% đạt</th><th class="tien">Còn thiếu</th></tr></thead><tbody>';
+  for(var q=0;q<4;q++){ for(var m=q*3+1;m<=q*3+3;m++) h+=hang(m); h+=sub('Quý '+(q+1),q*3+1,q*3+3,'background:#eef2f9;'); }
+  h+=sub('CẢ NĂM '+n,1,12,'background:#f6f1de;')+'</tbody></table></div>';
+  h+='<div style="font-size:12px;color:#6b7280;margin-top:8px;line-height:1.6">• <b>Học phí</b> lấy tự động từ phiếu thu (theo cơ sở đang xem). • <b>Bán đàn &amp; khác</b> và <b>Mục tiêu</b> thầy gõ vào ô — tự lưu; mục tiêu quý/năm = tổng các tháng. • Nhập số như 50.000.000 hoặc 50000000.</div>';
+  box.innerHTML=h;
+}
+async function dtmtLuu(k,m,v){
+  if(!laAdmin()){ bao('Chỉ admin được sửa.', true); return; }
+  DTMT[k][m]=soTienJS(v);
+  try{ await FB.setDoc(FB.doc(FB.db,'caidat','dt_muctieu_'+DTMT.nam),{nam:DTMT.nam,mt:DTMT.mt,khac:DTMT.khac,capNhat:new Date().toISOString()},{merge:true}); bao('✅ Đã lưu'); }
+  catch(e){ bao('❌ Chưa lưu được: '+e.message, true); }
+  dtmtVe();
+}
+async function dtmtChiaDeu(){
+  var v=prompt('Mục tiêu doanh thu CẢ NĂM '+DTMT.nam+' (đồng), ví dụ 3000000000 hoặc 3.000.000.000.\nHệ thống chia đều 12 tháng, sau đó thầy sửa từng tháng nếu cần:','');
+  if(v===null) return; var tong=soTienJS(v); if(tong<=0){ bao('Số không hợp lệ', true); return; }
+  var moi=Math.round(tong/12/1000)*1000; for(var m=1;m<=12;m++) DTMT.mt[m]=moi;
+  try{ await FB.setDoc(FB.doc(FB.db,'caidat','dt_muctieu_'+DTMT.nam),{nam:DTMT.nam,mt:DTMT.mt,khac:DTMT.khac,capNhat:new Date().toISOString()},{merge:true}); bao('✅ Đã đặt mục tiêu '+tien(moi)+' đ/tháng'); }
+  catch(e){ bao('❌ '+e.message, true); }
+  dtmtVe();
+}
 function baoCaoDoanhThu(){
   var nam = document.getElementById('bcNam').value || new Date().getFullYear();
   var box = document.getElementById('kqDoanhThu');
@@ -5747,8 +5830,8 @@ function bcSub(what){
   if(what==='luonggv'){ moLuongGV(); return; }
   doiTab('baocao');
   setTimeout(function(){
-    var id = (what==='ngay') ? 'bcCardDoanhThuNgay' : 'bcCardDoanhThu';
-    if(what!=='ngay'){ try{ baoCaoDoanhThu(); }catch(e){} }
+    var id = (what==='ngay') ? 'bcCardDoanhThuNgay' : (what==='muctieu' ? 'bcCardMucTieu' : 'bcCardDoanhThu');
+    if(what!=='ngay' && what!=='muctieu'){ try{ baoCaoDoanhThu(); }catch(e){} }
     var el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
   }, 200);
 }
