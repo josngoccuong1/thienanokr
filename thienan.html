@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 02/11/2026 · v74</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 02/11/2026 · v75</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -2578,6 +2578,7 @@ var MENU_DINH_NGHIA = [
   ]},
   {id:'thuchi', icon:'account_balance_wallet', ten:'Thu – Chi', mau:'#b45309', onclick:"navToggle(this,event)||tcMo('tq')", con:[
     {id:'thuchi_tq', icon:'insights', ten:'Tổng quan thu – chi', onclick:"tcMo('tq')"},
+    {id:'thuchi_thu', icon:'payments', ten:'Sổ thu (nhập Excel)', onclick:"tcMo('thu')"},
     {id:'thuchi_so', icon:'receipt_long', ten:'Sổ chi', onclick:"tcMo('so')"},
     {id:'thuchi_nam', icon:'calendar_month', ten:'Lãi / lỗ cả năm', onclick:"tcMo('nam')"},
     {id:'thuchi_ns', icon:'flag', ten:'Ngân sách chi phí', onclick:"tcMo('ns')"}
@@ -5485,17 +5486,19 @@ function baoCaoDoanhThuNgay(){  var thang = document.getElementById('bcThangNgay
 }
 
 /* ===== THU – CHI: sổ chi, ngân sách theo nhóm, lãi/lỗ để điều chỉnh chi phí ===== */
-var TC={view:'tq',nam:new Date().getFullYear(),thang:new Date().getMonth()+1,chi:[],ns:[],cfg:null,daTai:false,loc:{nhom:'',q:''},_sua:''};
-var TC_NHOM_MAC_DINH=['Lương & nhân sự','Thuê mặt bằng','Điện, nước, internet','Marketing & quảng cáo','Giáo cụ & học liệu','Sửa chữa & bảo trì nhạc cụ','Văn phòng phẩm & vận hành','Nhập hàng (giá vốn bán đàn)','Thuế & phí','Tiếp khách & sự kiện','Đào tạo & phát triển','Chi khác'];
+var TC={view:'tq',nam:new Date().getFullYear(),thang:new Date().getMonth()+1,chi:[],thu:[],ns:[],cfg:null,daTai:false,loc:{nhom:'',q:''},_sua:''};
+var TC_NHOM_MAC_DINH=['Lương & nhân sự','Thuê mặt bằng','Điện, nước, internet','Marketing & quảng cáo','Giáo cụ & học liệu','Sửa chữa & bảo trì nhạc cụ','Văn phòng phẩm & vận hành','Nhập hàng (giá vốn bán đàn)','Thuế & phí','Tiếp khách & sự kiện','Đào tạo & phát triển','Hoàn tiền khách','Chi khác'];
 var TC_NHOM_LUONG='Lương & nhân sự';
 function tcCfg(){ if(!TC.cfg) TC.cfg={nhom:TC_NHOM_MAC_DINH.slice(),ngansach:{},tran:65}; return TC.cfg; }
 function tcMo(view){ TC.view=view||'tq'; doiTab('thuchi'); tcVe(!TC.daTai); }
 async function tcNap(){
   var C=function(n){ return FB.getDocs(FB.collection(FB.db,n)); };
-  var r=await Promise.all([C('tc_chi'),C('ns_phieuchi'),FB.getDoc(FB.doc(FB.db,'caidat','tc_cauhinh'))]);
+  var r=await Promise.all([C('tc_chi'),C('ns_phieuchi'),FB.getDoc(FB.doc(FB.db,'caidat','tc_cauhinh')),C('tc_thu')]);
+  TC.thu=r[3].docs.map(function(d){ var o=d.data(); o.id=o.id||d.id; return o; });
   TC.chi=r[0].docs.map(function(d){ var o=d.data(); o.id=o.id||d.id; return o; });
   TC.ns=r[1].docs.map(function(d){ return d.data(); });
-  var c=r[2].exists()?r[2].data():{}; TC.cfg={nhom:(c.nhom&&c.nhom.length)?c.nhom:TC_NHOM_MAC_DINH.slice(),ngansach:c.ngansach||{},tran:c.tran||65};
+  var c=r[2].exists()?r[2].data():{}; TC.cfg={nhom:(c.nhom&&c.nhom.length)?c.nhom:TC_NHOM_MAC_DINH.slice(),ngansach:c.ngansach||{},tran:c.tran||65,hocPhi:c.hocPhi||'max'};
+  if(TC.cfg.nhom.indexOf('Hoàn tiền khách')<0) TC.cfg.nhom.push('Hoàn tiền khách');
   if(TC.cfg.nhom.indexOf(TC_NHOM_LUONG)<0) TC.cfg.nhom.unshift(TC_NHOM_LUONG);
   TC.daTai=true;
 }
@@ -5510,17 +5513,17 @@ function tcChiThang(n,t){
 }
 function tcTongNhom(ds){ var o={}; ds.forEach(function(x){ var g=x.nhom||'Chi khác'; o[g]=(o[g]||0)+soTienJS(x.soTien); }); return o; }
 function tcSum(ds){ return ds.reduce(function(s,x){ return s+soTienJS(x.soTien); },0); }
-function tcThuThang(n,t){ return (DTMT.hp[t]||0)+soTienJS(DTMT.khac[t]); }
+function tcThuThang(n,t){ return tcThuChiTiet(n,t).tong; }
 async function tcVe(napLai){
   var box=document.getElementById('tcNoiDung'); if(!box) return;
   if(napLai||!TC.daTai||DTMT.daTai!==TC.nam){
     box.innerHTML='<div class="dangTai" style="padding:24px">Đang tải dữ liệu thu – chi...</div>';
     try{ if(napLai||!TC.daTai) await tcNap(); await dtmtTai(TC.nam); }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">Lỗi tải: '+esc(e.message)+'</div>'; return; }
   }
-  var tabs=[['tq','📊 Tổng quan'],['so','🧾 Sổ chi'],['nam','📅 Cả năm'],['ns','🎯 Ngân sách']];
+  var tabs=[['tq','📊 Tổng quan'],['thu','💵 Sổ thu'],['so','🧾 Sổ chi'],['nam','📅 Cả năm'],['ns','🎯 Ngân sách']];
   var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+tabs.map(function(t){ return '<button class="'+(TC.view===t[0]?'nutChinh':'nutPhu')+'" style="padding:7px 14px;font-size:13px" onclick="tcMo(\''+t[0]+'\')">'+t[1]+'</button>'; }).join('')
    +'<button class="nutPhu" style="padding:7px 12px;font-size:13px;margin-left:auto" onclick="tcVe(true)">🔄 Làm mới</button></div>';
-  try{ h+=(TC.view==='so'?tcVeSo():TC.view==='nam'?tcVeNam():TC.view==='ns'?tcVeNganSach():tcVeTongQuan()); }catch(e){ h+='<div class="baoLoi">Lỗi hiển thị: '+esc(e.message)+'</div>'; }
+  try{ h+=(TC.view==='thu'?tcVeThu():TC.view==='so'?tcVeSo():TC.view==='nam'?tcVeNam():TC.view==='ns'?tcVeNganSach():tcVeTongQuan()); }catch(e){ h+='<div class="baoLoi">Lỗi hiển thị: '+esc(e.message)+'</div>'; }
   box.innerHTML=h;
 }
 function tcChonKy(){
@@ -5543,7 +5546,7 @@ function tcVeTongQuan(){
   var tile=function(tt,v,mau,phu){ return '<div class="the" style="padding:14px"><div style="font-size:12.5px;color:#6b7280;font-weight:700">'+tt+'</div><div style="font-size:23px;font-weight:800;color:'+mau+';margin:2px 0">'+v+'</div>'+(phu?'<div style="font-size:12px;color:#6b7280">'+phu+'</div>':'')+'</div>'; };
   var h=tcChonKy()
    +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:12px">'
-   +tile('THU THÁNG '+t,tien(thu)+' đ','#0f7a4d','Học phí '+tien(DTMT.hp[t]||0)+' · Khác '+tien(soTienJS(DTMT.khac[t])))
+   +tile('THU THÁNG '+t,tien(thu)+' đ','#0f7a4d',(function(){ var c=tcThuChiTiet(n,t); return 'Học phí '+tien(c.hp)+' · Bán hàng '+tien(c.ban)+' · Khác '+tien(c.khac+c.khacTay); })())
    +tile('CHI THÁNG '+t,tien(chi)+' đ','#b91c1c',chiTr!==null?('Tháng trước: '+tien(chiTr)+(chiTr>0?' ('+(chi>=chiTr?'▲ +':'▼ ')+Math.round((chi-chiTr)/chiTr*100)+'%)':'')):'')
    +tile(lai>=0?'LÃI THÁNG '+t:'LỖ THÁNG '+t,tien(Math.abs(lai))+' đ',lai>=0?'#0f7a4d':'#b91c1c','Thu trừ Chi')
    +tile('CHI / THU',tl===null?'—':tl+'%',vuotTran?'#b91c1c':'#12294d','Mục tiêu ≤ '+cfg.tran+'%')+'</div>';
@@ -5561,7 +5564,7 @@ function tcVeTongQuan(){
    +(top.length?top.map(function(x){ return '<div style="display:flex;gap:8px;font-size:13px;padding:3px 0;border-bottom:1px dashed #e5e7eb"><span style="flex:1">'+esc(x.noiDung||'')+' <span style="color:#6b7280">· '+esc(x.nhom||'')+'</span></span><b>'+tien(soTienJS(x.soTien))+'</b></div>'; }).join(''):'<div style="color:#9aa4b2;font-size:13px">Chưa có khoản chi.</div>')+'</div>'
    +'<div class="the" style="padding:12px 14px"><div style="font-weight:800;color:#12294d;margin-bottom:6px">📎 Chứng từ</div>'
    +(thieuCT.length?'<div style="font-size:13px;color:#b91c1c;font-weight:700">'+thieuCT.length+' khoản chưa có chứng từ ('+tien(tcSum(thieuCT))+' đ)</div>'+thieuCT.slice(0,5).map(function(x){ return '<div style="font-size:12.5px;color:#48566b">• '+esc(x.noiDung||'')+' — '+tien(soTienJS(x.soTien))+'</div>'; }).join(''):'<div style="font-size:13px;color:#0f7a4d;font-weight:700">✅ Mọi khoản chi tháng này đều có chứng từ.</div>')+'</div></div>';
-  h+='<div style="font-size:12px;color:#6b7280;margin-top:10px;line-height:1.6">• <b>Thu</b> lấy từ trang Báo cáo → Doanh thu & Mục tiêu (học phí từ phiếu thu + khoản khác thầy nhập). • <b>Chi lương</b> tự lấy từ Phiếu chi lương trong Nhân sự & Lương, không cần nhập lại. • Các khoản chi khác thầy ghi ở tab <b>Sổ chi</b>.</div>';
+  h+='<div style="font-size:12px;color:#6b7280;margin-top:10px;line-height:1.6">• <b>Thu</b> gồm học phí (phiếu thu trong app và/hoặc file nhập, xem cách tính ở tab Ngân sách), bán hàng, thu khác trong tab <b>Sổ thu</b>, và khoản "khác" nhập ở Doanh thu & Mục tiêu. • <b>Chi lương</b> tự lấy từ Phiếu chi lương trong Nhân sự & Lương, không cần nhập lại. • Các khoản chi khác thầy ghi ở tab <b>Sổ chi</b>.</div>';
   return h;
 }
 function tcLocDs(){
@@ -5599,11 +5602,13 @@ function tcVeNganSach(){
    +'<div style="display:grid;grid-template-columns:1fr 170px 40px;gap:8px;align-items:center;max-width:620px">'
    +cfg.nhom.map(function(g,i){ tong+=soTienJS(cfg.ngansach[g]); return '<div>'+esc(g)+'</div><input class="nsMini" style="max-width:170px;width:100%;box-sizing:border-box;text-align:right" value="'+(cfg.ngansach[g]?tien(soTienJS(cfg.ngansach[g])):'')+'" placeholder="chưa đặt" onchange="tcLuuNS('+i+',this.value)"><button class="nutNho vien" style="color:#b42318" title="Xóa nhóm" onclick="tcXoaNhom('+i+')">🗑</button>'; }).join('')+'</div>'
    +'<div style="margin-top:10px;font-weight:800">Tổng ngân sách / tháng: '+tien(tong)+' đ</div>'
+   +'<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--vien)"><b>Cách tính HỌC PHÍ trong Thu</b> <span style="font-size:12px;color:#6b7280">(vì học phí có thể vừa nằm trong phiếu thu của app, vừa nằm trong file nhập)</span><div style="margin-top:6px"><select style="width:auto" onchange="tcLuuHocPhi(this.value)">'+[['max','Lấy số LỚN HƠN của 2 nguồn (an toàn, không cộng trùng)'],['app','Chỉ lấy phiếu thu trong app'],['file','Chỉ lấy học phí trong sổ thu (file nhập)'],['cong','Cộng cả 2 nguồn (chỉ khi chắc chắn không trùng)']].map(function(a){ return '<option value="'+a[0]+'"'+((cfg.hocPhi||'max')===a[0]?' selected':'')+'>'+a[1]+'</option>'; }).join('')+'</select></div></div>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px"><button class="nutNho nutXanh" onclick="tcThemNhom()">➕ Thêm nhóm chi</button><span style="font-size:13px;margin-left:12px">Trần chi / doanh thu (%):</span><input type="number" value="'+cfg.tran+'" style="width:80px" onchange="tcLuuTran(this.value)"></div></div>';
   return h;
 }
-async function tcLuuCfg(){ try{ await FB.setDoc(FB.doc(FB.db,'caidat','tc_cauhinh'),{nhom:tcCfg().nhom,ngansach:tcCfg().ngansach,tran:tcCfg().tran,capNhat:new Date().toISOString()}); bao('✅ Đã lưu'); }catch(e){ bao('❌ Chưa lưu được: '+e.message,true); } }
+async function tcLuuCfg(){ try{ await FB.setDoc(FB.doc(FB.db,'caidat','tc_cauhinh'),{nhom:tcCfg().nhom,ngansach:tcCfg().ngansach,tran:tcCfg().tran,hocPhi:tcCfg().hocPhi||'max',capNhat:new Date().toISOString()}); bao('✅ Đã lưu'); }catch(e){ bao('❌ Chưa lưu được: '+e.message,true); } }
 function tcLuuNS(i,v){ var g=tcCfg().nhom[i]; tcCfg().ngansach[g]=soTienJS(v); tcLuuCfg().then(function(){ tcVe(); }); }
+function tcLuuHocPhi(v){ tcCfg().hocPhi=v; tcLuuCfg().then(function(){ tcVe(); }); }
 function tcLuuTran(v){ var n=soTienJS(v); if(n<=0||n>100){ bao('Nhập số từ 1 đến 100',true); return; } tcCfg().tran=n; tcLuuCfg(); }
 function tcThemNhom(){ var t=prompt('Tên nhóm chi mới:',''); if(!t||!t.trim()) return; t=t.trim(); if(tcCfg().nhom.indexOf(t)>=0){ bao('Nhóm đã có',true); return; } tcCfg().nhom.push(t); tcLuuCfg().then(function(){ tcVe(); }); }
 function tcXoaNhom(i){ var g=tcCfg().nhom[i]; if(g===TC_NHOM_LUONG){ bao('Nhóm Lương & nhân sự là nhóm hệ thống, không xóa được',true); return; } if(!confirm('Xóa nhóm "'+g+'"? Các khoản chi đã ghi vào nhóm này vẫn giữ nguyên.')) return; tcCfg().nhom.splice(i,1); delete tcCfg().ngansach[g]; tcLuuCfg().then(function(){ tcVe(); }); }
@@ -5637,6 +5642,110 @@ async function tcXoaChi(id){
 function tcXuat(){
   var ds=tcLocDs(); if(!ds.length){ bao('Không có dữ liệu để tải',true); return; }
   xuatExcelFile('ThienAn_SoChi_'+_tcKey(TC.nam,TC.thang)+'.xlsx',ds.map(function(x){ return {'Ngày':String(x.ngay||'').split('-').reverse().join('/'),'Nhóm':x.nhom||'','Nội dung':x.noiDung||'','Người nhận':x.nguoiNhan||'','Hình thức':x.hinhThuc||'','Cơ sở':x.coSo||'','Số tiền':soTienJS(x.soTien),'Chứng từ':x.chungTu==='Có'?'Có':'Chưa'}; }));
+}
+/* ===== SỔ THU + NHẬP EXCEL (file "Giao dịch" xuất từ app bán hàng), chia theo tháng ===== */
+var TC_NHOM_THU=['Học phí','Bán hàng & nhạc cụ','Thu khác'], TC_NHOM_HOAN='Hoàn tiền khách', TC_IMP=null;
+function tcChuanNhomThu(g){ var s=boDauJS(String(g||'')).trim();
+  if(/hoc phi|dang ky khoa|khoa hoc/.test(s)) return 'Học phí';
+  if(/ban hang|ban nhac cu|sales|nhac cu|dan|phu kien/.test(s)) return 'Bán hàng & nhạc cụ';
+  return 'Thu khác'; }
+function tcChuanHT(v){ var s=boDauJS(String(v||'')).trim(); if(!s) return ''; if(/^(ck|chuyen khoan|ck p)/.test(s)) return 'Chuyển khoản'; if(/^(tm|tien mat)/.test(s)) return 'Tiền mặt'; return String(v).trim(); }
+function tcThuThangDs(n,t){ var k=_tcKey(n,t); return TC.thu.filter(function(x){ return String(x.ngay||'').slice(0,7)===k; }); }
+/* THU của 1 tháng, tách theo nguồn. Học phí có thể có ở 2 nguồn (phiếu thu trong app + file nhập) nên chọn cách tính ở tab Ngân sách */
+function tcThuChiTiet(n,t){
+  var ds=tcThuThangDs(n,t), hpFile=0, ban=0, khac=0;
+  ds.forEach(function(x){ var v=soTienJS(x.soTien); if(x.nhom==='Học phí') hpFile+=v; else if(x.nhom==='Bán hàng & nhạc cụ') ban+=v; else khac+=v; });
+  var hpApp=DTMT.hp[t]||0, cach=tcCfg().hocPhi||'max';
+  var hp=cach==='app'?hpApp:(cach==='file'?hpFile:(cach==='cong'?hpApp+hpFile:Math.max(hpApp,hpFile)));
+  var khacTay=soTienJS(DTMT.khac[t]);
+  return {hpApp:hpApp,hpFile:hpFile,hp:hp,ban:ban,khac:khac,khacTay:khacTay,tong:hp+ban+khac+khacTay,soGD:ds.length};
+}
+function tcVeThu(){
+  var cfg=tcCfg(), q=boDauJS(TC.loc.q||''), ds=tcThuThangDs(TC.nam,TC.thang).filter(function(x){ if(TC.loc.nhomThu&&x.nhom!==TC.loc.nhomThu) return false; if(q&&boDauJS((x.noiDung||'')+' '+(x.nhom||'')+' '+(x.nhomGoc||'')).indexOf(q)<0) return false; return true; }).sort(function(a,b){ return String(b.ngay).localeCompare(String(a.ngay)); });
+  var ops='<option value="">Tất cả nhóm</option>'+TC_NHOM_THU.map(function(g){ return '<option'+(TC.loc.nhomThu===g?' selected':'')+'>'+esc(g)+'</option>'; }).join('');
+  var ct=tcThuChiTiet(TC.nam,TC.thang);
+  var h=tcChonKy()+'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutChinh" onclick="tcSuaThu(null)">➕ Thêm khoản thu</button><button class="nutPhu" onclick="tcChonFile()">📥 Nhập từ Excel</button>'
+   +'<select style="width:auto" onchange="TC.loc.nhomThu=this.value;tcVe()">'+ops+'</select><input type="search" placeholder="Tìm tên, nội dung..." value="'+esc(TC.loc.q||'')+'" style="max-width:220px" onchange="TC.loc.q=this.value;tcVe()"><button class="nutPhu" onclick="tcXuatThu()">⬇ Tải Excel</button></div>'
+   +'<input type="file" id="tcFile" accept=".xlsx,.xls" style="display:none" onchange="tcDocFile(this)">'
+   +'<div style="font-size:13px;margin-bottom:8px;color:#48566b">Trong sổ thu tháng '+TC.thang+': Học phí <b>'+tien(ct.hpFile)+'</b> · Bán hàng &amp; nhạc cụ <b>'+tien(ct.ban)+'</b> · Thu khác <b>'+tien(ct.khac)+'</b> ('+ct.soGD+' giao dịch)</div>';
+  if(!ds.length) return h+'<div class="the trong" style="padding:20px">Tháng '+TC.thang+'/'+TC.nam+' chưa có khoản thu trong sổ thu. Bấm <b>📥 Nhập từ Excel</b> để đưa file thu – chi vào, hoặc <b>➕ Thêm khoản thu</b>.</div>';
+  h+='<div class="the cuonBang"><table class="nho"><thead><tr><th>Ngày</th><th>Nhóm</th><th>Nội dung</th><th>Hình thức</th><th class="tien">Số tiền</th><th></th></tr></thead><tbody>'
+   +ds.slice(0,400).map(function(x){ var id=esc(x.id); return '<tr><td>'+esc(String(x.ngay||'').split('-').reverse().join('/'))+'</td><td>'+esc(x.nhom||'')+(x.nhomGoc&&x.nhomGoc!==x.nhom?'<div style="font-size:11px;color:#9aa4b2">'+esc(x.nhomGoc)+'</div>':'')+'</td><td>'+esc(x.noiDung||'')+'</td><td>'+esc(x.hinhThuc||'—')+'</td><td class="tien"><b>'+tien(soTienJS(x.soTien))+'</b></td><td style="white-space:nowrap"><button class="nutNho vien" onclick="tcSuaThu(\''+id+'\')">✏️</button> <button class="nutNho vien" style="color:#b42318" onclick="tcXoaThu(\''+id+'\')">🗑</button></td></tr>'; }).join('')
+   +'<tr style="background:#f6f1de;font-weight:800"><td colspan="4">TỔNG ('+ds.length+' khoản'+(ds.length>400?', hiện 400 dòng đầu':'')+')</td><td class="tien">'+tien(tcSum(ds))+'</td><td></td></tr></tbody></table></div>';
+  return h;
+}
+function tcSuaThu(id){
+  var x=id?TC.thu.filter(function(c){return c.id===id;})[0]:null; if(id&&!x) return; TC._suaThu=id||'';
+  var d=x||{ngay:_homNayISO(),nhom:'Học phí',noiDung:'',soTien:'',hinhThuc:'Tiền mặt'};
+  var sel=function(i,arr,cur){ return '<select id="'+i+'">'+arr.map(function(a){ return '<option'+(a===cur?' selected':'')+'>'+esc(a)+'</option>'; }).join('')+'</select>'; };
+  moModal(id?'✏️ Sửa khoản thu':'➕ Thêm khoản thu','<div class="baoLoi an" id="loiForm"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+o('Ngày thu','<input id="thNgay" type="date" value="'+esc(d.ngay)+'">',true)+o('Nhóm',sel('thNhom',TC_NHOM_THU,d.nhom),true)+'</div>'
+    +o('Nội dung','<input id="thND" value="'+esc(d.noiDung)+'">',true)+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+o('Số tiền (VNĐ)','<input id="thTien" value="'+(d.soTien?tien(soTienJS(d.soTien)):'')+'">',true)+o('Hình thức',sel('thHT',['Tiền mặt','Chuyển khoản'],d.hinhThuc))+'</div>','tcLuuThu()',{rong:true});
+}
+async function tcLuuThu(){
+  var v=function(i){ return (document.getElementById(i)||{}).value||''; }, cu=TC._suaThu?TC.thu.filter(function(c){return c.id===TC._suaThu;})[0]:null;
+  var d={id:cu?cu.id:'th'+Date.now(),ngay:v('thNgay'),nhom:v('thNhom'),noiDung:v('thND').trim(),soTien:soTienJS(v('thTien')),hinhThuc:v('thHT'),nguon:cu?(cu.nguon||'tay'):'tay',capNhat:new Date().toISOString()}; d.thang=d.ngay.slice(0,7);
+  if(!d.ngay||!d.noiDung||!(d.soTien>0)){ bao('Nhập đủ ngày, nội dung và số tiền lớn hơn 0',true); return; }
+  khoaLuu(true);
+  try{ await FB.setDoc(FB.doc(FB.db,'tc_thu',d.id),d); if(cu) Object.assign(cu,d); else TC.thu.push(d); dongModal(); bao('✅ Đã lưu khoản thu'); TC.nam=+d.ngay.slice(0,4); TC.thang=+d.ngay.slice(5,7); TC.view='thu'; tcVe(); }
+  catch(e){ khoaLuu(false); bao('❌ Chưa lưu được: '+e.message,true); }
+}
+async function tcXoaThu(id){
+  var x=TC.thu.filter(function(c){return c.id===id;})[0]; if(!x||!confirm('Xóa khoản thu "'+x.noiDung+'" ('+tien(soTienJS(x.soTien))+' đ)?')) return;
+  try{ await FB.deleteDoc(FB.doc(FB.db,'tc_thu',id)); TC.thu=TC.thu.filter(function(c){return c.id!==id;}); bao('Đã xóa'); tcVe(); }catch(e){ bao(e.message,true); }
+}
+function tcXuatThu(){
+  var ds=tcThuThangDs(TC.nam,TC.thang); if(!ds.length){ bao('Không có dữ liệu để tải',true); return; }
+  xuatExcelFile('ThienAn_SoThu_'+_tcKey(TC.nam,TC.thang)+'.xlsx',ds.sort(function(a,b){return String(a.ngay).localeCompare(String(b.ngay));}).map(function(x){ return {'Ngày':String(x.ngay||'').split('-').reverse().join('/'),'Nhóm':x.nhom||'','Nội dung':x.noiDung||'','Hình thức':x.hinhThuc||'','Số tiền':soTienJS(x.soTien)}; }));
+}
+function tcChonFile(){ var e=document.getElementById('tcFile'); if(e){ e.value=''; e.click(); } }
+function _tcNgayExcel(v){
+  if(typeof v==='number'&&v>20000){ var d=new Date(Math.round((v-25569)*864e5)); return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2); }
+  var m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/.exec(String(v||'').trim()); if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'').trim()); return m?m[0]:'';
+}
+function tcDocFile(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel, thử lại sau giây lát.',true); return; }
+  var rd=new FileReader();
+  rd.onload=function(e){ try{
+    var wb=XLSX.read(e.target.result,{type:'array'}), ws=wb.Sheets[wb.SheetNames[0]], rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    var get=function(r,names){ for(var i=0;i<names.length;i++){ var k=Object.keys(r).filter(function(x){ return boDauJS(x).trim()===boDauJS(names[i]); })[0]; if(k!==undefined) return r[k]; } return ''; };
+    var thu=[], chi=[], loi=[];
+    rows.forEach(function(r,i){
+      var ma=String(get(r,['Mã GD','Ma GD'])).trim(), ngay=_tcNgayExcel(get(r,['Ngày','Ngay'])), loai=boDauJS(get(r,['Loại','Loai'])).trim(), tienV=soTienJS(get(r,['Số Tiền','So Tien']));
+      if(!ngay||!(tienV>0)||(loai!=='thu'&&loai!=='chi')){ loi.push('Dòng '+(i+2)+': thiếu ngày/số tiền/loại'); return; }
+      var goc=String(get(r,['Danh Mục','Danh Muc'])).trim(), mota=String(get(r,['Mô Tả','Mo Ta'])).trim(), gc=String(get(r,['Ghi Chú','Ghi Chu'])).trim(), ht=tcChuanHT(get(r,['Phương Thức TT','Phuong Thuc TT','Phương thức'])), id=ma?ma.replace(/[\/\s]/g,'_'):('imp'+ngay+'_'+i);
+      if(loai==='thu') thu.push({id:id,maGD:ma,ngay:ngay,thang:ngay.slice(0,7),nhom:tcChuanNhomThu(goc),nhomGoc:goc,noiDung:mota||goc,soTien:tienV,hinhThuc:ht,ghiChu:gc,nguon:'excel'});
+      else chi.push({id:id,maGD:ma,ngay:ngay,thang:ngay.slice(0,7),nhom:/refund|hoan/i.test(boDauJS(goc))?TC_NHOM_HOAN:'Chi khác',nhomGoc:goc,noiDung:(mota||('Chi '+goc)),soTien:tienV,hinhThuc:ht,nguoiNhan:'',coSo:'',chungTu:'Chưa',ghiChu:gc,nguon:'excel'});
+    });
+    TC_IMP={thu:thu,chi:chi,loi:loi,ten:f.name}; tcXemTruoc();
+  }catch(er){ bao('Không đọc được file: '+er.message,true); } };
+  rd.readAsArrayBuffer(f);
+}
+function tcXemTruoc(){
+  var I=TC_IMP, th={}, cu={};
+  var add=function(arr,loai){ arr.forEach(function(x){ var o=th[x.thang]||(th[x.thang]={thu:0,chi:0,nt:0,nc:0,hp:0,ban:0,khac:0}); if(loai==='thu'){ o.thu+=x.soTien; o.nt++; if(x.nhom==='Học phí') o.hp+=x.soTien; else if(x.nhom==='Bán hàng & nhạc cụ') o.ban+=x.soTien; else o.khac+=x.soTien; } else { o.chi+=x.soTien; o.nc++; } }); };
+  add(I.thu,'thu'); add(I.chi,'chi');
+  var trung=I.thu.filter(function(x){ return TC.thu.some(function(y){return y.id===x.id;}); }).length+I.chi.filter(function(x){ return TC.chi.some(function(y){return y.id===x.id;}); }).length;
+  var ks=Object.keys(th).sort(), T={thu:0,chi:0};
+  var rows=ks.map(function(k){ var o=th[k]; T.thu+=o.thu; T.chi+=o.chi; return '<tr><td><b>'+k.slice(5)+'/'+k.slice(0,4)+'</b></td><td class="tien">'+o.nt+'</td><td class="tien">'+tien(o.hp)+'</td><td class="tien">'+tien(o.ban)+'</td><td class="tien">'+tien(o.khac)+'</td><td class="tien"><b>'+tien(o.thu)+'</b></td><td class="tien">'+(o.chi?tien(o.chi):'—')+'</td></tr>'; }).join('');
+  moModal('📥 Xem trước file: '+esc(I.ten),
+   '<div style="font-size:13.5px;margin-bottom:8px">Đọc được <b>'+I.thu.length+'</b> khoản thu và <b>'+I.chi.length+'</b> khoản chi, chia theo tháng:</div><div class="cuonBang"><table class="nho"><thead><tr><th>Tháng</th><th class="tien">Số GD thu</th><th class="tien">Học phí</th><th class="tien">Bán hàng &amp; nhạc cụ</th><th class="tien">Khác</th><th class="tien">Tổng thu</th><th class="tien">Chi</th></tr></thead><tbody>'+rows
+   +'<tr style="background:#f6f1de;font-weight:800"><td>TỔNG</td><td></td><td></td><td></td><td></td><td class="tien">'+tien(T.thu)+'</td><td class="tien">'+tien(T.chi)+'</td></tr></tbody></table></div>'
+   +(trung?'<div style="margin-top:8px;font-size:13px;color:#92400e">ℹ️ '+trung+' giao dịch đã có trong app (cùng Mã GD) sẽ được ghi đè, <b>không bị nhân đôi</b>.</div>':'')
+   +(I.loi.length?'<div class="baoLoi" style="margin-top:8px;font-size:12.5px">Bỏ qua '+I.loi.length+' dòng lỗi: '+esc(I.loi.slice(0,4).join('; '))+(I.loi.length>4?'...':'')+'</div>':'')
+   +'<div style="margin-top:10px;font-size:12.5px;color:#48566b;line-height:1.6">Nhóm tự gán: Học phí / Bán hàng &amp; nhạc cụ / Thu khác. Khoản chi loại Refund vào nhóm <b>Hoàn tiền khách</b>. Nhập lại cùng file nhiều lần không bị trùng.</div>',
+   'tcNhapXacNhan()',{rong:true,chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" id="nutLuu" onclick="tcNhapXacNhan()">✅ Nhập '+(I.thu.length+I.chi.length)+' giao dịch</button>'});
+}
+async function tcNhapXacNhan(){
+  var I=TC_IMP; if(!I) return; var btn=document.getElementById('nutLuu'); if(btn){ btn.disabled=true; btn.textContent='Đang nhập...'; }
+  try{
+    var all=I.thu.map(function(x){ return ['tc_thu',x]; }).concat(I.chi.map(function(x){ return ['tc_chi',x]; }));
+    for(var i=0;i<all.length;i+=400){ var b=FB.writeBatch(FB.db); all.slice(i,i+400).forEach(function(p){ b.set(FB.doc(FB.db,p[0],p[1].id),p[1],{merge:true}); }); await b.commit(); if(btn) btn.textContent='Đã nhập '+Math.min(i+400,all.length)+'/'+all.length; }
+    var up=function(arr,x){ var j=-1; arr.forEach(function(y,k){ if(y.id===x.id) j=k; }); if(j>=0) arr[j]=x; else arr.push(x); };
+    I.thu.forEach(function(x){ up(TC.thu,x); }); I.chi.forEach(function(x){ up(TC.chi,x); });
+    dongModal(); bao('✅ Đã nhập '+all.length+' giao dịch'); TC_IMP=null; TC.view='tq'; tcVe();
+  }catch(e){ bao('❌ Chưa nhập được: '+e.message,true); if(btn){ btn.disabled=false; btn.textContent='Thử lại'; } }
 }
 /* ===== DOANH THU & MỤC TIÊU: hôm nay / tháng / quý / năm so với mục tiêu ===== */
 var DTMT={nam:new Date().getFullYear(), hp:{}, hpTruoc:{}, mt:{}, khac:{}, khacTruoc:{}, homNay:0};
