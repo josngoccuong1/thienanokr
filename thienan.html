@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/11/2026 · v79</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/11/2026 · v80</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -5026,7 +5026,7 @@ function luuKhoaHoc(dong, ma){
 function theCoCauHV(dangHoc,baoLuu,daNghi,moi,nhanThang){
   var tong=dangHoc+baoLuu+daNghi, t=tong||1, g1=dangHoc/t*100, g2=g1+baoLuu/t*100;
   var lg=function(c,ten,so,to){ return '<div style="display:flex;align-items:center;gap:5px;font-size:11.5px;line-height:1.35"><span style="width:9px;height:9px;border-radius:2px;background:'+c+';flex:0 0 auto"></span><span style="min-width:54px;opacity:.95">'+ten+'</span><b style="color:#fff;font-size:'+(to?'14':'12')+'px">'+so+'</b></div>'; };
-  return '<div class="theSo mau bam" style="grid-column:span 2;display:flex;align-items:center;gap:10px;padding:7px 12px;background:linear-gradient(135deg,#10b981,#047857)" onclick="doiTab(\'hocvien\')">'
+  return '<div class="theSo mau bam" style="'+(window.innerWidth>520?'grid-column:span 2;':'')+'display:flex;align-items:center;gap:10px;padding:7px 12px;background:linear-gradient(135deg,#10b981,#047857)" onclick="doiTab(\'hocvien\')">'
    +'<div style="width:80px;height:80px;border-radius:50%;flex:0 0 auto;background:conic-gradient(#ffffff 0 '+g1+'%, #fcd34d '+g1+'% '+g2+'%, #064e3b '+g2+'% 100%)"><div style="position:relative;top:11px;left:11px;width:58px;height:58px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:19px;font-weight:800;color:#047857;line-height:1">'+tong+'</div><div style="font-size:9.5px;color:#6b7280">học viên</div></div></div>'
    +'<div style="min-width:0;color:#fff;position:relative;z-index:1"><div style="font-size:10.5px;font-weight:800;letter-spacing:.3px;margin-bottom:2px;opacity:.95">CƠ CẤU HỌC VIÊN</div>'
    +lg('#ffffff','Đang học',dangHoc,true)+lg('#fcd34d','Bảo lưu',baoLuu)+lg('#064e3b','Đã nghỉ',daNghi)
@@ -5055,17 +5055,19 @@ function napTrangChu(){
   });
   // Thẻ số (doanh thu điền sau khi query)
   var the=document.getElementById('theTongQuan');
+  var sp2=(laAdmin()&&window.innerWidth>900)?'grid-column:span 2':'';
+  the.style.gridTemplateColumns=sp2?'repeat(6,minmax(0,1fr))':'';
   the.innerHTML =
       theCoCauHV(dangHoc,baoLuu,daNghi,hsMoiThang,laThangNay?'tháng này':'tháng '+thangLabel)
     + (laAdmin()
-      ? theSo('linear-gradient(135deg,#fb923c,#ea580c)',"tcMo('tq')",'<span class="ic">account_balance_wallet</span>','TỔNG doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTTong">…</span>', 'Học sinh + Bán hàng<br>Cả năm '+thangNay.slice(0,4)+': <span id="dashDTTongNam">…</span>','grid-column:span 2')
-      + theSo('linear-gradient(135deg,#38bdf8,#0369a1)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">school</span>','Doanh thu HỌC SINH '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTHS">…</span>', '<span id="dashDTHSNam">…</span>','grid-column:span 2')
-      + theSo('linear-gradient(135deg,#f472b6,#be185d)',"tcMo('thu')",'<span class="ic">storefront</span>','Doanh thu BÁN HÀNG '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTBH">…</span>', '<span id="dashDTBHNam">…</span>','grid-column:span 2')
+      ? theSo('linear-gradient(135deg,#fb923c,#ea580c)',"tcMo('tq')",'<span class="ic">account_balance_wallet</span>','TỔNG '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTTong">…</span>', 'Học sinh + Bán hàng<br>Cả năm: <span id="dashDTTongNam">…</span>')
+      + theSo('linear-gradient(135deg,#38bdf8,#0369a1)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">school</span>','HỌC SINH '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTHS">…</span>', '<span id="dashDTHSNam">…</span>')
+      + theSo('linear-gradient(135deg,#f472b6,#be185d)',"tcMo('thu')",'<span class="ic">storefront</span>','BÁN HÀNG '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTBH">…</span>', '<span id="dashDTBHNam">…</span>')
       : theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>'))
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
-    + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
-    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Giá trị buổi học: <b id="dashGTBuoi">0</b> đ<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ')
-    + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>');
+    + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>',sp2)
+    + theSo('linear-gradient(135deg,#14b8a6,#0f766e)',"moBaoCaoNgay(_hnNgay())",'<span class="ic">today</span>','<span id="dashHnNhan">Hôm nay</span>', '<span id="dashDTNgay">…</span>', 'Điểm danh: <b id="dashNgayDD">…</b> bạn<br>Giá trị buổi học: <b id="dashGTBuoi">0</b> đ<br>Mới: <b id="dashNgayMoi">…</b> bạn · <b id="dashTienMoi">0</b> đ<br>Gia hạn: <b id="dashNgayGH">…</b> bạn · <b id="dashTienGH">0</b> đ<br>Thu khác (đóng nợ…): <b id="dashTienKhac">0</b> đ',sp2)
+    + theSo('linear-gradient(135deg,#c084fc,#7c3aed)',"moLocTT('Bảo lưu')",'<span class="ic">pause_circle</span>','Bảo lưu / Nghỉ', baoLuu+daNghi, 'Bảo lưu: <b>'+baoLuu+'</b> · Nghỉ: <b>'+daNghi+'</b>',sp2);
   var elCC=document.getElementById('dashCoCau'); if(elCC) elCC.innerHTML=veDonutHV(dangHoc,baoLuu,daNghi);
   // Query doanh thu + còn nợ
   var soThangChon = soTienJS((document.getElementById('dashSoThang')||{}).value) || 12;
@@ -5771,7 +5773,7 @@ async function dashNapDoanhThu(thangNay){
     }
     var th={hp:0,ban:0,khac:0,tong:0}, ny={hp:0,ban:0,khac:0,tong:0};
     for(var m=1;m<=12;m++){ var x=tcThuChiTiet(nam,m); ny.hp+=x.hp; ny.ban+=x.ban; ny.khac+=x.khac+x.khacTay; ny.tong+=x.tong; if(m===t){ th.hp=x.hp; th.ban=x.ban; th.khac=x.khac+x.khacTay; th.tong=x.tong; } }
-    var d=function(v){ return tien(v)+' đ'; };
+    var d=function(v){ return v>=1e9?(Math.round(v/1e7)/100).toString().replace('.',',')+' tỷ':tien(v)+' đ'; };
     set('dashDTTong',d(th.tong)); set('dashDTTongNam','<b>'+d(ny.tong)+'</b>'+(th.khac?'<br>Gồm thu khác: <b>'+d(th.khac)+'</b>':''));
     set('dashDTHS',d(th.hp)); set('dashDTHSNam','Cả năm '+nam+': <b>'+d(ny.hp)+'</b>');
     set('dashDTBH',d(th.ban)); set('dashDTBHNam','Cả năm '+nam+': <b>'+d(ny.ban)+'</b>');
