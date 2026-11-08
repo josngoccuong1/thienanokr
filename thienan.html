@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/11/2026 · v76</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/11/2026 · v77</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -446,10 +446,6 @@ main section{animation:hienLen .25s ease}
               </select>
             </div>
             <div id="dashBieuDo" style="margin-top:8px"><div class="dangTai">Đang tải...</div></div>
-          </div>
-          <div class="the" style="padding:14px;border-top:4px solid #7c3aed">
-            <div class="tieuMuc" style="color:#6d28d9"><span class="ic" style="color:#7c3aed">pie_chart</span> Cơ cấu học viên</div>
-            <div id="dashCoCau"></div>
           </div>
         </div>
         <div class="dashPhu">
@@ -5026,6 +5022,16 @@ function luuKhoaHoc(dong, ma){
 
 /* ---------- BÁO CÁO ---------- */
 /* ================= TRANG CHỦ (Dashboard) ================= */
+/* Ô "Cơ cấu học viên" ở Trang chủ: biểu đồ tròn + số đang học + học viên mới trong tháng */
+function theCoCauHV(dangHoc,baoLuu,daNghi,moi,nhanThang){
+  var tong=dangHoc+baoLuu+daNghi||1, g1=dangHoc/tong*100, g2=g1+baoLuu/tong*100;
+  var lg=function(c,ten,so){ return '<div style="display:flex;align-items:center;gap:6px;font-size:12.5px;margin-bottom:3px"><span style="width:10px;height:10px;border-radius:3px;background:'+c+'"></span><span style="color:#374151;min-width:62px">'+ten+'</span><b style="color:#12294d">'+so+'</b></div>'; };
+  return '<div class="theSo bam" style="grid-column:span 2;display:flex;align-items:center;gap:14px;padding:10px 14px;border-top:4px solid #0f7a4d" onclick="doiTab(\'hocvien\')">'
+   +'<div style="width:98px;height:98px;border-radius:50%;flex:0 0 auto;background:conic-gradient(#0f7a4d 0 '+g1+'%, #c9a227 '+g1+'% '+g2+'%, #cbd5e1 '+g2+'% 100%)"><div style="position:relative;top:15px;left:15px;width:68px;height:68px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px #eef1f6"><div style="font-size:22px;font-weight:800;color:#12294d;line-height:1">'+dangHoc+'</div><div style="font-size:10px;color:#6b7280">đang học</div></div></div>'
+   +'<div style="min-width:0"><div style="font-size:12px;font-weight:700;color:#0f7a4d;margin-bottom:4px">CƠ CẤU HỌC VIÊN</div>'
+   +lg('#0f7a4d','Đang học',dangHoc)+lg('#c9a227','Bảo lưu',baoLuu)+lg('#cbd5e1','Đã nghỉ',daNghi)
+   +'<div style="margin-top:5px;display:inline-block;background:#dcfce7;color:#166534;font-weight:800;font-size:12.5px;padding:3px 9px;border-radius:12px">Mới '+nhanThang+': +'+moi+'</div></div></div>';
+}
 function napTrangChu(){
   var n=new Date();
   var thu=['Chủ Nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
@@ -5050,11 +5056,11 @@ function napTrangChu(){
   // Thẻ số (doanh thu điền sau khi query)
   var the=document.getElementById('theTongQuan');
   the.innerHTML =
-      theSo('linear-gradient(135deg,#10b981,#059669)',"doiTab('hocvien')",'<span class="ic">school</span>','Học viên đang học', dangHoc, 'Mới '+(laThangNay?'tháng này':'tháng '+thangLabel)+': <b>+'+hsMoiThang+'</b>')
+      theCoCauHV(dangHoc,baoLuu,daNghi,hsMoiThang,laThangNay?'tháng này':'tháng '+thangLabel)
     + (laAdmin()
-      ? theSo('linear-gradient(135deg,#fb923c,#ea580c)',"tcMo('tq')",'<span class="ic">account_balance_wallet</span>','TỔNG doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTTong">…</span>', 'Học sinh + Bán hàng<br>Cả năm '+thangNay.slice(0,4)+': <span id="dashDTTongNam">…</span>')
-      + theSo('linear-gradient(135deg,#38bdf8,#0369a1)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">school</span>','Doanh thu HỌC SINH '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTHS">…</span>', '<span id="dashDTHSNam">…</span>')
-      + theSo('linear-gradient(135deg,#f472b6,#be185d)',"tcMo('thu')",'<span class="ic">storefront</span>','Doanh thu BÁN HÀNG '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTBH">…</span>', '<span id="dashDTBHNam">…</span>')
+      ? theSo('linear-gradient(135deg,#fb923c,#ea580c)',"tcMo('tq')",'<span class="ic">account_balance_wallet</span>','TỔNG doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTTong">…</span>', 'Học sinh + Bán hàng<br>Cả năm '+thangNay.slice(0,4)+': <span id="dashDTTongNam">…</span>','grid-column:span 2')
+      + theSo('linear-gradient(135deg,#38bdf8,#0369a1)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">school</span>','Doanh thu HỌC SINH '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTHS">…</span>', '<span id="dashDTHSNam">…</span>','grid-column:span 2')
+      + theSo('linear-gradient(135deg,#f472b6,#be185d)',"tcMo('thu')",'<span class="ic">storefront</span>','Doanh thu BÁN HÀNG '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTBH">…</span>', '<span id="dashDTBHNam">…</span>','grid-column:span 2')
       : theSo('linear-gradient(135deg,#fb923c,#ea580c)',"moLichSuThuThang('"+thangNay+"')",'<span class="ic">payments</span>','Doanh thu '+(laThangNay?'tháng này':'tháng '+thangLabel), '<span id="dashDTThang">…</span>', 'Cả năm '+thangNay.slice(0,4)+': <b id="dashDTNam">…</b>'))
     + theSo('linear-gradient(135deg,#fbbf24,#f59e0b)',"doiTab('saphetkhoa')",'<span class="ic">hourglass_top</span>','Sắp hết khóa', sapHet, 'Bấm để xem & nhắc gia hạn')
     + theSo('linear-gradient(135deg,#f87171,#dc2626)',"moConNoHP()",'<span class="ic">credit_card_off</span>','Còn nợ học phí', '<span id="dashSoNo">…</span>', 'Tổng nợ: <b id="dashTongNo">…</b>')
@@ -5409,7 +5415,7 @@ function veBieuDoDoanhThu(thang6){
   html+='</div>';
   box.innerHTML=html;
 }
-function theSo(grad, onclick, icon, nhan, so, phu){  return '<div class="theSo mau'+(onclick?' bam':'')+'" style="background:'+grad+'"'+(onclick?' onclick="'+onclick+'"':'')+'><div class="icon">'+icon+'</div>'
+function theSo(grad, onclick, icon, nhan, so, phu, extra){  return '<div class="theSo mau'+(onclick?' bam':'')+'" style="background:'+grad+(extra?';'+extra:'')+'"'+(onclick?' onclick="'+onclick+'"':'')+'><div class="icon">'+icon+'</div>'
     + '<div class="nhan">'+nhan+'</div><div class="so">'+so+'</div><div class="phu">'+phu+'</div>'+(onclick?'<div style="position:absolute;top:12px;right:14px;opacity:.65"><span class="ic" style="color:#fff;font-size:18px">chevron_right</span></div>':'')+'</div>';
 }
 
