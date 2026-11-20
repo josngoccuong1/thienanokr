@@ -374,9 +374,12 @@ main section{animation:hienLen .25s ease}
   .navDropMenu a{white-space:normal}
 }
 /* v85: giữ thanh tiêu đề bảng khi cuộn (máy tính) */
+/* bảng rộng hơn khung: cuộn trong khung, tiêu đề vẫn dính */
+.cuonThat{overflow:auto!important;max-height:calc(100vh - var(--hH,70px) - 14px)}
+.cuonThat thead th,.cuonThat table.nsT tr:first-child th{position:sticky!important;top:0!important;z-index:6}
+.hopModal .cuonThat{max-height:none}
 @media(min-width:1100px){
  .the,.cuonBang,.the[style*="overflow-x"]{overflow:clip!important}
- .the.cuonThat,.cuonBang.cuonThat{overflow-x:auto!important}
  thead th,table.nsT tr:first-child th{position:sticky;top:var(--hH,64px);z-index:6}
  .hopModal thead th,.hopModal th{position:static!important}
  div[style*="max-height"] thead th{top:0}
@@ -414,7 +417,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v85</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v86</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -5844,12 +5847,14 @@ function khoVeKho(hang,kt){
   if(!hang.length) return h+'<div class="the trong" style="padding:20px">Kho chưa có dữ liệu. Bấm <b>📥 Nhập từ Excel</b> để đưa file "Chi tiết mua hàng" vào, hoặc <b>➕ Nhập hàng</b>.</div>';
   if(!ds.length) return h+'<div class="the trong" style="padding:20px">Không có dòng nào khớp bộ lọc.</div>';
   var c=function(w){ return '<col style="width:'+w+'%">'; };
+  h+='<div style="font-size:12px;color:#48566b;margin-bottom:6px;display:flex;gap:14px;flex-wrap:wrap"><span><span style="display:inline-block;width:12px;height:12px;background:#fff;border:1px solid #cbd5e1;vertical-align:middle"></span> Còn nguyên</span><span><span style="display:inline-block;width:12px;height:12px;background:#fff4d6;border:1px solid #e5c76b;vertical-align:middle"></span> Đã xuất một phần</span><span><span style="display:inline-block;width:12px;height:12px;background:#fde8ec;border:1px solid #f0a3b1;vertical-align:middle"></span> Đã xuất hết</span></div>';
   var sT={sn:0,sx:0,st:0,gv:0};
   var rows=ds.slice(0,KHO.lim).map(function(x){
     var t=khoTon(x), xu=khoXuat(x), id=esc(x.id), kq=khoCanKT(x);
     sT.sn+=khoNum(x.slNhap); sT.sx+=xu; sT.st+=t; sT.gv+=khoNum(x.giaTri);
     var ghi=(x.ghiChu?'<div>'+esc(x.ghiChu)+'</div>':'')+(x.xuatApp&&x.xuatApp.length?x.xuatApp.map(function(e){ return '<div style="color:#be185d">Xuất '+esc(e.sl)+' · '+esc(e.khach||'')+(e.ngay?' · '+khoNgayVN(e.ngay):'')+'</div>'; }).join(''):'')+(kq?x.canKT.map(function(m){ return '<div style="color:#dc2626">⚠ '+esc(m)+'</div>'; }).join(''):'');
-    return '<tr'+(t===0?' style="color:#6b7280"':'')+'><td>'+esc(x.stt||'')+'</td><td style="white-space:nowrap">'+esc(khoNgayVN(x.ngay).replace(/\/20(\d\d)$/,'/$1'))+'</td><td>'+esc(x.soHD||'')+'</td><td>'+esc(x.ncc||'')+'</td><td>'+esc(x.ma||'')+'</td><td><b style="font-weight:600">'+esc(x.ten||'')+'</b></td><td>'+esc(x.dvt||'')+'</td>'
+    var nen=(khoNum(x.slNhap)>0&&t===0)?'background:#fde8ec;color:#7f1d1d':(xu>0?'background:#fff4d6':'');
+    return '<tr'+(nen?' style="'+nen+'"':'')+'><td>'+esc(x.stt||'')+'</td><td style="white-space:nowrap">'+esc(khoNgayVN(x.ngay).replace(/\/20(\d\d)$/,'/$1'))+'</td><td>'+esc(x.soHD||'')+'</td><td>'+esc(x.ncc||'')+'</td><td>'+esc(x.ma||'')+'</td><td><b style="font-weight:600">'+esc(x.ten||'')+'</b></td><td>'+esc(x.dvt||'')+'</td>'
       +'<td class="tien">'+khoNum(x.slNhap)+'</td><td class="tien">'+(x.donGia?khoTien(x.donGia):'')+'</td><td class="tien">'+(x.giaTri?khoTien(x.giaTri):'')+'</td>'
       +'<td class="tien" style="color:#be185d;font-weight:700">'+xu+'</td><td class="tien" style="font-weight:800;color:'+(t>0?'#047857':'#9aa4b2')+'">'+t+'</td><td style="font-size:10.5px">'+ghi+'</td>'
       +'<td><div style="display:flex;gap:2px;flex-wrap:nowrap">'+(t>0?'<button class="nutPhu" style="" title="Xuất / bán" onclick="khoXuatMo(\''+id+'\')">📤</button>':'')+'<button class="nutPhu" style="" title="Sửa" onclick="khoSua(\''+id+'\')">✏️</button><button class="nutPhu" style="" title="Xóa" onclick="khoXoa(\''+id+'\')">🗑</button></div></td></tr>'; }).join('');
