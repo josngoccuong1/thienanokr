@@ -417,7 +417,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v86</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v88</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -1021,7 +1021,17 @@ function sinhMaMoi(tt, ds, truong){
   return tt+('00000'+(max+1)).slice(-5);
 }
 function docToObj(d){ var o=d.data()||{}; o._dong=d.id; o._id=d.id; return o; }
-async function docsCol(name){ var s=await FB.getDocs(FB.collection(FB.db,name)); return s.docs.map(docToObj); }
+// TIẾT KIỆM HẠN MỨC ĐỌC FIRESTORE: phiếu thu / học phí / đăng ký đã được app nghe thời gian thực (_bsC) → dùng lại bộ nhớ, KHÔNG đọc lại cả bộ mỗi lần
+async function docsCol(name){
+  var kc={phieuthu:'pt',hocphi:'hp',dangky:'dk'}[name];
+  if(kc && typeof _bsInit==='function'){
+    try{
+      await Promise.race([_bsInit(), new Promise(function(_,rj){ setTimeout(function(){ rj(new Error('cho')); }, 8000); })]);
+      if(Array.isArray(_bsC[kc])) return _bsC[kc].slice();
+    }catch(e){}
+  }
+  var s=await FB.getDocs(FB.collection(FB.db,name)); return s.docs.map(docToObj);
+}
 async function docsWhere(name,f,v){ var s=await FB.getDocs(FB.query(FB.collection(FB.db,name),FB.where(f,'==',v))); return s.docs.map(docToObj); }
 
 async function goi(hanhDong, dl){
@@ -1840,15 +1850,37 @@ function _bsInit(){
       }, function(e){ if(!xong[key]){ xong[key]=1; reject(e); } });
     }
     lang('dangky','dk'); lang('hocphi','hp'); lang('phieuthu','pt');
-    // điểm danh: lần đầu nhận toàn bộ, sau đó chỉ nhận bản ghi thay đổi
-    FB.onSnapshot(FB.collection(FB.db,'diemdanh'), function(snap){
+    // điểm danh (nhiều nhất, hàng chục nghìn bản ghi): TIẾT KIỆM HẠN MỨC ĐỌC
+    //  - đọc từ bộ nhớ máy (0 lượt đọc) + chỉ nghe 3 tháng gần nhất trên máy chủ
+    //  - 7 ngày mới đọc lại toàn bộ 1 lần (để bắt các sửa/xóa ở tháng cũ)
+    function ddXuLy(snap){
       if(!_bsC.dd){ _bsC.dd = {}; }
       snap.docChanges().forEach(function(c){
         if(c.type==='removed') delete _bsC.dd[c.doc.id];
         else { var o=c.doc.data(); _bsC.dd[c.doc.id] = {MaHV:String(o.MaHV), NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||'', TenLop:o.TenLop||''}; }
       });
       if(!xong.dd) ok('dd'); else _bsLamMoiNhe();
-    }, function(e){ if(!xong.dd){ xong.dd=1; reject(e); } });
+    }
+    function ddLoi(e){ if(!xong.dd){ xong.dd=1; reject(e); } }
+    function ddDayDu(){
+      FB.onSnapshot(FB.collection(FB.db,'diemdanh'), function(snap){
+        if(!xong.dd){ try{ localStorage.setItem('ta_dd_full',String(Date.now())); }catch(e){} }
+        ddXuLy(snap);
+      }, ddLoi);
+    }
+    function ddGanDay(){
+      var n=new Date(); n.setMonth(n.getMonth()-2); var tu=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2);
+      FB.onSnapshot(FB.query(FB.collection(FB.db,'diemdanh'),FB.where('Thang','>=',tu)), ddXuLy, ddLoi);
+    }
+    var lanCuoi=0; try{ lanCuoi=+localStorage.getItem('ta_dd_full')||0; }catch(e){}
+    if(window._ddFull || !lanCuoi || Date.now()-lanCuoi>7*864e5 || !FB.getDocsFromCache) ddDayDu();
+    else {
+      FB.getDocsFromCache(FB.collection(FB.db,'diemdanh')).then(function(sn){
+        if(sn.size<200){ ddDayDu(); return; }
+        _bsC.dd={}; sn.docs.forEach(function(d){ var o=d.data(); _bsC.dd[d.id]={MaHV:String(o.MaHV), NgayISO:String(o.NgayISO||''), TrangThai:o.TrangThai||'', TenLop:o.TenLop||''}; });
+        ddGanDay();
+      }).catch(function(){ ddDayDu(); });
+    }
   });
   p.catch(function(){ _bsC.ready=null; });
   _bsC.ready = p;
@@ -5293,7 +5325,7 @@ async function _hnTai(){
 function veHomNay(khongTai){
   var box=document.getElementById('dashHomNay'); if(!box) return;
   _hnKhoiDong();
-  if(khongTai!==true && (!_hn.tai||Date.now()-_hn.tai>60000)){ _hn.tai=Date.now(); _hnTai(); }
+  if(khongTai!==true && (!_hn.tai||Date.now()-_hn.tai>300000)){ _hn.tai=Date.now(); _hnTai(); }
   var hn=_hnNgay();
   var homNay=(hn===_homNayISO()); var nhanNgay=homNay?'Hôm nay':hn.split('-').reverse().join('/');
   var hvMap={}; TatCaHV.forEach(function(h){ hvMap[String(h.MaHV)]=h; });
@@ -8260,7 +8292,7 @@ function qtXoaPP(i){
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, getDocsFromCache, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 const firebaseConfig = {
   apiKey: "AIzaSyC8603m7PgLadFiNWnCZiWLCnUgWYNLKwM",
@@ -8271,9 +8303,9 @@ const firebaseConfig = {
   appId: "1:1065254649793:web:83d2fba4d40c11a2363940"
 };
 const app = initializeApp(firebaseConfig);
-const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager(), cacheSizeBytes: 200*1024*1024 }) });
 const auth = getAuth(app);
-window.FB = { db, auth, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment, signInWithEmailAndPassword, onAuthStateChanged, signOut };
+window.FB = { db, auth, collection, doc, getDoc, getDocs, getDocsFromCache, setDoc, addDoc, deleteDoc, query, where, writeBatch, runTransaction, onSnapshot, increment, signInWithEmailAndPassword, onAuthStateChanged, signOut };
 if (window.onFbReady) window.onFbReady();
 </script>
 <button id="nutLenDau" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Lên đầu trang" style="position:fixed;right:20px;bottom:20px;z-index:900;width:48px;height:48px;border-radius:50%;border:none;background:linear-gradient(180deg,#1b3c6b,#12294d);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 14px rgba(18,41,77,.35);display:none;align-items:center;justify-content:center">⬆</button>
