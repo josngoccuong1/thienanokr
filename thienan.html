@@ -373,6 +373,14 @@ main section{animation:hienLen .25s ease}
   .navDropMenu::before,.navDropMenu::after{display:none}
   .navDropMenu a{white-space:normal}
 }
+/* v85: giữ thanh tiêu đề bảng khi cuộn (máy tính) */
+@media(min-width:1100px){
+ .the,.cuonBang,.the[style*="overflow-x"]{overflow:clip!important}
+ .the.cuonThat,.cuonBang.cuonThat{overflow-x:auto!important}
+ thead th,table.nsT tr:first-child th{position:sticky;top:var(--hH,64px);z-index:6}
+ .hopModal thead th,.hopModal th{position:static!important}
+ div[style*="max-height"] thead th{top:0}
+}
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -406,7 +414,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v84</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v85</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -5845,7 +5853,7 @@ function khoVeKho(hang,kt){
       +'<td class="tien">'+khoNum(x.slNhap)+'</td><td class="tien">'+(x.donGia?khoTien(x.donGia):'')+'</td><td class="tien">'+(x.giaTri?khoTien(x.giaTri):'')+'</td>'
       +'<td class="tien" style="color:#be185d;font-weight:700">'+xu+'</td><td class="tien" style="font-weight:800;color:'+(t>0?'#047857':'#9aa4b2')+'">'+t+'</td><td style="font-size:10.5px">'+ghi+'</td>'
       +'<td><div style="display:flex;gap:2px;flex-wrap:nowrap">'+(t>0?'<button class="nutPhu" style="" title="Xuất / bán" onclick="khoXuatMo(\''+id+'\')">📤</button>':'')+'<button class="nutPhu" style="" title="Sửa" onclick="khoSua(\''+id+'\')">✏️</button><button class="nutPhu" style="" title="Xóa" onclick="khoXoa(\''+id+'\')">🗑</button></div></td></tr>'; }).join('');
-  h+='<style>.khoB{font-size:11px!important;line-height:1.25}.khoB td{white-space:normal;overflow-wrap:anywhere;vertical-align:middle;padding:3px 4px!important}.khoB th{padding:5px 4px!important;font-size:10.5px!important}.khoB td.tien{white-space:nowrap}.khoB button{padding:1px 5px!important;font-size:11px!important;line-height:1.4}</style><div class="the cuonBang"><table class="nho khoB" style="table-layout:fixed;width:100%;'+(window.innerWidth<1000?'min-width:1000px':'')+'"><colgroup>'+[2.5,5.5,4.5,16,6.5,16,4,3.5,7,8,3.5,3.5,12,7].map(c).join('')+'</colgroup>'
+  h+='<style>.khoB{font-size:11px!important;line-height:1.25}.khoB td{white-space:normal;overflow-wrap:anywhere;vertical-align:middle;padding:3px 4px!important}.khoB th{padding:5px 4px!important;font-size:10.5px!important}.khoB td.tien{white-space:nowrap}.khoB button{padding:1px 5px!important;font-size:11px!important;line-height:1.4}</style><div class="the cuonBang"><table class="nho khoB" style="table-layout:fixed;width:100%;'+(window.innerWidth<1000?'min-width:1000px':'')+'"><colgroup>'+[2.5,5.5,4.5,15,6.5,15.5,4,3.5,7,8,3.5,3.5,11.5,9].map(c).join('')+'</colgroup>'
    +'<thead><tr><th>STT</th><th>Ngày HĐ</th><th>Số HĐ</th><th>Nhà cung cấp</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="tien">SL nhập</th><th class="tien">Đơn giá</th><th class="tien">Giá trị nhập</th><th class="tien">Xuất</th><th class="tien">Tồn</th><th>Thông tin xuất / ghi chú</th><th></th></tr></thead><tbody style="word-break:break-word">'+rows
    +'<tr style="background:#e8f5ef;font-weight:800"><td colspan="7">TỔNG ('+ds.length+' dòng'+(ds.length>KHO.lim?', đang hiện '+KHO.lim:'')+')</td><td class="tien">'+sT.sn+'</td><td></td><td class="tien">'+khoTien(sT.gv)+'</td><td class="tien">'+sT.sx+'</td><td class="tien">'+sT.st+'</td><td colspan="2"></td></tr></tbody></table></div>';
   if(ds.length>KHO.lim) h+='<div style="text-align:center;margin:10px"><button class="nutPhu" onclick="KHO.lim+=300;khoVe()">Hiện thêm 300 dòng</button></div>';
@@ -8265,5 +8273,16 @@ if (window.onFbReady) window.onFbReady();
 </script>
 <button id="nutLenDau" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Lên đầu trang" style="position:fixed;right:20px;bottom:20px;z-index:900;width:48px;height:48px;border-radius:50%;border:none;background:linear-gradient(180deg,#1b3c6b,#12294d);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 14px rgba(18,41,77,.35);display:none;align-items:center;justify-content:center">⬆</button>
 <script>window.addEventListener('scroll',function(){var b=document.getElementById('nutLenDau');if(b)b.style.display=(window.scrollY>300)?'flex':'none';});</script>
+<script>
+(function(){
+  var t;
+  function datHH(){ var h=document.querySelector('header'); if(h) document.documentElement.style.setProperty('--hH',h.offsetHeight+'px'); }
+  function ktra(){ datHH(); document.querySelectorAll('.cuonBang,.the').forEach(function(e){ if(!e.querySelector('table')) return; e.classList.toggle('cuonThat', e.scrollWidth>e.clientWidth+6); }); }
+  function hen(){ clearTimeout(t); t=setTimeout(ktra,250); }
+  window.addEventListener('resize',hen); window.addEventListener('load',hen);
+  if(window.MutationObserver) new MutationObserver(hen).observe(document.body,{childList:true,subtree:true});
+  var hd=document.querySelector('header'); if(hd&&window.ResizeObserver) new ResizeObserver(datHH).observe(hd);
+})();
+</script>
 </body>
 </html>
