@@ -406,7 +406,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 08/11/2026 · v81</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v82</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -727,6 +727,7 @@ main section{animation:hienLen .25s ease}
     <section id="vung-quantri" class="an"><div id="qtNoiDung"></div></section>
     <section id="vung-nhansu" class="an"><div id="nsNoiDung"></div></section>
     <section id="vung-thuchi" class="an"><div id="tcNoiDung"></div></section>
+    <section id="vung-khohang" class="an"><div id="khoNoiDung"></div></section>
     <section id="vung-nhachangloat" class="an">
       <div class="the" style="padding:14px;margin-bottom:14px">
         <div style="font-weight:700;color:#12294d;margin-bottom:10px">📣 Nhắc học phí / sắp hết khóa hàng loạt</div>
@@ -2374,6 +2375,7 @@ function apDungPhanQuyen(){
   var tnd = document.getElementById('tab-nguoidung');
   var nqlm = document.getElementById('nutMoQuanLyMenu');
   (function(){ var t=document.getElementById('tab-thuchi'); if(t){ var d=t.closest('.navDrop'); if(d) d.style.display = laAdmin() ? '' : 'none'; } })();
+  (function(){ var t=document.getElementById('tab-khohang'); if(t){ var d=t.closest('.navDrop'); if(d) d.style.display = laAdmin() ? '' : 'none'; } })();
   (function(){ var t=document.getElementById('tab-nhansu'); if(t){ var d=t.closest('.navDrop'); if(d) d.style.display = laAdmin() ? '' : 'none'; } })();
   ['tab-quantri','tab-daotao'].forEach(function(id){ var t=document.getElementById(id); if(t){ var d=t.closest('.navDrop'); if(d) d.style.display = laGV ? 'none' : ''; } });
   if(nqlm) nqlm.style.display = laAdmin() ? '' : 'none';
@@ -2579,11 +2581,16 @@ var MENU_DINH_NGHIA = [
     {id:'thuchi_nam', icon:'calendar_month', ten:'Lãi / lỗ cả năm', onclick:"tcMo('nam')"},
     {id:'thuchi_ns', icon:'flag', ten:'Ngân sách chi phí', onclick:"tcMo('ns')"}
   ]},
+  {id:'khohang', icon:'inventory_2', ten:'Kho hàng', mau:'#0f766e', onclick:"navToggle(this,event)||khoMo('kho')", con:[
+    {id:'khohang_kho', icon:'inventory_2', ten:'Nhập – xuất – tồn', onclick:"khoMo('kho')"},
+    {id:'khohang_kt', icon:'rule', ten:'Cần kiểm tra', onclick:"khoMo('kt')"},
+    {id:'khohang_khac', icon:'receipt_long', ten:'Chi phí khác', onclick:"khoMo('khac')"}
+  ]},
   {id:'nguoidung', icon:'manage_accounts', ten:'Người dùng', mau:'#64748b', onclick:"doiTab('nguoidung')", anMacDinhKhongDoiQuyen:true}
 ];
 // Thứ tự thanh menu: Trang chủ, Học viên, Điểm danh, Chiến dịch mục tiêu, Đào tạo, rồi các mục còn lại
 (function(){
-  var uu=['trangchu','hocvien','diemdanh','quantri','daotao','nhansu','thuchi'];
+  var uu=['trangchu','hocvien','diemdanh','quantri','daotao','nhansu','thuchi','khohang'];
   var dau=uu.map(function(id){return MENU_DINH_NGHIA.filter(function(m){return m.id===id;})[0];}).filter(Boolean);
   var con=MENU_DINH_NGHIA.filter(function(m){return uu.indexOf(m.id)<0;});
   MENU_DINH_NGHIA.splice.apply(MENU_DINH_NGHIA,[0,MENU_DINH_NGHIA.length].concat(dau,con));
@@ -2668,7 +2675,7 @@ function toggleMenuDiDong(hienThi){
 }
 function doiTab(ten){
   toggleMenuDiDong(false);
-  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','daotao','quantri','nhansu','thuchi','nguoidung'].forEach(function(t){
+  ['trangchu','hocvien','lop','khoahoc','diemdanh','saphetkhoa','baocao','crm','daotao','quantri','nhansu','thuchi','khohang','nguoidung'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('chon', t===ten);
     document.getElementById('vung-'+t).classList.toggle('an', t!==ten);
   });
@@ -5759,6 +5766,223 @@ async function tcNhapXacNhan(){
     I.thu.forEach(function(x){ up(TC.thu,x); }); I.chi.forEach(function(x){ up(TC.chi,x); });
     dongModal(); bao('✅ Đã nhập '+all.length+' giao dịch'); TC_IMP=null; TC.view='tq'; tcVe();
   }catch(e){ bao('❌ Chưa nhập được: '+e.message,true); if(btn){ btn.disabled=false; btn.textContent='Thử lại'; } }
+}
+/* ===== KHO HÀNG: nhập – xuất – tồn (đưa từ sổ "Chi tiết mua hàng" của kế toán vào app), chỉ admin ===== */
+var KHO={ds:[],daTai:false,view:'kho',loc:{q:'',ncc:'',nam:'',tt:''},lim:200,_imp:null,_id:'',_loai:'hang'};
+function khoNum(v){ return soTienJS(v); }
+function khoTien(v){ return tien(Math.round(khoNum(v))); }
+function khoXuatApp(x){ return (x.xuatApp||[]).reduce(function(s,e){ return s+khoNum(e.sl); },0); }
+function khoTon(x){ return Math.max(0,khoNum(x.tonFile)-khoXuatApp(x)); }
+function khoXuat(x){ return Math.max(0,khoNum(x.slNhap)-khoTon(x)); }
+function khoLaKhac(x){ return x.loai==='khac'; }
+function khoNgayVN(s){ return s?String(s).split('-').reverse().join('/'):''; }
+function khoMo(view){ KHO.view=view||'kho'; KHO.lim=200; doiTab('khohang'); khoVe(!KHO.daTai); }
+async function khoNap(){
+  var s=await FB.getDocs(FB.collection(FB.db,'kho_hang'));
+  KHO.ds=s.docs.map(function(d){ var o=d.data(); o.id=o.id||d.id; return o; });
+  KHO.ds.sort(function(a,b){ return (a.thuTu||0)-(b.thuTu||0); });
+  KHO.daTai=true;
+}
+function khoCanKT(x){ return !khoLaKhac(x) && ((x.canKT&&x.canKT.length)||0)>0; }
+async function khoVe(napLai){
+  var box=document.getElementById('khoNoiDung'); if(!box) return;
+  if(napLai||!KHO.daTai){
+    box.innerHTML='<div class="dangTai" style="padding:24px">Đang tải kho hàng...</div>';
+    try{ await khoNap(); }catch(e){ box.innerHTML='<div class="baoLoi" style="margin:14px">Lỗi tải: '+esc(e.message)+'</div>'; return; }
+  }
+  var hang=KHO.ds.filter(function(x){ return !khoLaKhac(x); }), khac=KHO.ds.filter(khoLaKhac), kt=hang.filter(khoCanKT);
+  var tabs=[['kho','📦 Kho hàng ('+hang.length+')'],['kt','⚠️ Cần kiểm tra ('+kt.length+')'],['khac','🧾 Chi phí khác ('+khac.length+')']];
+  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'+tabs.map(function(t){ return '<button class="'+(KHO.view===t[0]?'nutChinh':'nutPhu')+'" style="padding:7px 14px;font-size:13px" onclick="khoMo(\''+t[0]+'\')">'+t[1]+'</button>'; }).join('')
+   +'<button class="nutPhu" style="padding:7px 12px;font-size:13px;margin-left:auto" onclick="khoVe(true)">🔄 Làm mới</button></div>';
+  try{ h+=(KHO.view==='khac'?khoVeKhac(khac):khoVeKho(hang,kt)); }catch(e){ h+='<div class="baoLoi">Lỗi hiển thị: '+esc(e.message)+'</div>'; }
+  box.innerHTML=h;
+}
+function khoThe(tt,v,mau,phu){ return '<div class="the" style="padding:12px 14px"><div style="font-size:12px;color:#6b7280;font-weight:700">'+tt+'</div><div style="font-size:20px;font-weight:800;color:'+mau+';margin:2px 0;white-space:nowrap">'+v+'</div>'+(phu?'<div style="font-size:11.5px;color:#6b7280">'+phu+'</div>':'')+'</div>'; }
+function khoLoc(ds){
+  var L=KHO.loc, q=boDauJS(L.q||'');
+  return ds.filter(function(x){
+    if(L.ncc && (x.ncc||'(chưa ghi)')!==L.ncc) return false;
+    if(L.nam && String(x.ngay||'').slice(0,4)!==L.nam) return false;
+    if(L.tt==='con' && !(khoTon(x)>0)) return false;
+    if(L.tt==='het' && khoTon(x)>0) return false;
+    if(q && boDauJS((x.ten||'')+' '+(x.ma||'')+' '+(x.ncc||'')+' '+(x.soHD||'')+' '+(x.ghiChu||'')).indexOf(q)<0) return false;
+    return true; });
+}
+function khoBoLoc(ds,coTT){
+  var ncc={}, nam={}; ds.forEach(function(x){ ncc[x.ncc||'(chưa ghi)']=1; if(x.ngay) nam[String(x.ngay).slice(0,4)]=1; });
+  var op=function(arr,cur,nhan){ return '<option value="">'+nhan+'</option>'+arr.sort().map(function(a){ return '<option'+(a===cur?' selected':'')+'>'+esc(a)+'</option>'; }).join(''); };
+  return '<select style="width:auto;max-width:210px" onchange="KHO.loc.ncc=this.value;KHO.lim=200;khoVe()">'+op(Object.keys(ncc),KHO.loc.ncc,'Tất cả nhà cung cấp')+'</select>'
+   +'<select style="width:auto" onchange="KHO.loc.nam=this.value;KHO.lim=200;khoVe()">'+op(Object.keys(nam),KHO.loc.nam,'Mọi năm')+'</select>'
+   +(coTT?'<select style="width:auto" onchange="KHO.loc.tt=this.value;KHO.lim=200;khoVe()"><option value="">Tất cả</option><option value="con"'+(KHO.loc.tt==='con'?' selected':'')+'>Còn tồn</option><option value="het"'+(KHO.loc.tt==='het'?' selected':'')+'>Đã xuất hết</option></select>':'')
+   +'<input type="search" placeholder="Tìm tên, mã, nhà cung cấp, khách..." value="'+esc(KHO.loc.q||'')+'" style="max-width:240px" onchange="KHO.loc.q=this.value;KHO.lim=200;khoVe()">';
+}
+function khoVeKho(hang,kt){
+  var T={nhap:0,sln:0,slx:0,slt:0,gvt:0,dong:0};
+  hang.forEach(function(x){ var t=khoTon(x); T.nhap+=khoNum(x.giaTri); T.sln+=khoNum(x.slNhap); T.slx+=khoXuat(x); T.slt+=t; T.gvt+=t*khoNum(x.donGia); if(t>0) T.dong++; });
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'
+   +khoThe('Tổng nhập',khoTien(T.nhap)+' đ','#0369a1',T.sln+' sản phẩm · '+hang.length+' dòng')
+   +khoThe('Đã xuất / bán',T.slx,'#be185d','sản phẩm')
+   +khoThe('Còn tồn',T.slt,'#047857',T.dong+' dòng còn hàng')
+   +khoThe('Giá trị tồn (giá vốn)',khoTien(T.gvt)+' đ','#b45309','tồn × đơn giá nhập')
+   +khoThe('Cần kiểm tra',kt.length,kt.length?'#dc2626':'#6b7280','dòng sổ chưa khớp')+'</div>';
+  var ds=khoLoc(KHO.view==='kt'?kt:hang);
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutChinh" onclick="khoSua(null,\'hang\')">➕ Nhập hàng</button><button class="nutPhu" onclick="khoChonFile()">📥 Nhập từ Excel</button><button class="nutPhu" onclick="khoXuatExcel()">⬇ Tải Excel</button>'+khoBoLoc(KHO.ds.filter(function(x){return !khoLaKhac(x);}),true)+'</div>'
+   +'<input type="file" id="khoFile" accept=".xlsx,.xls" style="display:none" onchange="khoDocFile(this)">';
+  if(!hang.length) return h+'<div class="the trong" style="padding:20px">Kho chưa có dữ liệu. Bấm <b>📥 Nhập từ Excel</b> để đưa file "Chi tiết mua hàng" vào, hoặc <b>➕ Nhập hàng</b>.</div>';
+  if(!ds.length) return h+'<div class="the trong" style="padding:20px">Không có dòng nào khớp bộ lọc.</div>';
+  var c=function(w){ return '<col style="width:'+w+'%">'; };
+  var sT={sn:0,sx:0,st:0,gv:0};
+  var rows=ds.slice(0,KHO.lim).map(function(x){
+    var t=khoTon(x), xu=khoXuat(x), id=esc(x.id), kq=khoCanKT(x);
+    sT.sn+=khoNum(x.slNhap); sT.sx+=xu; sT.st+=t; sT.gv+=khoNum(x.giaTri);
+    var ghi=(x.ghiChu?'<div>'+esc(x.ghiChu)+'</div>':'')+(x.xuatApp&&x.xuatApp.length?x.xuatApp.map(function(e){ return '<div style="color:#be185d">Xuất '+esc(e.sl)+' · '+esc(e.khach||'')+(e.ngay?' · '+khoNgayVN(e.ngay):'')+'</div>'; }).join(''):'')+(kq?x.canKT.map(function(m){ return '<div style="color:#dc2626">⚠ '+esc(m)+'</div>'; }).join(''):'');
+    return '<tr'+(t===0?' style="color:#6b7280"':'')+'><td>'+esc(x.stt||'')+'</td><td>'+esc(khoNgayVN(x.ngay))+'</td><td>'+esc(x.soHD||'')+'</td><td>'+esc(x.ncc||'')+'</td><td>'+esc(x.ma||'')+'</td><td><b style="font-weight:600">'+esc(x.ten||'')+'</b></td><td>'+esc(x.dvt||'')+'</td>'
+      +'<td class="tien">'+khoNum(x.slNhap)+'</td><td class="tien">'+(x.donGia?khoTien(x.donGia):'')+'</td><td class="tien">'+(x.giaTri?khoTien(x.giaTri):'')+'</td>'
+      +'<td class="tien" style="color:#be185d;font-weight:700">'+xu+'</td><td class="tien" style="font-weight:800;color:'+(t>0?'#047857':'#9aa4b2')+'">'+t+'</td><td style="font-size:11.5px">'+ghi+'</td>'
+      +'<td><div style="display:flex;gap:3px;flex-wrap:wrap">'+(t>0?'<button class="nutPhu" style="padding:3px 6px;font-size:12px" title="Xuất / bán" onclick="khoXuatMo(\''+id+'\')">📤</button>':'')+'<button class="nutPhu" style="padding:3px 6px;font-size:12px" title="Sửa" onclick="khoSua(\''+id+'\')">✏️</button><button class="nutPhu" style="padding:3px 6px;font-size:12px" title="Xóa" onclick="khoXoa(\''+id+'\')">🗑</button></div></td></tr>'; }).join('');
+  h+='<style>.khoB td{white-space:normal;overflow-wrap:anywhere;vertical-align:top;padding:6px 6px}.khoB th{padding:8px 6px}.khoB td.tien{white-space:nowrap}</style><div class="the cuonBang"><table class="nho khoB" style="table-layout:fixed;width:100%;font-size:12px;'+(window.innerWidth<1000?'min-width:1000px':'')+'"><colgroup>'+[3,7,5,10.5,6.5,15.5,5,4,7.5,8.5,3.5,3.5,11.5,9].map(c).join('')+'</colgroup>'
+   +'<thead><tr><th>STT</th><th>Ngày HĐ</th><th>Số HĐ</th><th>Nhà cung cấp</th><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th class="tien">SL nhập</th><th class="tien">Đơn giá</th><th class="tien">Giá trị nhập</th><th class="tien">Xuất</th><th class="tien">Tồn</th><th>Thông tin xuất / ghi chú</th><th></th></tr></thead><tbody style="word-break:break-word">'+rows
+   +'<tr style="background:#e8f5ef;font-weight:800"><td colspan="7">TỔNG ('+ds.length+' dòng'+(ds.length>KHO.lim?', đang hiện '+KHO.lim:'')+')</td><td class="tien">'+sT.sn+'</td><td></td><td class="tien">'+khoTien(sT.gv)+'</td><td class="tien">'+sT.sx+'</td><td class="tien">'+sT.st+'</td><td colspan="2"></td></tr></tbody></table></div>';
+  if(ds.length>KHO.lim) h+='<div style="text-align:center;margin:10px"><button class="nutPhu" onclick="KHO.lim+=300;khoVe()">Hiện thêm 300 dòng</button></div>';
+  return h;
+}
+function khoVeKhac(khac){
+  var ds=khoLoc(khac), tong=ds.reduce(function(s,x){ return s+khoNum(x.giaTri); },0);
+  var h='<div style="font-size:13px;color:#48566b;margin-bottom:8px">Các dòng trong sổ mua hàng <b>không phải hàng hóa</b> (xăng, liên hoan, vận chuyển, sửa xe, dịch vụ…). Không tính vào tồn kho; đây chỉ là danh sách để Thầy xem.</div>'
+   +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><button class="nutChinh" onclick="khoSua(null,\'khac\')">➕ Thêm chi phí khác</button>'+khoBoLoc(khac,false)+'</div>'
+   +'<input type="file" id="khoFile" accept=".xlsx,.xls" style="display:none" onchange="khoDocFile(this)">';
+  if(!ds.length) return h+'<div class="the trong" style="padding:20px">Chưa có dòng nào.</div>';
+  h+='<div class="the cuonBang"><table class="nho"><thead><tr><th>Ngày</th><th>Số HĐ</th><th>Nhà cung cấp</th><th>Nội dung</th><th class="tien">Số tiền</th><th>Ghi chú</th><th></th></tr></thead><tbody>'
+   +ds.map(function(x){ var id=esc(x.id); return '<tr><td>'+esc(khoNgayVN(x.ngay))+'</td><td>'+esc(x.soHD||'')+'</td><td>'+esc(x.ncc||'')+'</td><td>'+esc(x.ten||'')+'</td><td class="tien">'+khoTien(x.giaTri)+'</td><td style="font-size:12px">'+esc(x.ghiChu||'')+((x.canKT||[]).map(function(m){ return '<div style="color:#dc2626">⚠ '+esc(m)+'</div>'; }).join(''))+'</td><td style="white-space:nowrap"><button class="nutPhu" style="padding:3px 7px;font-size:12px" onclick="khoSua(\''+id+'\')">✏️</button> <button class="nutPhu" style="padding:3px 7px;font-size:12px" onclick="khoXoa(\''+id+'\')">🗑</button></td></tr>'; }).join('')
+   +'<tr style="background:#e8f5ef;font-weight:800"><td colspan="4">TỔNG ('+ds.length+' dòng)</td><td class="tien">'+khoTien(tong)+'</td><td colspan="2"></td></tr></tbody></table></div>';
+  return h;
+}
+/* ----- thêm / sửa / xóa ----- */
+function khoSua(id,loai){
+  var x=id?KHO.ds.filter(function(c){return c.id===id;})[0]:null; if(id&&!x) return; KHO._id=id||''; KHO._loai=x?(x.loai||'hang'):(loai||'hang');
+  var khac=KHO._loai==='khac', d=x||{ngay:_homNayISO(),soHD:'',ncc:'',ma:'',ten:'',dvt:'Chiếc',slNhap:'',donGia:'',giaTri:'',ghiChu:''};
+  var ton=x?khoTon(x):'';
+  var f=function(i,v,t){ return '<input id="'+i+'"'+(t?' type="'+t+'"':'')+' value="'+esc(v==null?'':v)+'">'; };
+  var than='<div class="baoLoi an" id="loiForm"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+o('Ngày hóa đơn',f('khNgay',d.ngay,'date'),false)+o('Số hóa đơn',f('khHD',d.soHD),false)+'</div>'
+   +o('Nhà cung cấp',f('khNCC',d.ncc),false)
+   +(khac?o('Nội dung chi phí',f('khTen',d.ten),true)+o('Số tiền (VNĐ)',f('khGT',d.giaTri?khoTien(d.giaTri):''),true)
+     :'<div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">'+o('Mã hàng',f('khMa',d.ma),false)+o('Tên hàng',f('khTen',d.ten),true)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">'+o('ĐVT',f('khDVT',d.dvt),false)+o('SL nhập',f('khSL',d.slNhap,'number'),true)+o('Đơn giá (VNĐ)',f('khDG',d.donGia?khoTien(d.donGia):''),false)+o('Tồn hiện tại',f('khTon',ton,'number'),false)+'</div>'
+      +'<div style="font-size:12px;color:#6b7280;margin:-4px 0 8px">Để trống “Tồn hiện tại” = bằng SL nhập. Xuất/bán thì dùng nút 📤 trên dòng hàng để có lịch sử.</div>')
+   +o('Ghi chú / thông tin xuất',f('khGhi',d.ghiChu),false);
+  moModal(id?'✏️ Sửa dòng':(khac?'➕ Thêm chi phí khác':'➕ Nhập hàng vào kho'),than,'khoLuuDong()');
+}
+async function khoLuuDong(){
+  var v=function(i){ return (document.getElementById(i)||{}).value||''; }, cu=KHO._id?KHO.ds.filter(function(c){return c.id===KHO._id;})[0]:null, khac=KHO._loai==='khac';
+  var maxT=KHO.ds.reduce(function(m,x){ return Math.max(m,x.thuTu||0); },0);
+  var d={id:cu?cu.id:'kt'+Date.now(),loai:khac?'khac':'hang',ngay:v('khNgay'),soHD:v('khHD').trim(),ncc:v('khNCC').trim(),ten:v('khTen').trim(),ghiChu:v('khGhi').trim(),nguon:cu?(cu.nguon||'tay'):'tay',thuTu:cu?(cu.thuTu||maxT+1):maxT+1,capNhat:new Date().toISOString()};
+  if(!d.ten){ bao('Nhập tên hàng / nội dung',true); return; }
+  if(khac){ d.giaTri=soTienJS(v('khGT')); if(!(d.giaTri>0)){ bao('Nhập số tiền lớn hơn 0',true); return; } d.slNhap=0; d.tonFile=0; d.donGia=0; d.dvt=''; d.ma=''; d.canKT=(cu&&cu.canKT)||[]; }
+  else{
+    d.ma=v('khMa').trim(); d.dvt=v('khDVT').trim(); d.slNhap=khoNum(v('khSL')); d.donGia=soTienJS(v('khDG'));
+    if(!(d.slNhap>0)){ bao('SL nhập phải lớn hơn 0',true); return; }
+    var tonNhap=v('khTon')===''?d.slNhap:khoNum(v('khTon')); if(tonNhap>d.slNhap){ bao('Tồn không được lớn hơn SL nhập',true); return; }
+    d.tonFile=tonNhap+(cu?khoXuatApp(cu):0); d.giaTri=d.donGia>0?d.donGia*d.slNhap:(cu?khoNum(cu.giaTri):0); d.canKT=[];
+    if(cu&&cu.xuatApp) d.xuatApp=cu.xuatApp; if(cu&&cu.stt) d.stt=cu.stt;
+  }
+  khoaLuu(true);
+  try{ await FB.setDoc(FB.doc(FB.db,'kho_hang',d.id),d,{merge:true}); var j=-1; KHO.ds.forEach(function(y,k){ if(y.id===d.id) j=k; }); var m=j>=0?Object.assign({},KHO.ds[j],d):d; if(j>=0) KHO.ds[j]=m; else KHO.ds.push(m); dongModal(); bao('✅ Đã lưu'); khoVe(); }
+  catch(e){ khoaLuu(false); bao('❌ Chưa lưu được: '+e.message,true); }
+}
+async function khoXoa(id){
+  var x=KHO.ds.filter(function(c){return c.id===id;})[0]; if(!x||!confirm('Xóa dòng "'+x.ten+'"?\n(Không khôi phục được; muốn lấy lại thì nhập lại từ file Excel.)')) return;
+  try{ await FB.deleteDoc(FB.doc(FB.db,'kho_hang',id)); KHO.ds=KHO.ds.filter(function(c){return c.id!==id;}); bao('Đã xóa'); khoVe(); }catch(e){ bao(e.message,true); }
+}
+/* ----- xuất / bán ----- */
+function khoXuatMo(id){
+  var x=KHO.ds.filter(function(c){return c.id===id;})[0]; if(!x) return; KHO._id=id; var t=khoTon(x);
+  var than='<div class="baoLoi an" id="loiForm"></div><div style="background:#f0f9f6;border-radius:8px;padding:10px;margin-bottom:10px;font-size:13.5px"><b>'+esc(x.ten)+'</b><br><span style="color:#48566b">'+esc(x.ma||'')+' · Tồn hiện tại: <b>'+t+' '+esc(x.dvt||'')+'</b> · Giá nhập: '+khoTien(x.donGia)+' đ</span></div>'
+   +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+o('Ngày xuất','<input id="xNgay" type="date" value="'+_homNayISO()+'">',true)+o('Số lượng xuất','<input id="xSL" type="number" min="1" max="'+t+'" value="1">',true)+'</div>'
+   +o('Khách hàng / nơi nhận','<input id="xKhach" placeholder="VD: Nguyễn Văn A">',true)+o('Giá bán (VNĐ, không bắt buộc)','<input id="xGia">',false)+o('Ghi chú','<input id="xGhi">',false);
+  moModal('📤 Xuất / bán hàng',than,'khoXuatLuu()');
+}
+async function khoXuatLuu(){
+  var v=function(i){ return (document.getElementById(i)||{}).value||''; }, x=KHO.ds.filter(function(c){return c.id===KHO._id;})[0]; if(!x) return;
+  var sl=khoNum(v('xSL')), t=khoTon(x), kh=v('xKhach').trim();
+  if(!(sl>0)||sl>t){ bao('Số lượng xuất phải từ 1 đến '+t,true); return; }
+  if(!kh){ bao('Nhập khách hàng / nơi nhận',true); return; }
+  var ev={ngay:v('xNgay'),sl:sl,khach:kh,giaBan:soTienJS(v('xGia')),ghiChu:v('xGhi').trim()}, ds=(x.xuatApp||[]).concat([ev]);
+  khoaLuu(true);
+  try{ await FB.setDoc(FB.doc(FB.db,'kho_hang',x.id),{xuatApp:ds,capNhat:new Date().toISOString()},{merge:true}); x.xuatApp=ds; dongModal(); bao('✅ Đã ghi xuất '+sl+' · '+x.ten+' → còn tồn '+khoTon(x)); khoVe(); }
+  catch(e){ khoaLuu(false); bao('❌ Chưa lưu được: '+e.message,true); }
+}
+async function khoHoanXuat(id,i){
+  var x=KHO.ds.filter(function(c){return c.id===id;})[0]; if(!x||!x.xuatApp||!x.xuatApp[i]||!confirm('Hoàn tác lần xuất này (cộng lại vào tồn)?')) return;
+  var ds=x.xuatApp.slice(); ds.splice(i,1);
+  try{ await FB.setDoc(FB.doc(FB.db,'kho_hang',id),{xuatApp:ds,capNhat:new Date().toISOString()},{merge:true}); x.xuatApp=ds; bao('Đã hoàn tác'); khoVe(); }catch(e){ bao(e.message,true); }
+}
+/* ----- nhập từ Excel (file "Chi tiết mua hàng / Tổng hợp tồn kho" của kế toán) ----- */
+function khoChonFile(){ var e=document.getElementById('khoFile'); if(e){ e.value=''; e.click(); } }
+function khoDocFile(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  if(typeof XLSX==='undefined'){ bao('Chưa tải được thư viện Excel, thử lại sau giây lát.',true); return; }
+  var rd=new FileReader();
+  rd.onload=function(e){ try{
+    var wb=XLSX.read(e.target.result,{type:'array'}), ws=wb.Sheets[wb.SheetNames[0]], rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+    var h=-1; for(var i=0;i<Math.min(rows.length,30);i++){ if(rows[i].some(function(c){ return boDauJS(c).trim()==='ten hang'; })){ h=i; break; } }
+    if(h<0){ bao('Không thấy dòng tiêu đề (cột "Tên hàng"). Đúng file "Chi tiết mua hàng" chưa Thầy?',true); return; }
+    var col={}; rows[h].forEach(function(c,k){ var s=boDauJS(c).trim(); if(s&&col[s]===undefined) col[s]=k; });
+    var g=function(r,n){ var k=col[n]; return k===undefined?'':r[k]; }, num=function(v){ return v===''||v==null?0:soTienJS(v); };
+    var dsMoi=[], thuTu=0, soHang=0;
+    for(var i2=h+1;i2<rows.length;i2++){
+      var r=rows[i2], ten=String(g(r,'ten hang')).trim(); if(!ten) continue;
+      var stt=g(r,'stt'), L=num(g(r,'so luong mua')), M=num(g(r,'don gia')), N=num(g(r,'gia tri mua')), ghi=String(g(r,'thong tin xuat hd')).trim(), nb=boDauJS(ghi), kt=[];
+      var khac=/sua xe|dich vu|cuoc van chuyen|van chuyen nhac cu|lien hoan|xang|^to chuc|thue phong/.test(boDauJS(ten));
+      var d={id:(stt!==''&&!isNaN(+stt))?'stt'+(+stt):'r'+(i2+1),stt:(stt!==''&&!isNaN(+stt))?+stt:'',soNK:String(g(r,'so nk')).trim(),ngay:_tcNgayExcel(g(r,'ngay hoa don')),soHD:String(g(r,'so hoa don')).trim(),ncc:String(g(r,'ten nha cung cap')).trim(),ma:String(g(r,'ma hang')).trim(),ten:ten,dvt:String(g(r,'dvt')).trim(),ghiChu:ghi,nguon:'excel',thuTu:++thuTu,capNhat:new Date().toISOString()};
+      if(khac){
+        d.loai='khac'; d.giaTri=N||M||0; d.slNhap=0; d.tonFile=0; d.donGia=0; if(L>1000) kt.push('Số lượng bất thường ('+tien(L)+') — đã lấy số tiền '+tien(d.giaTri)+' đ, Thầy kiểm tra lại');
+      }else{
+        d.loai='hang'; soHang++;
+        var ratio=(N>0&&M>0)?N/M:0, ri=Math.round(ratio), ng=ratio>0&&Math.abs(ratio-ri)<0.02&&ri>=1, sl;
+        if(ng&&L===0) sl=ri; else if(ng&&L>0&&ri===L) sl=L;
+        else if(L>0){ sl=L; if(N>0&&M>0) kt.push('Giá trị mua ('+tien(N)+') không khớp SL × đơn giá ('+tien(L*M)+')'); }
+        else { sl=M>0?1:0; if(N>0&&M>0) kt.push('Giá trị mua không khớp đơn giá'); }
+        d.slNhap=sl; d.tonFile=L; d.donGia=Math.round(M||(N&&sl?N/sl:0)); d.giaTri=Math.round(N>0?N:M*sl); d.giaTriFile=N>0?1:0;
+        if(sl===0) kt.push('Thiếu số lượng / đơn giá');
+        if(/(da )?ban cho|da xuat|xuat cho|^ban /.test(nb)&&!/ton kho thuc te/.test(nb)&&L>0) kt.push('Ghi chú nói đã bán/xuất nhưng sổ còn tồn '+L);
+        if(/ton kho thuc te/.test(nb)&&L===0) kt.push('Ghi chú “tồn kho thực tế” nhưng sổ tồn 0');
+      }
+      d.canKT=kt; dsMoi.push(d);
+    }
+    if(!dsMoi.length){ bao('File không có dòng hàng nào',true); return; }
+    KHO._imp={ds:dsMoi,ten:f.name}; khoXemTruoc();
+  }catch(er){ bao('Không đọc được file: '+er.message,true); } };
+  rd.readAsArrayBuffer(f);
+}
+function khoXemTruoc(){
+  var I=KHO._imp, hang=I.ds.filter(function(x){return x.loai==='hang';}), khac=I.ds.filter(function(x){return x.loai==='khac';}), kt=hang.filter(function(x){return x.canKT.length;});
+  var daCo={}; KHO.ds.forEach(function(x){ daCo[x.id]=x; });
+  var ghiDe=I.ds.filter(function(x){ return daCo[x.id]&&!(daCo[x.id].xuatApp&&daCo[x.id].xuatApp.length); }).length, giu=I.ds.filter(function(x){ return daCo[x.id]&&daCo[x.id].xuatApp&&daCo[x.id].xuatApp.length; }).length;
+  var sn=0,st=0,gn=0,gt=0,gTinh=0; hang.forEach(function(x){ sn+=x.slNhap; st+=x.tonFile; gn+=x.giaTri; gt+=x.tonFile*x.donGia; if(!x.giaTriFile) gTinh+=x.giaTri; });
+  var kk=khac.reduce(function(s,x){ return s+x.giaTri; },0);
+  moModal('📥 Xem trước: '+esc(I.ten),
+   '<div style="font-size:13.5px;line-height:1.8"><b>'+hang.length+'</b> dòng hàng hóa: nhập <b>'+sn+'</b> sản phẩm (<b>'+tien(gn)+' đ</b>'+(gTinh?', trong đó <b>'+tien(gTinh)+' đ</b> app tự tính = SL × đơn giá vì file để trống cột Giá trị mua':'')+'), xuất <b>'+(sn-st)+'</b>, còn tồn <b>'+st+'</b> (giá trị tồn <b>'+tien(gt)+' đ</b>).<br>'
+   +'<b>'+khac.length+'</b> dòng không phải hàng hóa (xăng, liên hoan, vận chuyển…) = <b>'+tien(kk)+' đ</b> → tách sang mục <b>Chi phí khác</b>.<br>'
+   +(kt.length?'<span style="color:#dc2626">⚠ <b>'+kt.length+'</b> dòng chưa khớp (ghi chú nói bán nhưng sổ còn tồn, giá trị lệch…) → vào tab <b>Cần kiểm tra</b> để chỉnh.</span><br>':'')+'</div>'
+   +'<div style="margin-top:10px;font-size:12.5px;color:#48566b;line-height:1.6">Cách hiểu cột “Số lượng mua” trong file: file này ghi <b>số còn lại</b> (0 = đã bán hết, 1 = còn hàng), nên app lấy <b>Tồn = số trong file</b>, <b>SL nhập = Giá trị mua ÷ Đơn giá</b>, <b>Xuất = Nhập − Tồn</b>.</div>'
+   +(ghiDe?'<div style="margin-top:8px;font-size:13px;color:#92400e">ℹ️ '+ghiDe+' dòng đã có trong app (cùng STT) sẽ được cập nhật, không bị nhân đôi.</div>':'')
+   +(giu?'<div style="margin-top:6px;font-size:13px;color:#92400e">ℹ️ '+giu+' dòng đã ghi xuất trong app sẽ được <b>giữ nguyên</b> (không ghi đè).</div>':''),
+   'khoNhapXacNhan()',{rong:true,chan:'<button class="nutPhu" onclick="dongModal()">Hủy</button><button class="nutChinh" id="nutLuu" onclick="khoNhapXacNhan()">✅ Nhập '+(I.ds.length-giu)+' dòng</button>'});
+}
+async function khoNhapXacNhan(){
+  var I=KHO._imp; if(!I) return; var btn=document.getElementById('nutLuu'); if(btn){ btn.disabled=true; btn.textContent='Đang nhập...'; }
+  try{
+    var daCo={}; KHO.ds.forEach(function(x){ daCo[x.id]=x; });
+    var ghi=I.ds.filter(function(x){ return !(daCo[x.id]&&daCo[x.id].xuatApp&&daCo[x.id].xuatApp.length); });
+    for(var i=0;i<ghi.length;i+=400){ var b=FB.writeBatch(FB.db); ghi.slice(i,i+400).forEach(function(x){ b.set(FB.doc(FB.db,'kho_hang',x.id),x,{merge:true}); }); await b.commit(); if(btn) btn.textContent='Đã nhập '+Math.min(i+400,ghi.length)+'/'+ghi.length; }
+    ghi.forEach(function(x){ var j=-1; KHO.ds.forEach(function(y,k){ if(y.id===x.id) j=k; }); if(j>=0) KHO.ds[j]=Object.assign({},KHO.ds[j],x); else KHO.ds.push(x); });
+    KHO.ds.sort(function(a,b){ return (a.thuTu||0)-(b.thuTu||0); });
+    dongModal(); bao('✅ Đã nhập '+ghi.length+' dòng vào Kho hàng'); KHO._imp=null; KHO.view='kho'; khoVe();
+  }catch(e){ bao('❌ Chưa nhập được: '+e.message,true); if(btn){ btn.disabled=false; btn.textContent='Thử lại'; } }
+}
+function khoXuatExcel(){
+  var kq=KHO.view==='kt', ds=khoLoc(KHO.ds.filter(function(x){ return !khoLaKhac(x)&&(!kq||khoCanKT(x)); })); if(!ds.length){ bao('Không có dữ liệu để tải',true); return; }
+  xuatExcelFile('ThienAn_KhoHang_'+ngayFile()+'.xlsx',ds.map(function(x){ return {'STT':x.stt||'','Số NK':x.soNK||'','Ngày hóa đơn':khoNgayVN(x.ngay),'Số hóa đơn':x.soHD||'','Nhà cung cấp':x.ncc||'','Mã hàng':x.ma||'','Tên hàng':x.ten||'','ĐVT':x.dvt||'','SL nhập':khoNum(x.slNhap),'Đơn giá':khoNum(x.donGia),'Giá trị nhập':khoNum(x.giaTri),'Xuất':khoXuat(x),'Tồn':khoTon(x),'Giá trị tồn':khoTon(x)*khoNum(x.donGia),'Thông tin xuất / ghi chú':(x.ghiChu||'')+(x.xuatApp&&x.xuatApp.length?' | '+x.xuatApp.map(function(e){ return 'Xuất '+e.sl+' cho '+e.khach; }).join('; '):''),'Cần kiểm tra':(x.canKT||[]).join('; ')}; }));
 }
 /* ===== TRANG CHỦ: Doanh thu TỔNG = học sinh + bán hàng (khớp với mục Thu – Chi) ===== */
 var _dashDTLuc=0;
