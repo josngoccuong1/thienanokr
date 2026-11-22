@@ -417,7 +417,7 @@ main section{animation:hienLen .25s ease}
       <select id="chonCoSoXem" onchange="doiCoSoXem()" title="Cơ sở đang xem" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-weight:600;max-width:170px">
         <option value="" style="color:#12294d;background:#fff">🏫 Tất cả cơ sở</option>
       </select>
-      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 20/11/2026 · v88</span>
+      <span style="font-size:11px;color:#e0be4a;opacity:.9;white-space:nowrap" title="Nếu không thấy dòng này nghĩa là đang xem bản cũ">Bản 22/11/2026 · v89</span>
       <span class="nguoi an-mobile" id="tenNguoi"></span>
       <button class="nutPhu" id="nutThongBao" style="display:none" onclick="moSoanThongBao()" title="Soạn thông báo hiện cho mọi người khi đăng nhập">📢 Thông báo</button>
       <button class="nutPhu" id="nutMoQuanLyMenu" style="display:none" onclick="moQuanLyMenu()" title="Đổi tên / ẩn-hiện các mục menu">⚙️ Menu</button>
@@ -5926,10 +5926,17 @@ function khoSua(id,loai){
    +o('Nhà cung cấp',f('khNCC',d.ncc),false)
    +(khac?o('Nội dung hóa đơn',f('khTen',d.ten),true)+o('Nhóm','<select id="khNhom">'+KHO_NHOM_HD.map(function(g){ return '<option'+(g===(x?khoNhomKhac(x):KHO_NHOM_HD[4])?' selected':'')+'>'+esc(g)+'</option>'; }).join('')+'</select>',false)+o('Số tiền (VNĐ)',f('khGT',d.giaTri?khoTien(d.giaTri):''),true)
      :'<div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">'+o('Mã hàng',f('khMa',d.ma),false)+o('Tên hàng',f('khTen',d.ten),true)+'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">'+o('ĐVT',f('khDVT',d.dvt),false)+o('SL nhập',f('khSL',d.slNhap,'number'),true)+o('Đơn giá (VNĐ)',f('khDG',d.donGia?khoTien(d.donGia):''),false)+o('Tồn hiện tại',f('khTon',ton,'number'),false)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'+o('ĐVT',f('khDVT',d.dvt),false)+o('SL nhập','<input id="khSL" type="number" value="'+esc(d.slNhap==null?'':d.slNhap)+'" oninput="khoTinhGia(\'sl\')">',true)+o('Tồn hiện tại',f('khTon',ton,'number'),false)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+o('Đơn giá (VNĐ)','<input id="khDG" inputmode="numeric" value="'+esc(d.donGia?khoTien(d.donGia):'')+'" oninput="gkFmtTien(this);khoTinhGia(\'dg\')">',false)+o('Giá trị nhập (VNĐ)','<input id="khGTN" inputmode="numeric" value="'+esc(d.giaTri?khoTien(d.giaTri):'')+'" oninput="gkFmtTien(this);khoTinhGia(\'gt\')">',false)+'</div>'
+      +'<div style="font-size:12px;color:#6b7280;margin:-4px 0 8px">Sửa <b>đơn giá</b> hoặc <b>SL</b> → giá trị tự tính = SL × đơn giá. Sửa <b>giá trị nhập</b> → đơn giá tự tính = giá trị ÷ SL. Lẻ thì Thầy sửa tay ô còn lại.</div>'
       +'<div style="font-size:12px;color:#6b7280;margin:-4px 0 8px">Để trống “Tồn hiện tại” = bằng SL nhập. Xuất/bán thì dùng nút 📤 trên dòng hàng để có lịch sử.</div>')
    +o('Ghi chú / thông tin xuất',f('khGhi',d.ghiChu),false);
   moModal(id?'✏️ Sửa dòng':(khac?'➕ Thêm hóa đơn đầu vào':'➕ Nhập hàng vào kho'),than,'khoLuuDong()');
+}
+function khoTinhGia(nguon){
+  var g=function(i){ return soTienJS((document.getElementById(i)||{}).value); }, sl=g('khSL'), dg=g('khDG'), gt=g('khGTN');
+  var dat=function(i,v){ var e=document.getElementById(i); if(e) e.value=v>0?Number(Math.round(v)).toLocaleString('vi-VN'):''; };
+  if(nguon==='gt'){ if(sl>0) dat('khDG',gt/sl); } else { if(sl>0&&dg>0) dat('khGTN',sl*dg); }
 }
 async function khoLuuDong(){
   var v=function(i){ return (document.getElementById(i)||{}).value||''; }, cu=KHO._id?KHO.ds.filter(function(c){return c.id===KHO._id;})[0]:null, khac=KHO._loai==='khac';
@@ -5938,10 +5945,10 @@ async function khoLuuDong(){
   if(!d.ten){ bao('Nhập tên hàng / nội dung',true); return; }
   if(khac){ d.nhom=v('khNhom')||KHO_NHOM_HD[4]; d.giaTri=soTienJS(v('khGT')); if(!(d.giaTri>0)){ bao('Nhập số tiền lớn hơn 0',true); return; } d.slNhap=0; d.tonFile=0; d.donGia=0; d.dvt=''; d.ma=''; d.canKT=(cu&&cu.canKT)||[]; }
   else{
-    d.ma=v('khMa').trim(); d.dvt=v('khDVT').trim(); d.slNhap=khoNum(v('khSL')); d.donGia=soTienJS(v('khDG'));
+    d.ma=v('khMa').trim(); d.dvt=v('khDVT').trim(); d.slNhap=khoNum(v('khSL')); d.donGia=soTienJS(v('khDG')); var gtNhap=soTienJS(v('khGTN'));
     if(!(d.slNhap>0)){ bao('SL nhập phải lớn hơn 0',true); return; }
     var tonNhap=v('khTon')===''?d.slNhap:khoNum(v('khTon')); if(tonNhap>d.slNhap){ bao('Tồn không được lớn hơn SL nhập',true); return; }
-    d.tonFile=tonNhap+(cu?khoXuatApp(cu):0); d.giaTri=d.donGia>0?d.donGia*d.slNhap:(cu?khoNum(cu.giaTri):0); d.canKT=[];
+    d.tonFile=tonNhap+(cu?khoXuatApp(cu):0); d.giaTri=gtNhap>0?gtNhap:(d.donGia>0?d.donGia*d.slNhap:0); if(!(d.donGia>0)&&d.giaTri>0) d.donGia=Math.round(d.giaTri/d.slNhap); d.canKT=[]; d.giaTriFile=1;
     if(cu&&cu.xuatApp) d.xuatApp=cu.xuatApp; if(cu&&cu.stt) d.stt=cu.stt;
   }
   khoaLuu(true);
